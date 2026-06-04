@@ -1975,7 +1975,7 @@ async function generateAndDownloadPDF(){
       if(driveEl) driveEl.innerHTML='<span class="text-gray-400">☁️ Step 1/2: Uploading PDF to Drive...</span>';
       try{
         const uploadResult=await uploadToDrive(pdfBuffer,fileName,violations,requestId);
-        if(uploadResult.success){fileId=uploadResult.id;driveLink=`https://drive.google.com/file/d/${fileId}/view`;}
+        if(uploadResult.success){fileId=uploadResult.id||uploadResult.fileId;driveLink=uploadResult.driveLink||(fileId?`https://drive.google.com/file/d/${fileId}/view`:'');}
         else{console.warn('Upload returned error:',uploadResult);}
       }catch(e){console.warn('Upload error:',e);}
 
@@ -2150,13 +2150,34 @@ function restoreCalculatorState(snap){
 }
 
 function startNewVersion(rowId, parentGroup, snapJSON){
-  _newVersionParentGroup = parentGroup || rowId; // use existing group or rowId as new group
+  _newVersionParentGroup = parentGroup || rowId;
   closeStats();
-  try{
-    const snap = JSON.parse(decodeURIComponent(snapJSON));
-    restoreCalculatorState(snap);
-  }catch(e){console.warn('Could not restore snapshot',e);}
-  // Show a banner so the user knows they're creating a new version
+  if(snapJSON){
+    try{
+      const snap = JSON.parse(decodeURIComponent(snapJSON));
+      restoreCalculatorState(snap);
+    }catch(e){
+      // Partial restore — find the row and fill basic fields
+      const row = statsAllRows.find(r=>r.rowId===rowId);
+      if(row){
+        const mn=document.getElementById('merchant-name');
+        const mm=document.getElementById('merchant-mid');
+        if(mn&&row.merchantName) mn.value=row.merchantName;
+        if(mm&&row.mid) mm.value=row.mid;
+        updateOutputs();
+      }
+    }
+  } else {
+    // No snapshot — just pre-fill merchant name & MID
+    const row = statsAllRows.find(r=>r.rowId===rowId);
+    if(row){
+      const mn=document.getElementById('merchant-name');
+      const mm=document.getElementById('merchant-mid');
+      if(mn&&row.merchantName) mn.value=row.merchantName;
+      if(mm&&row.mid) mm.value=row.mid;
+      updateOutputs();
+    }
+  }
   setTimeout(()=>{
     const banner = document.getElementById('new-version-banner');
     if(banner) banner.classList.remove('hidden');
@@ -2296,47 +2317,19 @@ function genRequestId(){
   return Date.now().toString(36)+Math.random().toString(36).slice(2,8);
 }
 
-// ── Gmail API send (direct from browser using user's signed-in token) ────
-let _gmailTokenClient=null;
-let _pendingEmailJob=null;
-
-function getGmailTokenClient(){
-  if(_gmailTokenClient) return _gmailTokenClient;
-  _gmailTokenClient=google.accounts.oauth2.initTokenClient({
-    client_id:'988966755183-fbs79ibk466rgdie076qrv9jq3flngk1.apps.googleusercontent.com',
-    scope:'https://www.googleapis.com/auth/gmail.send',
-    callback:async(resp)=>{
-      if(resp.access_token&&_pendingEmailJob){
-        await _doGmailSend(resp.access_token,_pendingEmailJob);
-        _pendingEmailJob=null;
-      }
-    },
-  });
-  return _gmailTokenClient;
-}
-
-async function _doGmailSend(token,{to,subject,body}){
-  const mime=[`To: ${to}`,`Subject: ${subject}`,'Content-Type: text/plain; charset=utf-8','',body].join('\r\n');
-  const encoded=btoa(unescape(encodeURIComponent(mime))).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
-  const res=await fetch('https://gmail.googleapis.com/gmail/v1/users/me/messages/send',{
-    method:'POST',
-    headers:{'Authorization':'Bearer '+token,'Content-Type':'application/json'},
-    body:JSON.stringify({raw:encoded}),
-  });
-  const data=await res.json();
-  console.log('Gmail API send result:',data);
-  return data;
-}
-
-function sendEmailViaGmail(emailJob){
-  return new Promise(resolve=>{
-    _pendingEmailJob={...emailJob,_resolve:resolve};
-    const client=getGmailTokenClient();
-    // Try silent first; only show consent if needed
-    client.requestAccessToken({prompt:''});
-    // Resolve after 8s timeout whether email sent or not
-    setTimeout(()=>resolve({timedOut:true}),8000);
-  });
+// ── Email via Apps Script (MailApp runs as script owner — reliable) ────
+async function sendEmailViaAppsScript(emailJob){
+  try{
+    const res=await fetch(APPS_SCRIPT_URL,{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({type:'send_email',...emailJob}),
+    });
+    return await res.json();
+  }catch(e){
+    console.warn('Email via Apps Script failed:',e);
+    return{success:false,error:String(e)};
+  }
 }
 
 async function requestApproval({requestId,requesterEmail,requesterName,merchantName,gmv,slabLabel,violations,fileId,driveLink,fileName}){
@@ -2371,12 +2364,13 @@ async function requestApproval({requestId,requesterEmail,requesterName,merchantN
   ].join('\n');
 
   try{
-    await sendEmailViaGmail({
+    const emailResult=await sendEmailViaAppsScript({
       to:'abhinav.b@razorpay.com',
       subject:'[Approval Needed] Below-floor pricing for '+merchantName,
       body,
     });
-  }catch(e){console.warn('Gmail API send failed:',e);}
+    console.log('Email send result:',emailResult);
+  }catch(e){console.warn('Email send failed:',e);}
 
   return{success:true,requestId};
 }
@@ -2532,7 +2526,8 @@ function renderStatsTable(rows){
     return `<span class="text-xs font-bold px-2.5 py-1 rounded-full ${x.c} whitespace-nowrap">${x.t}</span>`;
   };
   const versionBadge=(r)=>{
-    const newVerBtn=r.snapshot?`<button onclick="startNewVersion('${r.rowId}','${(r.group||r.rowId).replace(/'/g,'\\\'').replace(/\\/g,'\\\\')}','${encodeURIComponent(JSON.stringify(r.snapshot)).replace(/'/g,'%27')}')" class="mt-1.5 flex items-center gap-1 text-xs font-semibold text-indigo-600 hover:text-indigo-800 hover:underline">＋ New version</button>`:'';
+    const snapArg=r.snapshot?encodeURIComponent(JSON.stringify(r.snapshot)).replace(/'/g,'%27'):'';
+    const newVerBtn=(r.type==='downloaded'||r.statusKey==='downloaded')?`<button onclick="startNewVersion('${r.rowId}','${(r.group||r.rowId).replace(/'/g,'\\\'').replace(/\\/g,'\\\\')}','${snapArg}')" class="mt-1.5 flex items-center gap-1 text-xs font-semibold text-indigo-600 hover:text-indigo-800 hover:underline">＋ New version</button>`:'';
     if(!r.group) return `<button onclick="openGroupModal('${r.rowId}','${(r.merchantName||'').replace(/'/g,'\\\'')}')" class="text-xs text-gray-400 hover:text-indigo-500 hover:underline font-semibold">+ Link</button>${newVerBtn}`;
     const colors=['bg-blue-100 text-blue-700','bg-indigo-100 text-indigo-700','bg-purple-100 text-purple-700','bg-pink-100 text-pink-700'];
     const c=colors[((r.version||1)-1)%colors.length];
