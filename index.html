@@ -583,7 +583,7 @@ function checkFloorWarnings(){
       if(floor===0||flatMode[tab]?.[i]){warn.classList.add('hidden');return;}
       const mdr=+(document.getElementById(`${pfx}-mdr-${i}`)?.value)||0;
       if(mdr<floor){
-        warn.textContent=`⚠ Below floor: min ${floor.toFixed(2)}%`;
+        warn.textContent='⚠ Caution: Approval Required';
         warn.classList.remove('hidden');
       } else {
         warn.classList.add('hidden');
