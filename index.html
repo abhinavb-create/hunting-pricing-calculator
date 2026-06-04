@@ -1,0 +1,1685 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Hunting &lt;&gt; Pricing Calculator</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+<style>
+  body{font-family:'Inter',system-ui,sans-serif;background:#f0f4ff;}
+  .tab-active  {background:#3b5bdb;color:white;box-shadow:0 2px 8px #3b5bdb44;}
+  .tab-inactive{background:white;color:#3b5bdb;border:1.5px solid #3b5bdb;}
+  .tab-mc-active  {background:#7048e8;color:white;box-shadow:0 2px 8px #7048e844;}
+  .tab-mc-inactive{background:white;color:#7048e8;border:1.5px solid #7048e8;}
+  .tab-route-active  {background:#0ea5e9;color:white;box-shadow:0 2px 8px #0ea5e944;}
+  .tab-route-inactive{background:white;color:#0ea5e9;border:1.5px solid #0ea5e9;}
+  .tab-route-disabled{background:#f3f4f6;color:#9ca3af;border:1.5px solid #e5e7eb;cursor:not-allowed;opacity:.6;}
+  .nr-ok   {color:#087f5b;background:#d3f9d8;border:2px solid #8ce99a;}
+  .nr-warn {color:#c92a2a;background:#ffe3e3;border:2px solid #fa5252;}
+  .nr-amber{color:#92400e;background:#fef3c7;border:2px solid #fcd34d;}
+  .method-row:hover{background:#f8f9ff;}
+  input[type=number]::-webkit-inner-spin-button{opacity:.4;}
+  .pdf-btn{background:linear-gradient(135deg,#3b5bdb,#7048e8);}
+  .pdf-btn:hover{opacity:.9;}
+  .pulse-red{animation:pulseR 1.4s infinite;}
+  @keyframes pulseR{0%,100%{opacity:1}50%{opacity:.5}}
+  .comp-col{background:#fdf4ff;}
+  .rp-col  {background:#f0fff4;}
+  .pill-pct {background:#e0e7ff;color:#3b5bdb;border:1.5px solid #3b5bdb;}
+  .pill-flat{background:#ff6b35;color:white;border:1.5px solid #d4450e;}
+  .field-error{border-color:#fa5252!important;}
+  .locked input,.locked select{opacity:.4;pointer-events:none;cursor:not-allowed;}
+  .modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:1000;align-items:center;justify-content:center;}
+  .modal.show{display:flex;}
+</style>
+</head>
+<body class="min-h-screen p-4 md:p-6">
+
+<!-- ===== APPROVAL MODAL ===== -->
+<div id="approval-modal" class="modal">
+  <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full mx-4 overflow-hidden">
+    <div class="bg-red-500 px-6 py-4 flex items-center gap-3">
+      <svg class="w-7 h-7 text-white shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/>
+      </svg>
+      <h2 class="text-white font-black text-lg">Approval Required</h2>
+    </div>
+    <div class="px-6 py-5">
+      <p class="text-gray-700 text-sm leading-relaxed mb-4">The pricing results in an <strong class="text-red-600">Effective NR below ₹1,000/month</strong> — below Razorpay's minimum threshold.</p>
+      <div class="bg-red-50 border border-red-200 rounded-xl px-4 py-3 mb-5">
+        <p class="text-xs text-red-600 font-bold uppercase tracking-wide mb-2">Requires sign-off from</p>
+        <div class="flex items-center gap-3">
+          <span class="bg-red-500 text-white text-xs font-black px-3 py-1 rounded-full">Abhinav</span>
+          <span class="text-gray-400 text-xs">or</span>
+          <span class="bg-red-500 text-white text-xs font-black px-3 py-1 rounded-full">Raktim</span>
+        </div>
+      </div>
+      <p class="text-xs text-gray-400 mb-5">Do not share this pricing with the merchant until approval is obtained.</p>
+      <button onclick="closeModal('approval-modal')" class="w-full bg-red-500 hover:bg-red-600 text-white font-bold py-2.5 rounded-xl text-sm">I Understand — Get Approval Before Sharing</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== LOCK MODAL ===== -->
+<div id="lock-modal" class="modal">
+  <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full mx-4 overflow-hidden">
+    <div class="bg-amber-500 px-6 py-4 flex items-center gap-3">
+      <svg class="w-7 h-7 text-white shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
+      </svg>
+      <h2 class="text-white font-black text-lg">Standard Pricing Only</h2>
+    </div>
+    <div class="px-6 py-5">
+      <p class="text-gray-700 text-sm leading-relaxed mb-4">Monthly GMV is <strong>below ₹5 Lakh</strong>. Custom rate negotiation is not applicable at this GMV level.</p>
+      <div class="bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 mb-5 text-sm text-amber-800 font-semibold">All pricing fields have been locked to standard rates. Raise GMV above ₹5 Lakh to unlock custom pricing.</div>
+      <button onclick="closeModal('lock-modal')" class="w-full bg-amber-500 hover:bg-amber-600 text-white font-bold py-2.5 rounded-xl text-sm">Understood</button>
+    </div>
+  </div>
+</div>
+
+<div class="max-w-6xl mx-auto" id="main-wrap">
+
+  <!-- Header -->
+  <div class="flex items-center justify-between mb-5">
+    <div>
+      <h1 class="text-2xl font-bold text-gray-800">CC &amp; UPI Pricing Calculator</h1>
+      <p class="text-sm text-gray-400 mt-0.5">Net Revenue &amp; Merchant Impact · Razorpay Internal</p>
+    </div>
+    <button id="pdf-btn" onclick="downloadPDF()" class="pdf-btn text-white px-5 py-2.5 rounded-xl font-semibold text-sm flex items-center gap-2 shadow-lg">
+      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414A1 1 0 0119 7.414V19a2 2 0 01-2 2z"/></svg>
+      Download PDF
+    </button>
+  </div>
+
+  <!-- MERCHANT PROFILE -->
+  <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-5 mb-4">
+    <p class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">Merchant Profile</p>
+    <div class="flex flex-wrap gap-4">
+      <div class="flex-1 min-w-36">
+        <label class="block text-xs font-semibold text-gray-500 mb-1.5">Customer Name <span class="text-gray-300 font-normal">(optional)</span></label>
+        <input id="customer-name" type="text" placeholder="e.g. Rahul Sharma"
+          class="w-full px-3 py-2.5 border-2 border-gray-200 rounded-xl text-gray-800 font-bold text-sm focus:outline-none focus:border-blue-500 transition">
+      </div>
+      <div class="flex-1 min-w-48">
+        <label class="block text-xs font-semibold text-gray-500 mb-1.5">Business Name <span class="text-red-400">*</span></label>
+        <input id="merchant-name" type="text" placeholder="e.g. Acme Pvt Ltd"
+          class="w-full px-3 py-2.5 border-2 border-gray-200 rounded-xl text-gray-800 font-bold text-sm focus:outline-none focus:border-blue-500 transition"
+          oninput="validateMerchant()">
+        <p id="name-err" class="text-xs text-red-500 mt-1 hidden">Required</p>
+      </div>
+      <div class="flex-1 min-w-36">
+        <label class="block text-xs font-semibold text-gray-500 mb-1.5">MID <span class="text-gray-300 font-normal">(optional)</span></label>
+        <input id="merchant-mid" type="text" placeholder="e.g. MID1234567890"
+          class="w-full px-3 py-2.5 border-2 border-gray-200 rounded-xl text-gray-800 font-bold text-sm focus:outline-none focus:border-blue-500 transition">
+      </div>
+      <div class="flex-1 min-w-44">
+        <label class="block text-xs font-semibold text-gray-500 mb-1.5">Monthly GMV (₹) <span class="text-red-400">*</span></label>
+        <div class="relative">
+          <span class="absolute left-3 top-2.5 text-gray-400 font-semibold text-sm">₹</span>
+          <input id="gmv" type="number" value="5600000" min="0" step="100000"
+            class="w-full pl-7 pr-3 py-2.5 border-2 border-gray-200 rounded-xl text-gray-800 font-bold text-sm focus:outline-none focus:border-blue-500"
+            oninput="onGMVChange()">
+        </div>
+        <p id="gmv-label" class="text-xs text-blue-500 font-semibold mt-1"></p>
+      </div>
+      <div class="min-w-28 text-right self-end pb-1">
+        <div class="text-xs text-gray-400 font-bold uppercase tracking-wide mb-1">GMV Split</div>
+        <div id="split-check" class="text-sm font-bold px-3 py-1.5 rounded-lg bg-green-100 text-green-700">—</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SETTLEMENT / CREDITS / ROUTE — shared movable block, JS moves into active tab -->
+  <div id="addon-cards">
+  <!-- SETTLEMENT -->
+  <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-5 mb-4">
+    <p class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">Settlement Schedule</p>
+    <div class="flex flex-wrap gap-4 items-start">
+      <div class="min-w-52">
+        <label class="block text-xs font-semibold text-gray-500 mb-1.5">Settlement Type</label>
+        <select id="settlement-type" onchange="onSettlementChange()"
+          class="w-full px-3 py-2.5 border-2 border-gray-200 rounded-xl text-gray-800 font-bold text-sm focus:outline-none focus:border-blue-500 bg-white">
+          <option value="T2">T+2 — Standard (Free)</option>
+          <option value="T1">T+1 — Subject to approval at risk</option>
+          <option value="T0">T+0 — Min 0.05% of GMV</option>
+          <option value="ODS">On-Demand (ODS) — Min 0.10% · Limit applies</option>
+        </select>
+      </div>
+      <div id="t1-field" class="hidden min-w-44">
+        <label class="block text-xs font-semibold text-gray-500 mb-1.5">T+1 Rate %</label>
+        <input id="t1-rate" type="number" value="0" min="0" max="2" step="0.01"
+          class="w-full px-3 py-2.5 border-2 border-yellow-300 rounded-xl text-gray-800 font-bold text-sm focus:outline-none focus:border-yellow-500 bg-yellow-50"
+          oninput="updateOutputs()">
+        <p class="text-xs text-amber-600 font-semibold mt-1">⚠ Subject to approval at risk</p>
+      </div>
+      <div id="t0-field" class="hidden min-w-44">
+        <label class="block text-xs font-semibold text-gray-500 mb-1.5">T+0 Rate % <span class="text-gray-300">(min 0.05%)</span></label>
+        <input id="t0-rate" type="number" value="0.05" min="0.05" max="2" step="0.01"
+          class="w-full px-3 py-2.5 border-2 border-blue-200 rounded-xl text-gray-800 font-bold text-sm focus:outline-none focus:border-blue-500"
+          oninput="clampAndUpdate('t0-rate',0.05)">
+        <p id="t0-nr" class="text-xs text-blue-600 font-semibold mt-1"></p>
+      </div>
+      <div id="ods-field" class="hidden min-w-44">
+        <label class="block text-xs font-semibold text-gray-500 mb-1.5">ODS Rate % <span class="text-gray-300">(min 0.10%)</span></label>
+        <input id="ods-rate" type="number" value="0.10" min="0.10" max="2" step="0.01"
+          class="w-full px-3 py-2.5 border-2 border-blue-200 rounded-xl text-gray-800 font-bold text-sm focus:outline-none focus:border-blue-500"
+          oninput="clampAndUpdate('ods-rate',0.10)">
+        <p class="text-xs text-amber-600 font-semibold mt-1">⚠ Limit subject to approval at risk</p>
+        <p id="ods-nr" class="text-xs text-blue-600 font-semibold mt-0.5"></p>
+      </div>
+      <div id="settlement-nr-box" class="hidden flex-1 min-w-44 bg-blue-50 rounded-xl p-3 border border-blue-100 self-start">
+        <p class="text-xs font-bold text-blue-500 uppercase tracking-wide">Settlement NR / Month</p>
+        <p id="settlement-nr-val" class="text-xl font-black text-blue-800 mt-1"></p>
+        <p id="settlement-nr-sub" class="text-xs text-blue-400 mt-0.5"></p>
+      </div>
+    </div>
+  </div>
+
+  <!-- GMV CREDIT BENEFIT -->
+  <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-5 mb-4">
+    <p class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">GMV Credit Benefit <span class="text-gray-300 font-normal">(optional)</span></p>
+    <div class="flex flex-wrap gap-4 items-start">
+      <div class="min-w-52">
+        <label class="block text-xs font-semibold text-gray-500 mb-1.5">Credit Amount Offered</label>
+        <select id="gmv-credit" onchange="onGMVCreditChange()"
+          class="w-full px-3 py-2.5 border-2 border-gray-200 rounded-xl text-gray-800 font-bold text-sm focus:outline-none focus:border-green-500 bg-white">
+          <option value="0">None — not offering credit</option>
+          <option value="300000">Rs. 3 Lakh</option>
+          <option value="500000">Rs. 5 Lakh</option>
+          <option value="700000">Rs. 7 Lakh</option>
+          <option value="1000000">Rs. 10 Lakh</option>
+          <option value="1500000">Rs. 15 Lakh</option>
+          <option value="custom">Custom Amount</option>
+        </select>
+      </div>
+      <div id="gmv-credit-custom-box" class="hidden min-w-44">
+        <label class="block text-xs font-semibold text-gray-500 mb-1.5">Custom Amount (Rs.)</label>
+        <div class="relative">
+          <span class="absolute left-3 top-2.5 text-gray-400 font-semibold text-sm">Rs.</span>
+          <input id="gmv-credit-custom-val" type="number" min="0" step="10000" placeholder="e.g. 2000000"
+            class="w-full pl-9 pr-3 py-2.5 border-2 border-green-200 rounded-xl text-gray-800 font-bold text-sm focus:outline-none focus:border-green-500"
+            oninput="onGMVCreditChange()">
+        </div>
+      </div>
+      <div id="gmv-credit-badge" class="hidden flex-1 min-w-48 bg-green-50 border-2 border-green-300 rounded-xl p-3">
+        <p class="text-xs font-bold text-green-600 uppercase tracking-wide">Credit Benefit Active</p>
+        <p id="gmv-credit-display-val" class="text-2xl font-black text-green-800 mt-0.5"></p>
+        <p class="text-xs text-green-500 mt-0.5">Will be highlighted in the PDF proposal</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- RAZORPAY ROUTE (Add-on) -->
+  <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-5 mb-4">
+    <p class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">Razorpay Route <span class="text-gray-300 font-normal">(optional · min GMV Rs. 40L)</span></p>
+    <div class="flex flex-wrap gap-4 items-start">
+      <div class="min-w-52">
+        <label class="block text-xs font-semibold text-gray-500 mb-1.5">Route Rate Offered</label>
+        <select id="route-select" onchange="onRouteSelectChange()"
+          class="w-full px-3 py-2.5 border-2 border-gray-200 rounded-xl text-gray-800 font-bold text-sm focus:outline-none focus:border-sky-500 bg-white">
+          <option value="0">None — not offering Route</option>
+          <option value="0.10">0.10%</option>
+          <option value="0.15">0.15%</option>
+          <option value="0.20">0.20%</option>
+          <option value="0.25">0.25%</option>
+          <option value="0.30">0.30%</option>
+          <option value="custom">Custom %</option>
+        </select>
+        <p id="route-gmv-warn" class="hidden text-xs text-amber-600 font-semibold mt-1">⚠ Route requires GMV &gt; Rs. 40 Lakh</p>
+      </div>
+      <div id="route-custom-box" class="hidden min-w-44">
+        <label class="block text-xs font-semibold text-gray-500 mb-1.5">Custom Rate % <span class="text-gray-300">(0.10–0.30)</span></label>
+        <input id="route-custom-val" type="number" min="0.10" max="0.30" step="0.01" value="0.10"
+          class="w-full px-3 py-2.5 border-2 border-sky-200 rounded-xl text-gray-800 font-bold text-sm focus:outline-none focus:border-sky-500"
+          oninput="onRouteSelectChange()">
+      </div>
+      <div id="route-badge" class="hidden flex-1 min-w-48 bg-sky-50 border-2 border-sky-200 rounded-xl p-3">
+        <p class="text-xs font-bold text-sky-600 uppercase tracking-wide">Route NR / Month</p>
+        <p id="route-nr-badge-val" class="text-2xl font-black text-sky-800 mt-0.5"></p>
+        <p id="route-nr-badge-sub" class="text-xs text-sky-400 mt-0.5"></p>
+      </div>
+    </div>
+  </div>
+  </div><!-- /addon-cards -->
+
+  <!-- Tabs -->
+  <div id="scenario-tabs" class="flex gap-2 mb-4 flex-wrap">
+    <button onclick="setTab('competition')" id="tab-competition" class="tab-active px-6 py-2.5 rounded-xl font-bold text-sm">⚔️ With Competition</button>
+    <button onclick="setTab('magic-checkout')" id="tab-magic-checkout" class="tab-mc-inactive px-6 py-2.5 rounded-xl font-bold text-sm">✨ PG + Magic</button>
+  </div>
+
+  <!-- ===== WITH COMPETITION ===== -->
+  <div id="panel-competition">
+    <div id="addon-cards-slot-competition"></div>
+    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-5 mb-4" id="comp-table-card">
+      <h2 class="font-bold text-gray-800 mb-0.5">⚔️ With Competition</h2>
+      <p class="text-xs text-gray-400 mb-4">Competitive rates · Toggle UPI/Net Banking to <span class="text-orange-500 font-semibold">₹ Flat</span> per txn where applicable</p>
+      <div class="overflow-x-auto">
+        <table class="w-full text-xs">
+          <thead>
+            <tr class="text-gray-400 uppercase tracking-wider border-b-2 border-gray-100 font-bold">
+              <th class="text-left py-2.5 pr-2 w-40">Method</th>
+              <th class="text-center py-2.5 px-2 rp-col rounded-t-lg">RP Pricing</th>
+              <th class="text-center py-2.5 px-2 comp-col rounded-t-lg">Comp MDR %</th>
+              <th class="text-center py-2.5 px-2">GMV Split %</th>
+              <th class="text-right py-2.5 px-2">Method GMV</th>
+              <th class="text-right py-2.5 px-2">Merch Pays (RP)</th>
+              <th class="text-right py-2.5 px-2">Merch Pays (Comp)</th>
+              <th class="text-right py-2.5 px-2 text-emerald-600">Saving/mo</th>
+              <th class="text-right py-2.5 pl-2">RP NR</th>
+            </tr>
+          </thead>
+          <tbody id="comp-tbody"></tbody>
+          <tfoot>
+            <tr class="border-t-2 border-gray-200 font-bold text-xs">
+              <td class="py-2.5 text-gray-500 pr-2">Subtotal (MDR)</td><td colspan="4"></td>
+              <td id="cf-rpay" class="py-2.5 px-2 text-right text-green-800"></td>
+              <td id="cf-cpay" class="py-2.5 px-2 text-right text-purple-800"></td>
+              <td id="cf-save" class="py-2.5 px-2 text-right"></td>
+              <td id="cf-nr"   class="py-2.5 pl-2 text-right"></td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+      <div id="comp-split-warn" class="hidden mt-3 text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 font-semibold"></div>
+      <div id="comp-settle-line" class="hidden mt-2 flex items-center justify-between bg-blue-50 border border-blue-100 rounded-xl px-4 py-2 text-xs">
+        <span class="text-blue-600 font-semibold" id="comp-settle-label"></span>
+        <span class="font-black text-blue-700" id="comp-settle-nr"></span>
+      </div>
+      <div id="comp-nr-box" class="mt-3 rounded-xl p-4 flex items-center justify-between">
+        <div>
+          <p class="text-xs font-bold uppercase tracking-wider opacity-70">Effective NR / Month <span id="comp-nr-settle-tag" class="hidden text-blue-600 font-bold">(incl. settlement)</span></p>
+          <p id="comp-nr" class="text-3xl font-black mt-0.5"></p>
+          <p id="comp-nr-warn" class="text-xs font-bold mt-1 hidden pulse-red">⚠ Below ₹1,000 minimum — approval required from Abhinav / Raktim</p>
+        </div>
+        <div class="text-right"><p class="text-xs opacity-60 mb-0.5">Annual NR</p><p id="comp-nr-annual" class="text-2xl font-black"></p></div>
+      </div>
+    </div>
+    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-5 mb-6">
+      <h3 class="font-bold text-gray-700 mb-4 text-sm">📊 Merchant Impact — With Competition</h3>
+      <div class="grid grid-cols-2 gap-4 mb-4">
+        <div class="comp-col rounded-xl p-4 border border-purple-100">
+          <p class="text-xs font-bold text-purple-600 uppercase tracking-wide mb-3">😰 With Competitor</p>
+          <p class="text-xs text-gray-500">Monthly MDR Cost</p><p id="ci-comp-monthly" class="text-2xl font-black text-purple-800 mb-2"></p>
+          <p class="text-xs text-gray-500">Annual MDR Cost</p><p id="ci-comp-annual" class="text-lg font-bold text-purple-700 mb-2"></p>
+          <p class="text-xs text-gray-500">Blended Rate</p><p id="ci-comp-blend" class="text-sm font-bold text-purple-600"></p>
+        </div>
+        <div class="rp-col rounded-xl p-4 border border-green-100">
+          <p class="text-xs font-bold text-green-600 uppercase tracking-wide mb-3">✅ With Razorpay</p>
+          <p class="text-xs text-gray-500">Monthly MDR Cost</p><p id="ci-rp-monthly" class="text-2xl font-black text-green-800 mb-2"></p>
+          <p class="text-xs text-gray-500">Annual MDR Cost</p><p id="ci-rp-annual" class="text-lg font-bold text-green-700 mb-2"></p>
+          <p class="text-xs text-gray-500">Blended Rate</p><p id="ci-rp-blend" class="text-sm font-bold text-green-600"></p>
+        </div>
+      </div>
+      <div class="bg-gradient-to-r from-green-500 to-emerald-500 rounded-xl p-4 text-white flex items-center justify-between">
+        <div>
+          <p class="text-xs font-bold uppercase tracking-wide opacity-80">Total Merchant Savings by Switching to Razorpay</p>
+          <p id="ci-save-monthly" class="text-3xl font-black mt-0.5"></p>
+          <p class="text-xs opacity-70">per month</p>
+        </div>
+        <div class="text-right"><p class="text-xs opacity-70 mb-0.5">Annual Savings</p><p id="ci-save-annual" class="text-2xl font-black"></p></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== MAGIC CHECKOUT ===== -->
+  <div id="panel-magic-checkout" class="hidden">
+    <div id="addon-cards-slot-magic-checkout"></div>
+
+    <!-- MC + Competitor Pricing Config -->
+    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-5 mb-4">
+      <div class="flex items-start justify-between flex-wrap gap-3 mb-4">
+        <div>
+          <h2 class="font-bold text-gray-800 mb-0.5">✨ Magic Checkout — Blended Pricing</h2>
+          <p class="text-xs text-gray-400">PG rates + Magic Checkout fee vs competitor checkout · Combined NR impact</p>
+        </div>
+        <div class="bg-purple-50 border border-purple-200 rounded-xl px-4 py-2.5 text-xs text-purple-700 font-semibold">
+          Min charged rate: <strong>0.05%</strong> · Free period: max <strong>6 months</strong>
+        </div>
+      </div>
+
+      <!-- Checkout rate comparison row -->
+      <div class="bg-gradient-to-r from-purple-50 to-violet-50 border border-purple-100 rounded-2xl p-5 mb-5">
+        <p class="text-xs font-bold text-purple-500 uppercase tracking-wider mb-4">Checkout Pricing (% of GMV)</p>
+        <div class="flex flex-wrap gap-5 items-start">
+
+          <!-- RP Magic Checkout rate -->
+          <div class="min-w-52">
+            <label class="block text-xs font-semibold text-gray-500 mb-1.5">
+              <span class="inline-flex items-center gap-1.5">
+                <span class="w-2.5 h-2.5 rounded-full bg-purple-500 inline-block"></span>
+                Razorpay Magic Checkout %
+              </span>
+              <span class="text-gray-300 font-normal ml-1">(0 = free period)</span>
+            </label>
+            <input id="mc-rate" type="number" value="0.05" min="0" max="5" step="0.01"
+              class="w-full px-3 py-2.5 border-2 border-purple-200 rounded-xl text-gray-800 font-bold text-sm focus:outline-none focus:border-purple-500"
+              oninput="onMCRateChange()">
+            <p id="mc-rate-hint" class="text-xs text-purple-500 font-semibold mt-1"></p>
+          </div>
+
+          <!-- Competitor checkout rate -->
+          <div class="min-w-52">
+            <label class="block text-xs font-semibold text-gray-500 mb-1.5">
+              <span class="inline-flex items-center gap-1.5">
+                <span class="w-2.5 h-2.5 rounded-full bg-purple-300 inline-block"></span>
+                Competitor Checkout % <span class="text-gray-300 font-normal">(GoKwik / Shiprocket etc.)</span>
+              </span>
+            </label>
+            <input id="mc-comp-rate" type="number" value="0.10" min="0" max="5" step="0.01"
+              class="w-full px-3 py-2.5 border-2 border-purple-200 rounded-xl text-gray-800 font-bold text-sm focus:outline-none focus:border-purple-500"
+              oninput="updateOutputs()">
+            <p id="mc-comp-hint" class="text-xs text-gray-400 font-semibold mt-1"></p>
+          </div>
+
+          <!-- NR summary tile -->
+          <div class="flex-1 min-w-44 bg-purple-50 rounded-xl p-3 border border-purple-100 self-start">
+            <p class="text-xs font-bold text-purple-500 uppercase tracking-wide">MC NR / Month</p>
+            <p id="mc-nr-val" class="text-xl font-black text-purple-800 mt-1">—</p>
+            <p id="mc-nr-sub" class="text-xs text-purple-400 mt-0.5"></p>
+          </div>
+        </div>
+
+        <!-- Free period box -->
+        <div id="mc-free-period-box" class="hidden mt-4 bg-amber-50 border-2 border-amber-300 rounded-2xl p-4">
+          <p class="text-xs font-black text-amber-700 uppercase tracking-wide mb-3">⚠ Free Period Configuration <span class="text-amber-500 font-normal">(max 6 months)</span></p>
+          <div class="flex flex-wrap gap-4 items-end">
+            <div class="min-w-40">
+              <label class="block text-xs font-semibold text-amber-700 mb-1">Free Period (months) · max 6</label>
+              <input id="mc-free-months" type="number" value="3" min="1" max="6" step="1"
+                class="w-full px-3 py-2 border-2 border-amber-300 rounded-lg text-gray-800 font-bold text-sm focus:outline-none focus:border-amber-500 bg-white"
+                oninput="clampFreeMonths();updateMCDisclaimer()">
+            </div>
+            <div class="min-w-44">
+              <label class="block text-xs font-semibold text-amber-700 mb-1">Rate After Free Period % <span class="text-amber-400">(min 0.05%)</span></label>
+              <input id="mc-post-rate" type="number" value="0.05" min="0.05" max="5" step="0.01"
+                class="w-full px-3 py-2 border-2 border-amber-300 rounded-lg text-gray-800 font-bold text-sm focus:outline-none focus:border-amber-500 bg-white"
+                oninput="clampAndUpdate('mc-post-rate',0.05);updateMCDisclaimer()">
+            </div>
+            <div id="mc-disclaimer-text" class="flex-1 min-w-64 bg-white border border-amber-200 rounded-xl px-4 py-3 text-xs text-amber-800 leading-relaxed font-medium"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- PG table -->
+      <p class="text-xs font-bold text-gray-500 uppercase tracking-wider mb-3">PG Pricing (per method)</p>
+      <div class="overflow-x-auto">
+        <table class="w-full text-xs">
+          <thead>
+            <tr class="text-gray-400 uppercase tracking-wider border-b-2 border-gray-100 font-bold">
+              <th class="text-left py-2.5 pr-2 w-40">Method</th>
+              <th class="text-center py-2.5 px-2 rp-col rounded-t-lg">PG Rate %</th>
+              <th class="text-center py-2.5 px-2">GMV Split %</th>
+              <th class="text-right py-2.5 px-2">Method GMV</th>
+              <th class="text-right py-2.5 px-2">Merchant Pays</th>
+              <th class="text-right py-2.5 pl-2">PG NR</th>
+            </tr>
+          </thead>
+          <tbody id="mc-tbody"></tbody>
+          <tfoot>
+            <tr class="border-t-2 border-gray-200 font-bold text-xs">
+              <td class="py-2.5 text-gray-500 pr-2">PG Subtotal</td><td colspan="3"></td>
+              <td id="mf-pay" class="py-2.5 px-2 text-right text-green-800"></td>
+              <td id="mf-nr"  class="py-2.5 pl-2 text-right"></td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+      <div id="mc-split-warn" class="hidden mt-3 text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 font-semibold"></div>
+
+      <!-- Settlement line -->
+      <div id="mc-settle-line" class="hidden mt-2 flex items-center justify-between bg-blue-50 border border-blue-100 rounded-xl px-4 py-2 text-xs">
+        <span class="text-blue-600 font-semibold" id="mc-settle-label"></span>
+        <span class="font-black text-blue-700" id="mc-settle-nr"></span>
+      </div>
+
+      <!-- Combined NR box -->
+      <div id="mc-nr-box" class="mt-3 rounded-xl p-4">
+        <div class="flex items-center justify-between flex-wrap gap-4">
+          <div>
+            <p class="text-xs font-bold uppercase tracking-wider opacity-70">Combined NR / Month (PG + MC <span id="mc-nr-settle-tag" class="hidden text-blue-600 font-bold">+ Settlement</span>)</p>
+            <p id="mc-combined-nr" class="text-3xl font-black mt-0.5"></p>
+            <p id="mc-nr-warn" class="text-xs font-bold mt-1 hidden pulse-red">⚠ Below ₹1,000 minimum — approval required from Abhinav / Raktim</p>
+          </div>
+          <div class="flex gap-5 text-right flex-wrap">
+            <div><p class="text-xs opacity-60 mb-0.5">PG NR</p><p id="mc-pg-nr-display" class="text-xl font-black"></p></div>
+            <div><p class="text-xs opacity-60 mb-0.5">MC NR</p><p id="mc-mc-nr-display" class="text-xl font-black"></p></div>
+            <div><p class="text-xs opacity-60 mb-0.5">Annual NR</p><p id="mc-nr-annual" class="text-2xl font-black"></p></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- MC Impact & Competition Comparison -->
+    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-5 mb-6">
+      <h3 class="font-bold text-gray-700 mb-4 text-sm">📊 Merchant Impact &amp; Competition Comparison — Magic Checkout</h3>
+      <div id="mc-impact"></div>
+    </div>
+
+  </div><!-- /panel-magic-checkout -->
+
+
+<!-- ===== PDF CUSTOMIZATION MODAL ===== -->
+<div id="pdf-modal" class="modal">
+  <div class="bg-white rounded-2xl shadow-2xl max-w-2xl w-full mx-4 overflow-hidden max-h-screen overflow-y-auto">
+    <div class="bg-gradient-to-r from-blue-700 to-indigo-700 px-6 py-4 flex items-center justify-between">
+      <div>
+        <h2 class="text-white font-black text-lg">Customize Proposal PDF</h2>
+        <p class="text-blue-200 text-xs mt-0.5">Edit the cover text before generating · Rate table is auto-populated</p>
+      </div>
+      <button onclick="closeModal('pdf-modal')" class="text-white opacity-60 hover:opacity-100 text-2xl leading-none">&times;</button>
+    </div>
+    <div class="px-6 py-5 space-y-4">
+      <div>
+        <label class="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1.5">Opening Paragraph</label>
+        <textarea id="pdf-intro-text" rows="4" class="w-full px-3 py-2.5 border-2 border-gray-200 rounded-xl text-gray-700 text-sm focus:outline-none focus:border-blue-500 resize-none leading-relaxed" placeholder="Opening message..."></textarea>
+      </div>
+      <div>
+        <label class="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1.5">Closing / Next Steps</label>
+        <textarea id="pdf-closing-text" rows="3" class="w-full px-3 py-2.5 border-2 border-gray-200 rounded-xl text-gray-700 text-sm focus:outline-none focus:border-blue-500 resize-none leading-relaxed" placeholder="Closing remarks or next steps..."></textarea>
+      </div>
+      <div class="bg-blue-50 border border-blue-100 rounded-xl px-4 py-3 text-xs text-blue-700 space-y-2">
+        <div><strong>What's included:</strong> Merchant details · Payment method rates · Settlement terms · Magic Checkout (if applicable) · T&amp;C</div>
+        <label class="flex items-center gap-2 cursor-pointer">
+          <input type="checkbox" id="pdf-include-savings" class="w-4 h-4 accent-blue-700">
+          <span class="font-semibold text-blue-800">Include cost comparison vs competitor <span class="font-normal text-blue-600">(only shown if Razorpay is cheaper)</span></span>
+        </label>
+      </div>
+      <div class="flex gap-3">
+        <button onclick="closeModal('pdf-modal')" class="flex-1 border-2 border-gray-200 text-gray-500 font-bold py-2.5 rounded-xl text-sm hover:bg-gray-50">Cancel</button>
+        <button onclick="generateAndDownloadPDF()" id="pdf-generate-btn" class="flex-1 bg-gradient-to-r from-blue-700 to-indigo-700 text-white font-bold py-2.5 rounded-xl text-sm shadow-lg hover:opacity-90">
+          ⬇ Generate &amp; Download PDF
+        </button>
+      </div>
+      <div id="pdf-drive-status" class="hidden text-xs text-center mt-1"></div>
+    </div>
+  </div>
+</div>
+
+</div><!-- /main-wrap -->
+
+<script>
+// ================================================================
+// CONSTANTS
+// ================================================================
+const BANK_COSTS = {
+  'credit-cards': 0.0195,
+  'debit-lt2k':   0.0038,
+  'debit-gt2k':   0.0087,
+  'upi-cc':       0.0215,
+  'net-banking':  0.0165,
+  'corp-cards':   0.0290,
+  'intl-cards':   0.0280,
+  'amex':         0.0290,
+  'emi':          0.0220,
+  'upi':          0.0002,
+  'net-banking-others': 0.0130,
+  'mobile-wallets':     0.0165,
+  'rupay-debit':        0.0002,
+  'no-code':            0.0000,
+};
+
+const METHODS = [
+  // ── Cards ──
+  { id:'credit-cards',     label:'Credit Cards (Visa / MC / RuPay)',          group:'Cards',       flat:false, compRate:1.85, nocompRate:2.00, mcRate:1.85, compSplit:48, nocompSplit:48, mcSplit:48, compComp:1.95 },
+  { id:'debit-lt2k',       label:'Debit Card (Txn <= Rs.2,000)',               group:'Cards',       flat:false, compRate:0.40, nocompRate:0.40, mcRate:0.40, compSplit:0,  nocompSplit:0,  mcSplit:0,  compComp:0.40 },
+  { id:'debit-gt2k',       label:'Debit Card (Txn > Rs.2,000)',                group:'Cards',       flat:false, compRate:0.85, nocompRate:0.90, mcRate:0.85, compSplit:0,  nocompSplit:0,  mcSplit:0,  compComp:0.90 },
+  { id:'rupay-debit',      label:'RuPay Debit Card',                           group:'Cards',       flat:false, compRate:0.02, nocompRate:0.02, mcRate:0.02, compSplit:0,  nocompSplit:0,  mcSplit:0,  compComp:0.02 },
+  { id:'corp-cards',       label:'Corporate Cards (Credit & Debit)',           group:'Cards',       flat:false, compRate:2.90, nocompRate:2.95, mcRate:2.90, compSplit:0,  nocompSplit:0,  mcSplit:0,  compComp:3.00 },
+  { id:'intl-cards',       label:'International Cards',                        group:'Cards',       flat:false, compRate:2.80, nocompRate:2.95, mcRate:2.80, compSplit:0,  nocompSplit:0,  mcSplit:0,  compComp:3.00 },
+  { id:'amex',             label:'Diners / AMEX - Domestic only',              group:'Cards',       flat:false, compRate:2.90, nocompRate:2.95, mcRate:2.90, compSplit:0,  nocompSplit:0,  mcSplit:0,  compComp:3.00 },
+  { id:'emi',              label:'EMI (Cardless / No-Cost EMI)',               group:'Cards',       flat:false, compRate:2.20, nocompRate:2.30, mcRate:2.20, compSplit:0,  nocompSplit:0,  mcSplit:0,  compComp:2.40 },
+  // ── UPI ──
+  { id:'upi',              label:'UPI',                                        group:'UPI',         flat:true,  compRate:0.25, nocompRate:0.30, mcRate:0.25, compSplit:39, nocompSplit:39, mcSplit:39, compComp:0.30 },
+  { id:'upi-cc',           label:'CC on UPI (RuPay CC on UPI)',                group:'UPI',         flat:false, compRate:2.05, nocompRate:2.10, mcRate:2.05, compSplit:0,  nocompSplit:0,  mcSplit:0,  compComp:2.15 },
+  // ── Net Banking ──
+  { id:'net-banking',      label:'Net Banking - Major Banks (HDFC/ICICI/AXIS/SBI)', group:'Net Banking', flat:true,  compRate:1.65, nocompRate:1.70, mcRate:1.65, compSplit:0,  nocompSplit:0,  mcSplit:0,  compComp:1.80 },
+  { id:'net-banking-others', label:'Net Banking - Other Banks',               group:'Net Banking', flat:false, compRate:1.31, nocompRate:1.31, mcRate:1.31, compSplit:0,  nocompSplit:0,  mcSplit:0,  compComp:1.40 },
+  // ── Others ──
+  { id:'mobile-wallets',   label:'Mobile Wallets',                             group:'Others',      flat:false, compRate:1.65, nocompRate:1.65, mcRate:1.65, compSplit:0,  nocompSplit:0,  mcSplit:0,  compComp:1.80 },
+  { id:'no-code',          label:'No Code (Payment Links / Pages / QR)',       group:'Others',      flat:false, compRate:0.00, nocompRate:0.00, mcRate:0.00, compSplit:0,  nocompSplit:0,  mcSplit:0,  compComp:0.00, locked:true },
+];
+
+// ================================================================
+// STATE
+// ================================================================
+const flatMode = { competition:{}, 'magic-checkout':{} };
+const flatData  = { competition:{}, 'magic-checkout':{} };
+METHODS.forEach((_,i) => {
+  ['competition','magic-checkout'].forEach(sc => {
+    flatMode[sc][i] = false;
+    flatData[sc][i] = { aov:50000, fee:null, compFee:null };
+  });
+});
+let activeTab = 'competition';
+let prevNRState = { competition:'ok', 'magic-checkout':'ok' };
+let isLocked = false;
+
+// ================================================================
+// FORMATTERS
+// ================================================================
+const fmtINR  = v => new Intl.NumberFormat('en-IN',{style:'currency',currency:'INR',minimumFractionDigits:0,maximumFractionDigits:0}).format(v);
+const fmtINR2 = v => new Intl.NumberFormat('en-IN',{style:'currency',currency:'INR',minimumFractionDigits:2,maximumFractionDigits:2}).format(v);
+const fmtPct  = v => v.toFixed(3).replace(/\.?0+$/,'')+'%';
+const lakh    = v => v>=1e7?(v/1e7).toFixed(2)+' Cr':v>=1e5?(v/1e5).toFixed(2)+' L':fmtINR(v);
+const getGMV  = () => +document.getElementById('gmv').value || 0;
+
+// ================================================================
+// INIT TABLES
+// ================================================================
+function initTables() {
+  initTable('competition');
+  initTable('magic-checkout');
+}
+
+function pricingCell(sc, i, m) {
+  const pfx = sc==='competition'?'c':sc==='no-competition'?'n':'mc';
+  const def  = sc==='competition'?m.compRate:sc==='no-competition'?m.nocompRate:m.mcRate;
+  if (!m.flat) return `<td class="py-2.5 px-2 text-center rp-col align-top pt-3">
+    <input id="${pfx}-mdr-${i}" type="number" min="0" max="15" step="0.01" value="${def.toFixed(2)}"
+      class="w-20 text-center border-2 border-green-200 bg-white rounded-lg px-1 py-1.5 font-bold text-xs focus:outline-none focus:border-green-500" oninput="updateOutputs()">
+  </td>`;
+  return `<td class="py-2.5 px-2 rp-col">
+    <div class="flex justify-center mb-1.5">
+      <button id="${pfx}-toggle-${i}" onclick="toggleFlat('${sc}',${i})" class="pill-pct text-xs font-bold px-2 py-0.5 rounded-full">% MDR</button>
+    </div>
+    <div id="${pfx}-pct-${i}" class="text-center">
+      <input id="${pfx}-mdr-${i}" type="number" min="0" max="15" step="0.01" value="${def.toFixed(2)}"
+        class="w-20 text-center border-2 border-green-200 bg-white rounded-lg px-1 py-1.5 font-bold text-xs focus:outline-none focus:border-green-500" oninput="updateOutputs()">
+    </div>
+    <div id="${pfx}-flat-${i}" class="hidden space-y-1 min-w-32">
+      <div class="flex items-center gap-1">
+        <span class="text-gray-400 text-xs w-8 shrink-0">AOV</span>
+        <div class="relative flex-1"><span class="absolute left-1.5 top-1 text-gray-400 text-xs">₹</span>
+          <input id="${pfx}-aov-${i}" type="number" min="1" step="1000" value="50000"
+            class="w-full pl-4 pr-1 py-1 border-2 border-orange-200 bg-white rounded-lg font-bold text-xs focus:outline-none focus:border-orange-400" oninput="onAovChange('${sc}',${i},this.value)">
+        </div>
+      </div>
+      <div class="flex items-center gap-1"><span class="text-gray-400 text-xs w-8 shrink-0">Min</span><span id="${pfx}-minfee-${i}" class="font-black text-orange-600 text-xs"></span><span class="text-gray-300 text-xs">(cost+₹1)</span></div>
+      <div class="flex items-center gap-1">
+        <span class="text-gray-400 text-xs w-8 shrink-0">Fee</span>
+        <div class="relative flex-1"><span class="absolute left-1.5 top-1 text-gray-400 text-xs">₹</span>
+          <input id="${pfx}-fee-${i}" type="number" min="1" step="1" value=""
+            class="w-full pl-4 pr-1 py-1 border-2 border-orange-200 bg-white rounded-lg font-bold text-xs focus:outline-none focus:border-orange-400" oninput="onFeeChange('${sc}',${i},this.value)">
+        </div>
+      </div>
+      <p id="${pfx}-feewarn-${i}" class="text-red-500 font-bold text-xs hidden"></p>
+    </div>
+  </td>`;
+}
+
+function initTable(sc) {
+  const isComp=sc==='competition', isMC=sc==='magic-checkout';
+  const pfx=isComp?'c':isMC?'mc':'n';
+  let html='';
+  let lastGroup='';
+  METHODS.forEach((m,i)=>{
+    const defSpl=isComp?m.compSplit:isMC?m.mcSplit:m.nocompSplit;
+    if(m.group && m.group!==lastGroup){
+      lastGroup=m.group;
+      const cols=isComp?9:6;
+      html+=`<tr><td colspan="${cols}" class="py-1.5 px-2 bg-gray-50 text-xs font-black text-gray-400 uppercase tracking-widest border-t border-gray-100">${m.group}</td></tr>`;
+    }
+    let compCell='';
+    if(isComp){
+      if(!m.flat){
+        compCell=`<td class="py-2.5 px-2 text-center comp-col align-top pt-3">
+          <input id="c-comp-${i}" type="number" min="0" max="15" step="0.01" value="${m.compComp.toFixed(2)}"
+            class="w-20 text-center border-2 border-purple-200 bg-white rounded-lg px-1 py-1.5 font-bold text-xs focus:outline-none focus:border-purple-500" oninput="updateOutputs()">
+        </td>`;
+      } else {
+        compCell=`<td class="py-2.5 px-2 comp-col align-top pt-2.5">
+          <div id="c-comp-pct-${i}"><div class="text-gray-400 text-xs mb-1 text-center">Comp %</div>
+            <input id="c-comp-${i}" type="number" min="0" max="15" step="0.01" value="${m.compComp.toFixed(2)}"
+              class="w-20 text-center border-2 border-purple-200 bg-white rounded-lg px-1 py-1.5 font-bold text-xs focus:outline-none focus:border-purple-500" oninput="updateOutputs()">
+          </div>
+          <div id="c-comp-flat-${i}" class="hidden"><div class="text-gray-400 text-xs mb-1 text-center">Comp ₹/txn</div>
+            <div class="relative"><span class="absolute left-1.5 top-1 text-gray-400 text-xs">₹</span>
+              <input id="c-compfee-${i}" type="number" min="1" step="1" value="" placeholder="e.g.15"
+                class="w-full pl-4 pr-1 py-1 border-2 border-purple-200 bg-white rounded-lg font-bold text-xs focus:outline-none focus:border-purple-500" oninput="onCompFeeChange(${i},this.value)">
+            </div>
+            <p class="text-gray-400 text-xs mt-0.5 text-center">comp flat/txn</p>
+          </div>
+        </td>`;
+      }
+    }
+    html+=`<tr class="method-row border-b border-gray-50">
+      <td class="py-2.5 pr-2 font-semibold text-gray-700 align-top pt-3 text-xs">${m.label}</td>
+      ${pricingCell(sc,i,m)}${compCell}
+      <td class="py-2.5 px-2 text-center align-top pt-3">
+        <input id="${pfx}-spl-${i}" type="number" min="0" max="100" step="1" value="${defSpl}"
+          class="w-16 text-center border-2 border-gray-200 rounded-lg px-1 py-1.5 font-bold text-xs focus:outline-none focus:border-blue-500" oninput="updateOutputs()">
+      </td>
+      <td id="${pfx}-gmv-${i}"  class="py-2.5 px-2 text-right align-top pt-3 text-gray-500 text-xs"></td>
+      <td id="${pfx}-rpay-${i}" class="py-2.5 px-2 text-right align-top pt-3 font-bold text-green-700 text-xs"></td>
+      ${isComp?`<td id="c-cpay-${i}" class="py-2.5 px-2 text-right align-top pt-3 font-bold text-purple-700 text-xs"></td>
+                <td id="c-save-${i}" class="py-2.5 px-2 text-right align-top pt-3 font-bold text-xs"></td>`:''}
+      <td id="${pfx}-nr-${i}" class="py-2.5 pl-2 text-right align-top pt-3 font-bold text-xs"></td>
+    </tr>`;
+  });
+  document.getElementById(isComp?'comp-tbody':isMC?'mc-tbody':'nocomp-tbody').innerHTML=html;
+  METHODS.forEach((m,i)=>{if(m.flat)refreshFlatUI(sc,i);});
+  METHODS.forEach((m,i)=>{
+    if(m.locked){
+      const pfx2=isComp?'c':isMC?'mc':'n';
+      const inp=document.getElementById(`${pfx2}-mdr-${i}`);
+      if(inp){inp.disabled=true;inp.style.background='#f3f4f6';inp.style.color='#9ca3af';inp.title='Hardcoded at 0% - not editable';}
+    }
+  });
+}
+
+// ================================================================
+// TOGGLE FLAT
+// ================================================================
+function toggleFlat(sc,i){
+  flatMode[sc][i]=!flatMode[sc][i];
+  const pfx=sc==='competition'?'c':sc==='magic-checkout'?'mc':'n';
+  const isFlat=flatMode[sc][i];
+  document.getElementById(`${pfx}-pct-${i}`).classList.toggle('hidden',isFlat);
+  document.getElementById(`${pfx}-flat-${i}`).classList.toggle('hidden',!isFlat);
+  if(sc==='competition'){
+    document.getElementById(`c-comp-pct-${i}`)?.classList.toggle('hidden',isFlat);
+    document.getElementById(`c-comp-flat-${i}`)?.classList.toggle('hidden',!isFlat);
+  }
+  const pill=document.getElementById(`${pfx}-toggle-${i}`);
+  pill.textContent=isFlat?'₹ Flat':'% MDR';
+  pill.className=`${isFlat?'pill-flat':'pill-pct'} text-xs font-bold px-2 py-0.5 rounded-full`;
+  if(isFlat)refreshFlatUI(sc,i);
+  updateOutputs();
+}
+
+function refreshFlatUI(sc,i){
+  const pfx=sc==='competition'?'c':sc==='magic-checkout'?'mc':'n';
+  const aov=flatData[sc][i].aov, bc=BANK_COSTS[METHODS[i].id];
+  const min=Math.ceil(bc*aov)+1;
+  const minEl=document.getElementById(`${pfx}-minfee-${i}`); if(minEl)minEl.textContent=`₹${min}`;
+  const feeEl=document.getElementById(`${pfx}-fee-${i}`);
+  if(feeEl&&(!feeEl.value||flatData[sc][i].fee===null)){feeEl.value=min+1;flatData[sc][i].fee=min+1;}
+  if(sc==='competition'){
+    const cfEl=document.getElementById(`c-compfee-${i}`);
+    if(cfEl&&(!cfEl.value||flatData[sc][i].compFee===null)){cfEl.value=min+5;flatData[sc][i].compFee=min+5;}
+  }
+}
+
+function onAovChange(sc,i,val){
+  flatData[sc][i].aov=+val||1;flatData[sc][i].fee=null;flatData[sc][i].compFee=null;
+  const pfx=sc==='competition'?'c':sc==='magic-checkout'?'mc':'n';
+  const f=document.getElementById(`${pfx}-fee-${i}`);if(f)f.value='';
+  const cf=document.getElementById(`c-compfee-${i}`);if(cf)cf.value='';
+  refreshFlatUI(sc,i);updateOutputs();
+}
+function onFeeChange(sc,i,val){flatData[sc][i].fee=+val||0;updateOutputs();}
+function onCompFeeChange(i,val){flatData.competition[i].compFee=+val||0;updateOutputs();}
+
+// ================================================================
+// MAGIC CHECKOUT HELPERS
+// ================================================================
+function clampFreeMonths(){
+  const el=document.getElementById('mc-free-months');
+  if(+el.value>6)el.value=6;
+  if(+el.value<1)el.value=1;
+}
+
+function onMCRateChange(){
+  const rate=+(document.getElementById('mc-rate').value)||0;
+  const freebox=document.getElementById('mc-free-period-box');
+  const hint=document.getElementById('mc-rate-hint');
+  if(rate===0){
+    freebox.classList.remove('hidden');
+    hint.textContent='0% = free period active — configure below';
+    hint.className='text-xs text-amber-600 font-semibold mt-1';
+  } else {
+    freebox.classList.add('hidden');
+    if(rate<0.05){hint.textContent='⚠ Min chargeable rate is 0.05%';hint.className='text-xs text-red-600 font-semibold mt-1';}
+    else{hint.textContent=`RP MC earns ${fmtINR2(rate/100*getGMV())}/month`;hint.className='text-xs text-purple-500 font-semibold mt-1';}
+  }
+  updateMCDisclaimer();
+  updateOutputs();
+}
+
+function updateMCDisclaimer(){
+  const months=Math.min(6,+(document.getElementById('mc-free-months').value)||1);
+  const postRate=Math.max(0.05,+(document.getElementById('mc-post-rate').value)||0.05);
+  const gmv=getGMV();
+  const postNR=postRate/100*gmv;
+  const el=document.getElementById('mc-disclaimer-text');
+  if(el){
+    el.innerHTML=`Magic Checkout will be offered <strong>free for ${months} month${months>1?'s':''}</strong> (max 6 months per policy).
+      After the free period, Magic Checkout will be charged at <strong>${postRate.toFixed(2)}%</strong> of GMV
+      — equivalent to <strong>${fmtINR2(postNR)}/month</strong> at current GMV (${lakh(gmv)}).
+      <br><span class="text-amber-700 font-semibold">📌 Ensure merchant is aware of post-period pricing before deal sign-off.</span>`;
+  }
+  updateOutputs();
+}
+
+function getMCNR(gmv){
+  const rate=+(document.getElementById('mc-rate').value)||0;
+  return rate/100*gmv; // returns 0 when free period
+}
+function getMCCompNR(gmv){
+  const rate=+(document.getElementById('mc-comp-rate').value)||0;
+  return rate/100*gmv;
+}
+
+// ================================================================
+// SETTLEMENT HELPERS
+// ================================================================
+function onSettlementChange(){
+  const t=document.getElementById('settlement-type').value;
+  document.getElementById('t1-field').classList.toggle('hidden',t!=='T1');
+  document.getElementById('t0-field').classList.toggle('hidden',t!=='T0');
+  document.getElementById('ods-field').classList.toggle('hidden',t!=='ODS');
+  document.getElementById('settlement-nr-box').classList.toggle('hidden',t==='T2');
+  updateOutputs();
+}
+function onGMVCreditChange(){
+  const sel=document.getElementById('gmv-credit').value;
+  const customBox=document.getElementById('gmv-credit-custom-box');
+  const badge=document.getElementById('gmv-credit-badge');
+  const displayVal=document.getElementById('gmv-credit-display-val');
+  customBox.classList.toggle('hidden',sel!=='custom');
+  if(sel==='0'){badge.classList.add('hidden');return;}
+  let amount=0;
+  if(sel==='custom'){amount=+(document.getElementById('gmv-credit-custom-val').value)||0;}
+  else{amount=+sel;}
+  if(amount>0){
+    badge.classList.remove('hidden');
+    displayVal.textContent=amount>=1e7?(amount/1e7).toFixed(2)+' Cr':amount>=1e5?(amount/1e5).toFixed(2)+' Lakh':'Rs. '+amount.toLocaleString('en-IN');
+  } else {
+    badge.classList.add('hidden');
+  }
+}
+
+function getGMVCreditAmount(){
+  const sel=document.getElementById('gmv-credit').value;
+  if(sel==='0') return 0;
+  if(sel==='custom') return +(document.getElementById('gmv-credit-custom-val').value)||0;
+  return +sel;
+}
+
+// ================================================================
+// ROUTE (Add-on card)
+// ================================================================
+function getRouteRate(){
+  const sel=document.getElementById('route-select')?.value||'0';
+  if(sel==='0') return 0;
+  if(sel==='custom') return Math.min(0.30,Math.max(0.10,+(document.getElementById('route-custom-val')?.value)||0));
+  return +sel;
+}
+
+function onRouteSelectChange(){
+  const sel=document.getElementById('route-select')?.value||'0';
+  document.getElementById('route-custom-box')?.classList.toggle('hidden',sel!=='custom');
+  updateOutputs();
+}
+
+function checkRouteAvailability(){
+  const gmv=getGMV();
+  const eligible=gmv>=4000000;
+  const sel=document.getElementById('route-select');
+  const warn=document.getElementById('route-gmv-warn');
+  if(sel){sel.disabled=!eligible;}
+  if(warn){warn.classList.toggle('hidden',eligible);}
+  if(!eligible){
+    if(sel)sel.value='0';
+    document.getElementById('route-badge')?.classList.add('hidden');
+    document.getElementById('route-custom-box')?.classList.add('hidden');
+  }
+  onRouteSelectChange();
+}
+
+function clampAndUpdate(id,min,max){
+  const el=document.getElementById(id);
+  if(+el.value<min)el.value=min;
+  if(max!==undefined&&+el.value>max)el.value=max;
+  updateOutputs();
+}
+function settlementNR(gmv){
+  const t=document.getElementById('settlement-type').value;
+  if(t==='T2')return 0;
+  if(t==='T1'){const r=+(document.getElementById('t1-rate').value)||0;return r/100*gmv;}
+  if(t==='T0'){const r=Math.max(0.05,+(document.getElementById('t0-rate').value)||0.05);return r/100*gmv;}
+  if(t==='ODS'){const r=Math.max(0.10,+(document.getElementById('ods-rate').value)||0.10);return r/100*gmv;}
+  return 0;
+}
+function settlementLabel(){
+  const t=document.getElementById('settlement-type').value;
+  if(t==='T2')return '';
+  if(t==='T1'){const r=+(document.getElementById('t1-rate').value)||0;return `T+1 Settlement (${r.toFixed(2)}%)`;}
+  if(t==='T0'){const r=+(document.getElementById('t0-rate').value)||0.05;return `T+0 Settlement (${r.toFixed(2)}%)`;}
+  if(t==='ODS'){const r=+(document.getElementById('ods-rate').value)||0.10;return `ODS Settlement (${r.toFixed(2)}%)`;}
+  return '';
+}
+
+// ================================================================
+// MERCHANT VALIDATION & GMV LOCK
+// ================================================================
+function validateMerchant(){
+  const name=document.getElementById('merchant-name').value.trim();
+  document.getElementById('name-err').classList.toggle('hidden',!!name);
+  document.getElementById('merchant-name').classList.toggle('field-error',!name);
+}
+function onGMVChange(){
+  const gmv=getGMV();
+  document.getElementById('gmv-label').textContent=gmv?lakh(gmv):'';
+  const shouldLock=gmv>0&&gmv<500000;
+  if(shouldLock&&!isLocked){
+    isLocked=true;
+    document.getElementById('comp-table-card').classList.add('locked');
+    document.querySelectorAll('#comp-tbody input,#nocomp-tbody input,#mc-tbody input').forEach(el=>el.disabled=true);
+    showModal('lock-modal');
+  }else if(!shouldLock&&isLocked){
+    isLocked=false;
+    document.getElementById('comp-table-card').classList.remove('locked');
+    document.querySelectorAll('#comp-tbody input,#nocomp-tbody input,#mc-tbody input').forEach(el=>el.disabled=false);
+  }
+  updateOutputs();
+  checkRouteAvailability();
+}
+
+// ================================================================
+// METHOD NR
+// ================================================================
+function methodNR(sc,i,mGMV){
+  const bc=BANK_COSTS[METHODS[i].id];
+  const pfx=sc==='competition'?'c':sc==='magic-checkout'?'mc':'n';
+  if(flatMode[sc][i]){const aov=flatData[sc][i].aov||1,fee=flatData[sc][i].fee||0;return(fee-bc*aov)*(mGMV/aov);}
+  const mdr=+(document.getElementById(`${pfx}-mdr-${i}`)?.value)||0;
+  return(mdr/100-bc)*mGMV;
+}
+
+// ================================================================
+// UPDATE OUTPUTS
+// ================================================================
+function updateOutputs(){
+  const gmv=getGMV(),sNR=settlementNR(gmv),sLabel=settlementLabel(),hasSettle=sNR>0;
+
+  if(hasSettle){
+    set('settlement-nr-val',fmtINR2(sNR));
+    set('settlement-nr-sub',`${lakh(gmv)} GMV × ${sLabel.split('(')[1]?.replace(')','')??''}`);
+  }
+  if(document.getElementById('settlement-type').value==='T0'){
+    const r=Math.max(0.05,+(document.getElementById('t0-rate').value)||0.05);
+    set('t0-nr',`→ RP earns ${fmtINR2(r/100*gmv)}/month`);
+  }
+  if(document.getElementById('settlement-type').value==='ODS'){
+    const r=Math.max(0.10,+(document.getElementById('ods-rate').value)||0.10);
+    set('ods-nr',`→ RP earns ${fmtINR2(r/100*gmv)}/month`);
+  }
+
+  let cRPPay=0,cCPay=0,cMDRNR=0,cSplit=0;
+  let nPay=0,nMDRNR=0,nSplit=0;
+  let mPay=0,mMDRNR=0,mSplit=0;
+
+  METHODS.forEach((m,i)=>{
+    const bc=BANK_COSTS[m.id];
+
+    // Competition
+    const cSpl=+(document.getElementById(`c-spl-${i}`)?.value)||0; cSplit+=cSpl;
+    const cMGMV=gmv*cSpl/100, cNRi=methodNR('competition',i,cMGMV);
+    let cRPPayi,cCPayi;
+    if(flatMode.competition[i]){const aov=flatData.competition[i].aov||1,txn=cMGMV/aov;cRPPayi=(flatData.competition[i].fee||0)*txn;cCPayi=(flatData.competition[i].compFee||0)*txn;}
+    else{const cMdr=+(document.getElementById(`c-mdr-${i}`)?.value)||0,cComp=+(document.getElementById(`c-comp-${i}`)?.value)||0;cRPPayi=cMdr/100*cMGMV;cCPayi=cComp/100*cMGMV;}
+    cRPPay+=cRPPayi;cCPay+=cCPayi;cMDRNR+=cNRi;
+    const cSavi=cCPayi-cRPPayi;
+    set(`c-gmv-${i}`,fmtINR(cMGMV));set(`c-rpay-${i}`,fmtINR(cRPPayi));set(`c-cpay-${i}`,fmtINR(cCPayi));
+    col(`c-save-${i}`,(cSavi>=0?'+':'')+fmtINR(cSavi),cSavi>=0?'text-emerald-600':'text-red-500');
+    col(`c-nr-${i}`,fmtINR2(cNRi),cNRi<0?'text-red-500':'text-blue-700');
+    if(flatMode.competition[i]){const aov=flatData.competition[i].aov||1,fee=flatData.competition[i].fee||0,minQ=Math.ceil(bc*aov)+1,w=document.getElementById(`c-feewarn-${i}`);if(w){if(fee<minQ){w.textContent=`⚠ Below min ₹${minQ}`;w.classList.remove('hidden');}else w.classList.add('hidden');}}
+
+    // No competition (tab removed — skip silently)
+    const nSpl=0; nSplit+=nSpl; const nMGMV=0,nNRi=0,nPayi=0;
+    nPay+=nPayi;nMDRNR+=nNRi;
+
+    // MC PG
+    const mSpl=+(document.getElementById(`mc-spl-${i}`)?.value)||0; mSplit+=mSpl;
+    const mMGMV=gmv*mSpl/100, mNRi=methodNR('magic-checkout',i,mMGMV);
+    let mPayi;
+    if(flatMode['magic-checkout'][i]){const aov=flatData['magic-checkout'][i].aov||1;mPayi=(flatData['magic-checkout'][i].fee||0)*(mMGMV/aov);}
+    else{const mMdr=+(document.getElementById(`mc-mdr-${i}`)?.value)||0;mPayi=mMdr/100*mMGMV;}
+    mPay+=mPayi;mMDRNR+=mNRi;
+    set(`mc-gmv-${i}`,fmtINR(mMGMV));set(`mc-rpay-${i}`,fmtINR(mPayi));
+    col(`mc-nr-${i}`,fmtINR2(mNRi),mNRi<0?'text-red-500':'text-blue-700');
+  });
+
+  const routeNR=getRouteRate()/100*gmv;
+  const cTotalNR=cMDRNR+sNR+routeNR, nTotalNR=nMDRNR+sNR+routeNR;
+  const mcRateVal=+(document.getElementById('mc-rate').value)||0;
+  const mcNR=getMCNR(gmv);         // current MC NR (0 if free period)
+  const mcCompNR=getMCCompNR(gmv); // competitor MC NR
+  const mTotalNR=mMDRNR+mcNR+sNR+routeNR;
+
+  // Update Route badge
+  if(routeNR>0){
+    document.getElementById('route-badge')?.classList.remove('hidden');
+    set('route-nr-badge-val',fmtINR2(routeNR));
+    set('route-nr-badge-sub',`${getRouteRate().toFixed(2)}% x ${lakh(gmv)} GMV`);
+  }
+
+  // Footers
+  set('cf-rpay',fmtINR(cRPPay));set('cf-cpay',fmtINR(cCPay));
+  const cSavT=cCPay-cRPPay;
+  col('cf-save',(cSavT>=0?'+':'')+fmtINR(cSavT),cSavT>=0?'text-emerald-600':'text-red-500');
+  col('cf-nr',fmtINR2(cMDRNR),cMDRNR<0?'text-red-600 font-black':'text-blue-800 font-black');
+  // nf-pay / nf-nr removed with No Competition tab
+  set('mf-pay',fmtINR(mPay));
+  col('mf-nr',fmtINR2(mMDRNR),mMDRNR<0?'text-red-600 font-black':'text-blue-800 font-black');
+
+  // Settlement lines
+  ['comp','nocomp','mc'].forEach(p=>{
+    const sl=document.getElementById(`${p}-settle-line`);
+    if(sl){if(hasSettle){sl.classList.remove('hidden');set(`${p}-settle-label`,sLabel);set(`${p}-settle-nr`,'+'+fmtINR2(sNR)+' (settlement)');}else sl.classList.add('hidden');}
+    document.getElementById(`${p}-nr-settle-tag`)?.classList.toggle('hidden',!hasSettle);
+  });
+
+  // NR boxes
+  setNRBox('competition',cTotalNR);
+
+  // MC NR display
+  set('mc-pg-nr-display',fmtINR2(mMDRNR));
+  if(mcRateVal===0){set('mc-mc-nr-display','₹0 (free)');set('mc-nr-val','₹0 (free period)');set('mc-nr-sub','MC waived during free period');}
+  else{set('mc-mc-nr-display',fmtINR2(mcNR));set('mc-nr-val',fmtINR2(mcNR));set('mc-nr-sub',`${mcRateVal.toFixed(2)}% × ${lakh(gmv)} GMV`);}
+  set('mc-combined-nr',fmtINR2(mTotalNR));
+  const mcCompHint=document.getElementById('mc-comp-hint');
+  if(mcCompHint){const cr=+(document.getElementById('mc-comp-rate').value)||0;mcCompHint.textContent=cr>0?`Competitor earns ${fmtINR2(cr/100*gmv)}/month`:'Competitor checkout is free';}
+  const mcRateHintEl=document.getElementById('mc-rate-hint');
+  if(mcRateHintEl&&mcRateVal>0)mcRateHintEl.textContent=`RP MC earns ${fmtINR2(mcRateVal/100*gmv)}/month`;
+
+  // MC annual NR — weighted for free period
+  let mcAnnualNR;
+  if(mcRateVal===0){
+    const freeMons=Math.min(6,+(document.getElementById('mc-free-months').value)||1);
+    const postRate=Math.max(0.05,+(document.getElementById('mc-post-rate').value)||0.05);
+    const postMCNR=postRate/100*gmv;
+    const freeMonNR=mMDRNR+sNR;       // during free period: PG NR + settlement
+    const postMonNR=mMDRNR+postMCNR+sNR; // after free: PG NR + MC NR + settlement
+    mcAnnualNR=freeMons*freeMonNR+(12-freeMons)*postMonNR;
+  } else {
+    mcAnnualNR=mTotalNR*12;
+  }
+  set('mc-nr-annual',fmtINR(mcAnnualNR));
+
+  const mcBox=document.getElementById('mc-nr-box'),mcWarn=document.getElementById('mc-nr-warn');
+  if(mTotalNR<0){mcBox.className='mt-3 rounded-xl p-4 nr-warn';mcWarn.classList.remove('hidden');}
+  else if(mTotalNR<1000){mcBox.className='mt-3 rounded-xl p-4 nr-amber';mcWarn.classList.remove('hidden');}
+  else{mcBox.className='mt-3 rounded-xl p-4 nr-ok';mcWarn.classList.add('hidden');}
+  const mcNewState=mTotalNR<1000?'warn':'ok';
+  if(mcNewState==='warn'&&prevNRState['magic-checkout']==='ok')showModal('approval-modal');
+  prevNRState['magic-checkout']=mcNewState;
+
+  // Competition impact
+  const anyFlat=METHODS.some((_,i)=>METHODS[i].flat&&flatMode.competition[i]);
+  const cBR=gmv>0?cRPPay/gmv*100:0,cBC=gmv>0?cCPay/gmv*100:0,saving=cCPay-cRPPay;
+  set('ci-comp-monthly',fmtINR(cCPay));set('ci-comp-annual',fmtINR(cCPay*12));
+  set('ci-comp-blend',anyFlat?'Mixed (flat+%)':fmtPct(cBC)+' blended');
+  set('ci-rp-monthly',fmtINR(cRPPay));set('ci-rp-annual',fmtINR(cRPPay*12));
+  set('ci-rp-blend',anyFlat?'Mixed (flat+%)':fmtPct(cBR)+' blended');
+  set('ci-save-monthly',fmtINR(saving));set('ci-save-annual',fmtINR(saving*12));
+
+
+  // MC impact — full competition breakdown
+  buildMCImpact(gmv,mPay,mMDRNR,mcNR,mcCompNR,mcRateVal,mTotalNR,mcAnnualNR,sNR,hasSettle);
+
+  // Split check
+  const activeSplit=activeTab==='competition'?cSplit:activeTab==='magic-checkout'?mSplit:0;
+  const sc2=document.getElementById('split-check');
+  sc2.textContent=activeSplit.toFixed(1)+'% split';
+  sc2.className=`text-sm font-bold px-3 py-1.5 rounded-lg ${Math.abs(activeSplit-100)<0.5?'bg-green-100 text-green-700':'bg-amber-100 text-amber-700'}`;
+  splitWarn('comp-split-warn',cSplit);splitWarn('mc-split-warn',mSplit);
+}
+
+// ================================================================
+// MC IMPACT PANEL
+// ================================================================
+function buildMCImpact(gmv,mPay,mMDRNR,mcNR,mcCompNR,mcRateVal,mTotalNR,mcAnnualNR,sNR,hasSettle){
+  const compRate=+(document.getElementById('mc-comp-rate').value)||0;
+  const mBlend=gmv>0?mPay/gmv*100:0;
+
+  // Competitor total = PG comp cost (use competition tab's PG costs) + comp MC
+  // For simplicity, use the same PG cost as RP (no separate comp PG column in MC tab)
+  // Comp checkout = compRate% × GMV; RP MC = mcNR
+  const compCheckoutCost=compRate/100*gmv;
+  const rpCheckoutCost=mcRateVal/100*gmv;
+  const merchantSavingOnCheckout=compCheckoutCost-rpCheckoutCost;
+
+  let html='';
+
+  // Row 1: Side-by-side comparison
+  html+=`<div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">`;
+
+  // Competitor side
+  html+=`<div class="comp-col rounded-xl p-4 border border-purple-100">
+    <p class="text-xs font-bold text-purple-600 uppercase tracking-wide mb-3">😰 With Competitor Checkout</p>
+    <div class="space-y-2">
+      <div class="flex justify-between text-xs"><span class="text-gray-500">PG MDR Cost / Month</span><span class="font-bold text-gray-800">${fmtINR(mPay)}</span></div>
+      <div class="flex justify-between text-xs"><span class="text-gray-500">Competitor Checkout Fee (${compRate.toFixed(2)}%)</span><span class="font-bold text-purple-700">${fmtINR2(compCheckoutCost)}</span></div>
+      <div class="border-t border-purple-200 pt-2 flex justify-between text-xs font-black"><span class="text-purple-700">Total Monthly Cost</span><span class="text-purple-800">${fmtINR2(mPay+compCheckoutCost)}</span></div>
+      <div class="flex justify-between text-xs"><span class="text-gray-400">Annual</span><span class="font-bold text-purple-600">${fmtINR((mPay+compCheckoutCost)*12)}</span></div>
+    </div>
+  </div>`;
+
+  // RP side
+  if(mcRateVal===0){
+    const freeMons=Math.min(6,+(document.getElementById('mc-free-months').value)||1);
+    const postRate=Math.max(0.05,+(document.getElementById('mc-post-rate').value)||0.05);
+    html+=`<div class="rp-col rounded-xl p-4 border border-green-100">
+      <p class="text-xs font-bold text-green-600 uppercase tracking-wide mb-3">✅ With Razorpay + Magic Checkout</p>
+      <div class="space-y-2">
+        <div class="flex justify-between text-xs"><span class="text-gray-500">PG MDR Cost / Month</span><span class="font-bold text-gray-800">${fmtINR(mPay)}</span></div>
+        <div class="flex justify-between text-xs"><span class="text-gray-500">Magic Checkout (free ${freeMons}mo)</span><span class="font-bold text-amber-600">₹0 waived</span></div>
+        <div class="border-t border-green-200 pt-2 flex justify-between text-xs font-black"><span class="text-green-700">Cost during free period</span><span class="text-green-800">${fmtINR(mPay)}/mo</span></div>
+        <div class="flex justify-between text-xs"><span class="text-gray-500">Cost after free period (${postRate.toFixed(2)}%)</span><span class="font-bold text-green-600">${fmtINR2(mPay+postRate/100*gmv)}/mo</span></div>
+      </div>
+    </div>`;
+  } else {
+    html+=`<div class="rp-col rounded-xl p-4 border border-green-100">
+      <p class="text-xs font-bold text-green-600 uppercase tracking-wide mb-3">✅ With Razorpay + Magic Checkout</p>
+      <div class="space-y-2">
+        <div class="flex justify-between text-xs"><span class="text-gray-500">PG MDR Cost / Month</span><span class="font-bold text-gray-800">${fmtINR(mPay)}</span></div>
+        <div class="flex justify-between text-xs"><span class="text-gray-500">Magic Checkout Fee (${mcRateVal.toFixed(2)}%)</span><span class="font-bold text-green-700">${fmtINR2(rpCheckoutCost)}</span></div>
+        <div class="border-t border-green-200 pt-2 flex justify-between text-xs font-black"><span class="text-green-700">Total Monthly Cost</span><span class="text-green-800">${fmtINR2(mPay+rpCheckoutCost)}</span></div>
+        <div class="flex justify-between text-xs"><span class="text-gray-400">Annual</span><span class="font-bold text-green-600">${fmtINR((mPay+rpCheckoutCost)*12)}</span></div>
+      </div>
+    </div>`;
+  }
+  html+=`</div>`;
+
+  // Saving banner
+  if(mcRateVal===0){
+    const freeMons=Math.min(6,+(document.getElementById('mc-free-months').value)||1);
+    const savDuringFree=compCheckoutCost; // full comp checkout cost saved
+    const postRate=Math.max(0.05,+(document.getElementById('mc-post-rate').value)||0.05);
+    const savAfterFree=compCheckoutCost-postRate/100*gmv;
+    html+=`<div class="bg-gradient-to-r from-amber-400 to-orange-400 rounded-xl p-4 text-white mb-4">
+      <p class="text-xs font-bold uppercase tracking-wide opacity-90 mb-1">Merchant Checkout Savings vs Competitor</p>
+      <div class="flex flex-wrap gap-6">
+        <div><p class="text-xs opacity-80">During free period (${freeMons}mo)</p><p class="text-2xl font-black">${fmtINR2(savDuringFree)}<span class="text-sm font-normal opacity-80">/mo</span></p></div>
+        <div><p class="text-xs opacity-80">After free period</p><p class="text-2xl font-black">${savAfterFree>=0?'':'-'}${fmtINR2(Math.abs(savAfterFree))}<span class="text-sm font-normal opacity-80">/mo</span></p></div>
+      </div>
+    </div>`;
+  } else {
+    html+=`<div class="bg-gradient-to-r from-green-500 to-emerald-500 rounded-xl p-4 text-white mb-4 flex items-center justify-between flex-wrap gap-3">
+      <div><p class="text-xs font-bold uppercase tracking-wide opacity-80">Merchant Savings on Checkout vs Competitor</p>
+        <p class="text-3xl font-black mt-0.5">${merchantSavingOnCheckout>=0?'':'-'}${fmtINR2(Math.abs(merchantSavingOnCheckout))}<span class="text-sm font-normal opacity-70">/mo</span></p>
+      </div>
+      <div class="text-right"><p class="text-xs opacity-70">Annual</p><p class="text-2xl font-black">${fmtINR(merchantSavingOnCheckout*12)}</p></div>
+    </div>`;
+  }
+
+  // RP NR breakdown
+  html+=`<div class="bg-gray-50 rounded-xl border border-gray-200 p-4">
+    <p class="text-xs font-bold text-gray-500 uppercase tracking-wider mb-3">Razorpay NR Breakdown</p>
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-3">`;
+
+  if(mcRateVal===0){
+    const freeMons=Math.min(6,+(document.getElementById('mc-free-months').value)||1);
+    const postRate=Math.max(0.05,+(document.getElementById('mc-post-rate').value)||0.05);
+    const freeMonNR=mMDRNR+sNR;
+    const postMonNR=mMDRNR+postRate/100*gmv+sNR;
+    html+=`
+      <div class="bg-blue-50 rounded-xl p-3 border border-blue-100"><p class="text-xs font-bold text-blue-600 uppercase">PG NR / Month</p><p class="text-xl font-black text-blue-800 mt-1">${fmtINR2(mMDRNR)}</p><p class="text-xs text-blue-400">from payment methods</p></div>
+      <div class="bg-amber-50 rounded-xl p-3 border border-amber-200"><p class="text-xs font-bold text-amber-600 uppercase">NR (Free Period)</p><p class="text-xl font-black text-amber-800 mt-1">${fmtINR2(freeMonNR)}</p><p class="text-xs text-amber-500">PG NR${hasSettle?' + settlement':''} for ${freeMons}mo</p></div>
+      <div class="bg-purple-50 rounded-xl p-3 border border-purple-100"><p class="text-xs font-bold text-purple-600 uppercase">NR (Post Free)</p><p class="text-xl font-black text-purple-800 mt-1">${fmtINR2(postMonNR)}</p><p class="text-xs text-purple-400">PG + MC (${postRate.toFixed(2)}%)${hasSettle?' + settle':''}</p></div>
+      <div class="bg-green-50 rounded-xl p-3 border border-green-200"><p class="text-xs font-bold text-green-600 uppercase">Annual NR (Yr 1)</p><p class="text-xl font-black text-green-800 mt-1">${fmtINR(mcAnnualNR)}</p><p class="text-xs text-green-400">${freeMons}mo free + ${12-freeMons}mo charged</p></div>`;
+  } else {
+    html+=`
+      <div class="bg-blue-50 rounded-xl p-3 border border-blue-100"><p class="text-xs font-bold text-blue-600 uppercase">PG NR / Month</p><p class="text-xl font-black text-blue-800 mt-1">${fmtINR2(mMDRNR)}</p><p class="text-xs text-blue-400">from payment methods</p></div>
+      <div class="bg-purple-50 rounded-xl p-3 border border-purple-100"><p class="text-xs font-bold text-purple-600 uppercase">MC NR / Month</p><p class="text-xl font-black text-purple-800 mt-1">${fmtINR2(mcNR)}</p><p class="text-xs text-purple-400">${mcRateVal.toFixed(2)}% of GMV</p></div>
+      <div class="bg-green-50 rounded-xl p-3 border border-green-200"><p class="text-xs font-bold text-green-600 uppercase">Combined NR / Month</p><p class="text-xl font-black text-green-800 mt-1">${fmtINR2(mTotalNR)}</p><p class="text-xs text-green-400">PG + MC${hasSettle?' + settle':''}</p></div>
+      <div class="bg-indigo-50 rounded-xl p-3 border border-indigo-100"><p class="text-xs font-bold text-indigo-600 uppercase">Annual NR</p><p class="text-xl font-black text-indigo-800 mt-1">${fmtINR(mcAnnualNR)}</p><p class="text-xs text-indigo-400">combined × 12</p></div>`;
+  }
+  html+=`</div></div>`;
+
+  document.getElementById('mc-impact').innerHTML=html;
+}
+
+// ================================================================
+// NR BOX + MODAL
+// ================================================================
+function setNRBox(sc,nr){
+  const p=sc==='competition'?'comp':'nocomp';
+  set(`${p}-nr`,fmtINR2(nr));set(`${p}-nr-annual`,fmtINR(nr*12));
+  const box=document.getElementById(`${p}-nr-box`),warn=document.getElementById(`${p}-nr-warn`);
+  if(nr<0){box.className='mt-3 rounded-xl p-4 flex items-center justify-between nr-warn';warn.classList.remove('hidden');}
+  else if(nr<1000){box.className='mt-3 rounded-xl p-4 flex items-center justify-between nr-amber';warn.classList.remove('hidden');}
+  else{box.className='mt-3 rounded-xl p-4 flex items-center justify-between nr-ok';warn.classList.add('hidden');}
+  const newState=nr<1000?'warn':'ok';
+  if(newState==='warn'&&prevNRState[sc]==='ok')showModal('approval-modal');
+  prevNRState[sc]=newState;
+}
+
+// ================================================================
+// HELPERS
+// ================================================================
+function set(id,v){const e=document.getElementById(id);if(e)e.textContent=v;}
+function col(id,v,cls){const e=document.getElementById(id);if(!e)return;e.textContent=v;e.className=e.className.replace(/text-\S+/g,'')+' '+cls;}
+function splitWarn(id,split){const el=document.getElementById(id);if(!el)return;if(Math.abs(split-100)>0.5){el.classList.remove('hidden');el.textContent=`⚠ GMV splits = ${split.toFixed(1)}% — adjust to 100%`;}else el.classList.add('hidden');}
+function showModal(id){document.getElementById(id).classList.add('show');}
+function closeModal(id){document.getElementById(id).classList.remove('show');}
+
+// ================================================================
+// TABS
+// ================================================================
+function setTab(tab){
+  activeTab=tab;
+  ['competition','magic-checkout'].forEach(p=>{
+    const panel=document.getElementById(`panel-${p}`);
+    if(panel) panel.classList.toggle('hidden',p!==tab);
+  });
+  document.getElementById('tab-competition').className=(tab==='competition'?'tab-active':'tab-inactive')+' px-6 py-2.5 rounded-xl font-bold text-sm';
+  document.getElementById('tab-magic-checkout').className=(tab==='magic-checkout'?'tab-mc-active':'tab-mc-inactive')+' px-6 py-2.5 rounded-xl font-bold text-sm';
+  // Move the shared addon-cards block into the active tab's slot
+  const addonCards=document.getElementById('addon-cards');
+  const slot=document.getElementById(`addon-cards-slot-${tab}`);
+  if(addonCards&&slot) slot.appendChild(addonCards);
+  updateOutputs();
+}
+
+// ================================================================
+// PDF — CONFIG
+// ================================================================
+const APPS_SCRIPT_URL = 'https://script.google.com/a/macros/razorpay.com/s/AKfycbzBwrA0HoRI5Xsu_VlHQDP1mJ5oudEi3enmtESWwscMXrKUQq00KrD4q2eakZF1Ob0Q5A/exec';
+
+// ================================================================
+// PDF — OPEN MODAL
+// ================================================================
+function downloadPDF(){
+  const name=document.getElementById('merchant-name').value.trim();
+  const gmv=getGMV();
+  if(!name){validateMerchant();alert('Please enter Business Name before downloading PDF.');return;}
+  if(!gmv){document.getElementById('gmv').focus();alert('Please enter Monthly GMV before downloading PDF.');return;}
+  // Pre-fill intro text
+  const customerName=document.getElementById('customer-name').value.trim();
+  const greeting=customerName?`Dear ${customerName},`:'Dear Sir/Madam,';
+  const introEl=document.getElementById('pdf-intro-text');
+  if(!introEl.value){
+    introEl.value=`${greeting}\n\nThank you for your interest in Razorpay's payment solutions. We are pleased to present the following commercial proposal tailored for ${name}.\n\nThe rates outlined below are basis your monthly processing volume of ${lakh(gmv)}. These are negotiated rates and are subject to Razorpay's standard terms and conditions.`;
+  }
+  const closingEl=document.getElementById('pdf-closing-text');
+  if(!closingEl.value){
+    closingEl.value=`We look forward to partnering with ${name}. Please feel free to reach out for any clarifications or to proceed with onboarding.\n\nWarm regards,\nRazorpay Sales Team`;
+  }
+  showModal('pdf-modal');
+}
+
+// ================================================================
+// PDF — GENERATE
+// ================================================================
+
+// Safe formatters for PDF (jsPDF built-in fonts don't support ₹ or unicode symbols)
+const pdfINR  = v => 'Rs. ' + Math.round(v).toLocaleString('en-IN');
+const pdfINR2 = v => 'Rs. ' + v.toLocaleString('en-IN',{minimumFractionDigits:2,maximumFractionDigits:2});
+// Sanitise method labels: strip unicode chars jsPDF can't render
+const pdfLabel = s => s.replace(/≤/g,'<=').replace(/—/g,'-').replace(/[^\x00-\x7F]/g,'');
+// Razorpay logo (base64 PNG)
+const RZP_LOGO_B64='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';
+
+async function generateAndDownloadPDF(){
+  const btn=document.getElementById('pdf-generate-btn');
+  btn.textContent='Generating...';btn.disabled=true;
+  try{
+    const name=document.getElementById('merchant-name').value.trim();
+    const customerName=document.getElementById('customer-name').value.trim();
+    const mid=document.getElementById('merchant-mid').value.trim();
+    const gmv=getGMV();
+    const introText=document.getElementById('pdf-intro-text').value.trim();
+    const closingText=document.getElementById('pdf-closing-text').value.trim();
+    const tab=activeTab;
+    const today=new Date().toLocaleDateString('en-IN',{day:'2-digit',month:'long',year:'numeric'});
+
+    const includeSavings=document.getElementById('pdf-include-savings')?.checked||false;
+
+    const {jsPDF}=window.jspdf;
+    const doc=new jsPDF({orientation:'p',unit:'mm',format:'a4'});
+    const PW=doc.internal.pageSize.getWidth();
+    const PH=doc.internal.pageSize.getHeight();
+    const M=14;
+    const CW=PW-2*M;
+    let y=0;
+
+    // ── HELPERS ──
+    const safeText=s=>String(s||'').replace(/[^\x00-\x7F]/g,c=>c==='₹'?'Rs.':'');
+
+    // ── PAGE HEADER (subsequent pages) ──
+    const addPageHeader=()=>{
+      doc.setFillColor(255,255,255);doc.rect(0,0,PW,10,'F');
+      try{doc.addImage(RZP_LOGO_B64,'PNG',M,1,24,8);}catch(e){}
+      doc.setFillColor(31,63,163);doc.rect(0,9.5,PW,0.8,'F');
+      doc.setTextColor(100,115,150);doc.setFontSize(6.5);doc.setFont('helvetica','normal');
+      doc.text('Payment Gateway - Commercial Proposal',PW-M,7,{align:'right'});
+    };
+    const checkPage=(needed)=>{if(y+needed>PH-16){doc.addPage();addPageHeader();y=18;}};
+    const sectionTitle=(txt,r,g,b)=>{
+      checkPage(14);
+      doc.setFontSize(9.5);doc.setFont('helvetica','bold');doc.setTextColor(r,g,b);
+      doc.text(txt,M,y);
+      doc.setDrawColor(r,g,b);doc.setLineWidth(0.4);
+      doc.line(M,y+1.5,M+doc.getTextWidth(txt),y+1.5);
+      y+=7;
+    };
+
+    // ══════════════════════════════════════════
+    // PAGE 1 HEADER — compact slim bar
+    // ══════════════════════════════════════════
+    // White header — logo shows perfectly, title in navy, blue underline
+    const HDR=18;
+    doc.setFillColor(255,255,255);
+    doc.rect(0,0,PW,HDR,'F');
+    try{doc.addImage(RZP_LOGO_B64,'PNG',M,2,32,13);}catch(e){}
+    doc.setFillColor(31,63,163);
+    doc.rect(0,HDR-1.5,PW,1.5,'F');
+    doc.setTextColor(31,63,163);
+    doc.setFontSize(10.5);doc.setFont('helvetica','bold');
+    doc.text('Payment Gateway - Commercial Proposal',PW-M,10,{align:'right'});
+    doc.setFontSize(6.5);doc.setFont('helvetica','normal');doc.setTextColor(130,140,165);
+    doc.text('Confidential  |  For Merchant Use Only',PW-M,16,{align:'right'});
+
+    y=HDR+5;
+
+    // ══════════════════════════════════════════
+    // MERCHANT DETAILS — 4-cell info grid
+    // ══════════════════════════════════════════
+    const detailCells=[];
+    detailCells.push({label:'PREPARED FOR',value:name});
+    if(customerName) detailCells.push({label:'CONTACT',value:customerName});
+    if(mid) detailCells.push({label:'MID',value:mid});
+    detailCells.push({label:'DATE',value:today});
+    detailCells.push({label:'MONTHLY GMV',value:lakh(gmv).replace(/₹/g,'Rs.')});
+
+    const cols=2;
+    const cellW=CW/cols;
+    const cellH=14;
+    const rows=Math.ceil(detailCells.length/cols);
+    const gridH=rows*cellH;
+
+    // outer card
+    doc.setFillColor(246,248,255);doc.setDrawColor(210,218,240);doc.setLineWidth(0.25);
+    doc.roundedRect(M,y,CW,gridH,2,2,'FD');
+
+    detailCells.forEach((cell,idx)=>{
+      const col=idx%cols, row=Math.floor(idx/cols);
+      const cx=M+col*cellW, cy=y+row*cellH;
+      // cell border right (except last col)
+      if(col<cols-1){doc.setDrawColor(210,218,240);doc.setLineWidth(0.2);doc.line(cx+cellW,cy+2,cx+cellW,cy+cellH-2);}
+      // cell border bottom (except last row)
+      if(row<rows-1){doc.setDrawColor(210,218,240);doc.setLineWidth(0.2);doc.line(cx+4,cy+cellH,cx+cellW-4,cy+cellH);}
+      // label
+      doc.setFontSize(6.5);doc.setFont('helvetica','bold');doc.setTextColor(120,135,175);
+      doc.text(cell.label,cx+5,cy+5.5);
+      // value
+      doc.setFontSize(9);doc.setFont('helvetica','bold');doc.setTextColor(15,25,65);
+      doc.text(safeText(cell.value),cx+5,cy+11);
+    });
+    y+=gridH+7;
+
+    // ── INTRO TEXT ──
+    if(introText){
+      const safeIntro=safeText(introText);
+      doc.setFontSize(9);doc.setFont('helvetica','normal');doc.setTextColor(55,65,90);
+      const lines=doc.splitTextToSize(safeIntro,CW);
+      doc.text(lines,M,y);
+      y+=lines.length*4.8+5;
+    }
+
+    // ══════════════════════════════════════════
+    // PAYMENT METHOD RATES
+    // ══════════════════════════════════════════
+    sectionTitle('Payment Method Rates',31,63,163);
+
+    const isComp=tab==='competition', isMC=tab==='magic-checkout';
+    const pfx=isComp?'c':isMC?'mc':'n';
+
+    // Group methods by group header
+    let lastGroup='';
+    const tableBody=[];
+    METHODS.forEach((m,i)=>{
+      if(m.group!==lastGroup){
+        tableBody.push([{content:m.group,colSpan:2,styles:{fillColor:[235,239,252],textColor:[31,63,163],fontStyle:'bold',fontSize:8,cellPadding:2}}]);
+        lastGroup=m.group;
+      }
+      let rpRate;
+      if(flatMode[tab]?.[i]){
+        const aov=flatData[tab]?.[i]?.aov||1;
+        const fee=flatData[tab]?.[i]?.fee||0;
+        rpRate=`Rs.${fee}/txn (AOV Rs.${Math.round(aov).toLocaleString('en-IN')})`;
+      } else {
+        const mdr=+(document.getElementById(`${pfx}-mdr-${i}`)?.value)||0;
+        rpRate=mdr.toFixed(2)+'%';
+      }
+      tableBody.push([pdfLabel(m.label),rpRate]);
+    });
+
+    doc.autoTable({
+      startY:y,
+      head:[['Payment Method','Platform Fee']],
+      body:tableBody,
+      theme:'grid',
+      margin:{left:M,right:M},
+      headStyles:{fillColor:[31,63,163],fontStyle:'bold',fontSize:9,textColor:[255,255,255],cellPadding:3},
+      bodyStyles:{fontSize:8.5,textColor:[30,40,70],cellPadding:2.5},
+      columnStyles:{0:{cellWidth:130},1:{halign:'center',fontStyle:'bold'}},
+      alternateRowStyles:{fillColor:[249,251,255]},
+    });
+    y=doc.lastAutoTable.finalY+5;
+
+    // ══════════════════════════════════════════
+    // SETTLEMENT & BENEFITS
+    // ══════════════════════════════════════════
+    const settleType=document.getElementById('settlement-type').value;
+    const sNR=settlementNR(gmv);
+    let settleText='';
+    if(settleType==='T2') settleText='T+2 - Standard (no additional charge)';
+    else if(settleType==='T1'){const r=+(document.getElementById('t1-rate').value)||0;settleText=`T+1 - ${r.toFixed(2)}% of GMV`;}
+    else if(settleType==='T0'){const r=Math.max(0.05,+(document.getElementById('t0-rate').value)||0.05);settleText=`T+0 - ${r.toFixed(2)}% of GMV`;}
+    else if(settleType==='ODS'){const r=Math.max(0.10,+(document.getElementById('ods-rate').value)||0.10);settleText=`On-Demand Settlement (ODS) - ${r.toFixed(2)}% of GMV`;}
+
+    const creditAmt=getGMVCreditAmount();
+    const routeRate=getRouteRate();
+
+    const addonsRows=[];
+    addonsRows.push(['Settlement Cycle',settleText]);
+    if(creditAmt>0){
+      const cl=creditAmt>=1e7?(creditAmt/1e7).toFixed(2)+' Cr':creditAmt>=1e5?(creditAmt/1e5).toFixed(2)+' Lakh':'Rs.'+Math.round(creditAmt).toLocaleString('en-IN');
+      addonsRows.push(['GMV Credit Benefit',cl+' (special benefit - subject to Sales POC agreement)']);
+    }
+    if(routeRate>0) addonsRows.push(['Razorpay Route',routeRate.toFixed(2)+'% of routed volume']);
+
+    if(addonsRows.length){
+      checkPage(10+addonsRows.length*14);
+      sectionTitle('Additional Terms',31,63,163);
+      // Render as a card grid — N cards side by side (up to 3 per row)
+      const addonCards=addonsRows.map(r=>({label:r[0],value:r[1]}));
+      const acols=Math.min(addonCards.length,3);
+      const acellW=(CW-(acols-1)*4)/acols;
+      const acellH=18;
+      const arows=Math.ceil(addonCards.length/acols);
+      const agridH=arows*acellH+(arows-1)*3;
+      // outer wrapper
+      doc.setFillColor(246,248,255);doc.setDrawColor(210,218,240);doc.setLineWidth(0.25);
+      doc.roundedRect(M,y,CW,agridH,2,2,'FD');
+      addonCards.forEach((card,idx)=>{
+        const col=idx%acols, row=Math.floor(idx/acols);
+        const cx=M+col*(acellW+4), cy=y+row*(acellH+3);
+        // card bg
+        doc.setFillColor(255,255,255);doc.setDrawColor(210,220,245);doc.setLineWidth(0.2);
+        doc.roundedRect(cx+(col===0?2:0),cy+2,acellW-(col===0?2:0)-(col===acols-1?2:0),acellH-4,1,1,'FD');
+        // top accent line
+        doc.setFillColor(31,63,163);
+        doc.rect(cx+(col===0?2:0),cy+2,acellW-(col===0?2:0)-(col===acols-1?2:0),1.5,'F');
+        // label
+        doc.setFontSize(6.5);doc.setFont('helvetica','bold');doc.setTextColor(100,115,165);
+        doc.text(card.label.toUpperCase(),cx+(col===0?5:3),cy+7.5);
+        // value — wrap if needed
+        doc.setFontSize(8);doc.setFont('helvetica','bold');doc.setTextColor(15,25,70);
+        const vlines=doc.splitTextToSize(safeText(card.value),acellW-8);
+        doc.text(vlines[0],cx+(col===0?5:3),cy+13);
+      });
+      y+=agridH+6;
+    }
+
+    // ══════════════════════════════════════════
+    // MAGIC CHECKOUT
+    // ══════════════════════════════════════════
+    if(isMC){
+      const mcRateVal=+(document.getElementById('mc-rate').value)||0;
+      const mcCompRate=+(document.getElementById('mc-comp-rate').value)||0;
+      const mcFreeMons=Math.min(6,+(document.getElementById('mc-free-months').value)||1);
+      const mcPostRate=Math.max(0.05,+(document.getElementById('mc-post-rate').value)||0.05);
+      // Build card items — only MC Rate + optionally Competitor Rate
+      const mcCards=[];
+      if(mcRateVal===0){
+        mcCards.push({label:'Magic Checkout Rate',value:`Free for ${mcFreeMons} month${mcFreeMons>1?'s':''}`,sub:`${mcPostRate.toFixed(2)}% of GMV thereafter`});
+      } else {
+        mcCards.push({label:'Magic Checkout Rate',value:`${mcRateVal.toFixed(2)}% of GMV`});
+      }
+      if(mcCompRate>0) mcCards.push({label:'Competitor Checkout Rate',value:`${mcCompRate.toFixed(2)}% of GMV`});
+      const mcCols=Math.min(mcCards.length,3);
+      const mcCellW=(CW-(mcCols-1)*4)/mcCols;
+      const mcCellH=mcCards.some(c=>c.sub)?22:18;
+      const mcGridH=Math.ceil(mcCards.length/mcCols)*mcCellH;
+      checkPage(mcGridH+16);
+      sectionTitle('Magic Checkout',90,55,200);
+      doc.setFillColor(248,246,255);doc.setDrawColor(200,190,240);doc.setLineWidth(0.25);
+      doc.roundedRect(M,y,CW,mcGridH,2,2,'FD');
+      mcCards.forEach((card,idx)=>{
+        const col=idx%mcCols,row=Math.floor(idx/mcCols);
+        const cx=M+col*(mcCellW+4),cy=y+row*mcCellH;
+        doc.setFillColor(255,255,255);doc.setDrawColor(200,190,240);doc.setLineWidth(0.2);
+        doc.roundedRect(cx+(col===0?2:0),cy+2,mcCellW-(col===0?2:0)-(col===mcCols-1?2:0),mcCellH-4,1,1,'FD');
+        doc.setFillColor(90,55,200);
+        doc.rect(cx+(col===0?2:0),cy+2,mcCellW-(col===0?2:0)-(col===mcCols-1?2:0),1.5,'F');
+        doc.setFontSize(6.5);doc.setFont('helvetica','bold');doc.setTextColor(120,100,190);
+        doc.text(card.label.toUpperCase(),cx+(col===0?5:3),cy+7.5);
+        doc.setFontSize(9);doc.setFont('helvetica','bold');doc.setTextColor(50,20,140);
+        doc.text(safeText(card.value),cx+(col===0?5:3),cy+13.5);
+        if(card.sub){doc.setFontSize(7);doc.setFont('helvetica','normal');doc.setTextColor(110,95,170);doc.text(safeText(card.sub),cx+(col===0?5:3),cy+18.5);}
+      });
+      y+=mcGridH+6;
+    }
+
+    // ══════════════════════════════════════════
+    // COST COMPARISON (opt-in only)
+    // ══════════════════════════════════════════
+    if(includeSavings && isComp){
+      let cRPPay=0,cCPay=0;
+      METHODS.forEach((m,i)=>{
+        const spl=+(document.getElementById(`c-spl-${i}`)?.value)||0;
+        const mGMV=gmv*spl/100;
+        if(flatMode.competition[i]){
+          const aov=flatData.competition[i].aov||1,txn=mGMV/aov;
+          cRPPay+=(flatData.competition[i].fee||0)*txn;
+          cCPay+=(flatData.competition[i].compFee||0)*txn;
+        } else {
+          const mdr=+(document.getElementById(`c-mdr-${i}`)?.value)||0;
+          const comp=+(document.getElementById(`c-comp-${i}`)?.value)||0;
+          cRPPay+=mdr/100*mGMV;cCPay+=comp/100*mGMV;
+        }
+      });
+      const saving=cCPay-cRPPay;
+      if(saving>0){
+        checkPage(46);
+        sectionTitle('Cost Advantage - Switching to Razorpay',5,120,80);
+        const boxW=(CW-5)/2;
+        // Competitor box
+        doc.setFillColor(253,242,242);doc.setDrawColor(240,180,180);doc.setLineWidth(0.3);
+        doc.roundedRect(M,y,boxW,24,2,2,'FD');
+        doc.setFontSize(7);doc.setFont('helvetica','bold');doc.setTextColor(160,30,30);
+        doc.text('WITH COMPETITOR',M+4,y+5.5);
+        doc.setFontSize(14);doc.setFont('helvetica','bold');doc.setTextColor(140,20,20);
+        doc.text(pdfINR(cCPay)+'/mo',M+4,y+15);
+        doc.setFontSize(7.5);doc.setFont('helvetica','normal');doc.setTextColor(180,60,60);
+        doc.text(pdfINR(cCPay*12)+' per year',M+4,y+21);
+        // RP box
+        doc.setFillColor(240,253,244);doc.setDrawColor(150,220,170);doc.setLineWidth(0.3);
+        doc.roundedRect(M+boxW+5,y,boxW,24,2,2,'FD');
+        doc.setFontSize(7);doc.setFont('helvetica','bold');doc.setTextColor(10,100,50);
+        doc.text('WITH RAZORPAY',M+boxW+9,y+5.5);
+        doc.setFontSize(14);doc.setFont('helvetica','bold');doc.setTextColor(5,90,40);
+        doc.text(pdfINR(cRPPay)+'/mo',M+boxW+9,y+15);
+        doc.setFontSize(7.5);doc.setFont('helvetica','normal');doc.setTextColor(20,130,70);
+        doc.text(pdfINR(cRPPay*12)+' per year',M+boxW+9,y+21);
+        y+=28;
+        // Savings banner
+        doc.setFillColor(10,110,60);
+        doc.roundedRect(M,y,CW,13,2,2,'F');
+        doc.setFontSize(8);doc.setFont('helvetica','bold');doc.setTextColor(200,245,220);
+        doc.text('MONTHLY SAVING',M+5,y+5.5);
+        doc.setFontSize(13);doc.setFont('helvetica','bold');doc.setTextColor(255,255,255);
+        doc.text(pdfINR(saving),M+50,y+10);
+        doc.setFontSize(8);doc.setFont('helvetica','bold');doc.setTextColor(200,245,220);
+        doc.text('ANNUAL SAVING',M+CW/2+5,y+5.5);
+        doc.setFontSize(13);doc.setFont('helvetica','bold');doc.setTextColor(255,255,255);
+        doc.text(pdfINR(saving*12),M+CW/2+50,y+10);
+        y+=17;
+      }
+    }
+
+    if(includeSavings && isMC){
+      const mcRateVal2=+(document.getElementById('mc-rate').value)||0;
+      const mcCompRate2=+(document.getElementById('mc-comp-rate').value)||0;
+      const mcFreeMons2=Math.min(6,+(document.getElementById('mc-free-months').value)||1);
+      if(mcCompRate2>0){
+        const compCheckout=mcCompRate2/100*gmv;
+        const rpCheckout=mcRateVal2/100*gmv;
+        const saving=compCheckout-rpCheckout;
+        if(saving>0){
+          checkPage(40);
+          sectionTitle('Checkout Cost Advantage',5,120,80);
+          const boxW=(CW-5)/2;
+          const rpLabel=mcRateVal2===0?`Free for ${mcFreeMons2} month${mcFreeMons2>1?'s':''}`:pdfINR2(rpCheckout)+'/mo';
+          const rpSub=mcRateVal2===0?`${(+(document.getElementById('mc-post-rate').value)||0.05).toFixed(2)}% of GMV thereafter`:'';
+          const bH=rpSub?24:20;
+          doc.setFillColor(253,242,242);doc.setDrawColor(240,180,180);doc.setLineWidth(0.3);
+          doc.roundedRect(M,y,boxW,bH,2,2,'FD');
+          doc.setFontSize(7);doc.setFont('helvetica','bold');doc.setTextColor(160,30,30);
+          doc.text('COMPETITOR CHECKOUT',M+4,y+5.5);
+          doc.setFontSize(13);doc.setFont('helvetica','bold');doc.setTextColor(140,20,20);
+          doc.text(pdfINR2(compCheckout)+'/mo',M+4,y+bH-4);
+          doc.setFillColor(240,253,244);doc.setDrawColor(150,220,170);doc.setLineWidth(0.3);
+          doc.roundedRect(M+boxW+5,y,boxW,bH,2,2,'FD');
+          doc.setFontSize(7);doc.setFont('helvetica','bold');doc.setTextColor(10,100,50);
+          doc.text('RAZORPAY MAGIC CHECKOUT',M+boxW+9,y+5.5);
+          doc.setFontSize(12);doc.setFont('helvetica','bold');doc.setTextColor(5,90,40);
+          doc.text(rpLabel,M+boxW+9,y+13.5);
+          if(rpSub){doc.setFontSize(7);doc.setFont('helvetica','normal');doc.setTextColor(20,120,60);doc.text(rpSub,M+boxW+9,y+19.5);}
+          y+=bH+4;
+          doc.setFillColor(10,110,60);
+          doc.roundedRect(M,y,CW,11,2,2,'F');
+          doc.setFontSize(8);doc.setFont('helvetica','bold');doc.setTextColor(200,245,220);
+          doc.text('MONTHLY CHECKOUT SAVING',M+5,y+4);
+          doc.setFontSize(12);doc.setFont('helvetica','bold');doc.setTextColor(255,255,255);
+          doc.text(mcRateVal2===0?pdfINR2(compCheckout)+` (free for ${mcFreeMons2}mo)`:pdfINR2(saving),M+5,y+9.5);
+          y+=15;
+        }
+      }
+    }
+
+    // ── CLOSING TEXT ──
+    if(closingText){
+      checkPage(18);
+      y+=3;
+      doc.setDrawColor(215,220,235);doc.setLineWidth(0.3);
+      doc.line(M,y,M+CW,y);y+=5;
+      doc.setFontSize(9);doc.setFont('helvetica','normal');doc.setTextColor(50,60,80);
+      const clines=doc.splitTextToSize(safeText(closingText),CW);
+      doc.text(clines,M,y);
+      y+=clines.length*4.8+5;
+    }
+
+    // ── TERMS & CONDITIONS ──
+    checkPage(18);
+    y+=2;
+    doc.setDrawColor(215,220,235);doc.setLineWidth(0.3);
+    doc.line(M,y,M+CW,y);y+=5;
+    sectionTitle('Terms & Conditions',31,63,163);
+    doc.setFontSize(8.5);doc.setFont('helvetica','normal');doc.setTextColor(60,65,80);
+
+    const tncClauses=[
+      {title:'Taxes',body:'All platform fees are exclusive of applicable taxes (GST or other levies) which shall be charged in addition as per prevailing law.'},
+      {title:'Platform Fee Definition',body:'The platform fee comprises: (a) Merchant Discount Rate (MDR) - includes interchange, switching, and any fees levied by acquiring banks, card networks, or issuing banks; and (b) Technology Fee - charged by Razorpay for providing a seamless, best-in-class payment experience.'},
+      {title:'Setup & AMC',body:'Setup cost and Annual Maintenance Cost (AMC), where applicable, are non-refundable, in case charged.'},
+      {title:'Bank Approval',body:"All commercials are subject to the acquiring bank's approval of your business model and terminal procurement requirements."},
+      {title:'Pre-Collection Approval',body:'Once commercials are mutually agreed, you must obtain written approval from your Razorpay Sales POC before commencing payment collection under the revised pricing. Razorpay will not be liable for any refund on payments collected prior to such approval.'},
+      {title:'Implementation Discrepancy',body:'Post-approval, if the agreed pricing is not implemented due to a reason attributable to Razorpay, you have 15 days from the go-live date to notify your Sales POC. Requests raised after this period will not be eligible for any refund or adjustment.'},
+      {title:'Delayed Confirmation',body:'Unless explicit written confirmation is received from your end, Razorpay is not obligated to map or implement the proposed commercials. During such period, transactions will be processed at standard platform rates or the last mutually agreed rates. Any differential arising from delayed confirmation is not eligible for refund, adjustment, or reversal.'},
+      {title:'Validity',body:'This proposal is valid for 15 days from the date of sharing. If confirmation/acceptance is not received within this period, Razorpay reserves the right to revise or withdraw the commercials.'},
+    ];
+
+    const LH=4.2; // line height
+    const IND=5;  // body indent to align with text after "N. Title: "
+    doc.setFontSize(8);
+    tncClauses.forEach((clause,idx)=>{
+      // Build full wrapped lines: first line starts after "N. Title: ", rest indent by IND
+      const prefix=`${idx+1}. ${clause.title}: `;
+      doc.setFont('helvetica','bold');
+      const prefixW=doc.getTextWidth(prefix);
+      doc.setFont('helvetica','normal');
+      const firstLineW=CW-prefixW;
+      const firstWrapped=doc.splitTextToSize(clause.body,firstLineW);
+      const remainingText=firstWrapped.slice(1).join(' ');
+      const restLines=remainingText?doc.splitTextToSize(remainingText,CW-IND):[];
+      const totalLines=1+restLines.length;
+      checkPage(totalLines*LH+3);
+      // Draw prefix bold
+      doc.setFont('helvetica','bold');doc.setTextColor(30,40,80);
+      doc.text(prefix,M,y);
+      // Draw first line of body
+      doc.setFont('helvetica','normal');doc.setTextColor(60,65,80);
+      doc.text(firstWrapped[0],M+prefixW,y);
+      // Draw continuation lines indented to body start
+      restLines.forEach(line=>{
+        y+=LH;
+        doc.text(line,M+IND,y);
+      });
+      y+=LH+1.5; // small gap between clauses
+    });
+
+    // ── FOOTER (all pages) ──
+    const totalPages=doc.internal.getNumberOfPages();
+    for(let p=1;p<=totalPages;p++){
+      doc.setPage(p);
+      doc.setDrawColor(210,215,235);doc.setLineWidth(0.3);
+      doc.line(M,PH-10,PW-M,PH-10);
+      doc.setFontSize(6.5);doc.setTextColor(160,160,180);doc.setFont('helvetica','normal');
+      doc.text('Razorpay Software Pvt Ltd - Confidential, for named recipient only.',M,PH-5);
+      doc.text(`Page ${p} of ${totalPages}`,PW-M,PH-5,{align:'right'});
+    }
+
+    const fileName=mid?`${name}-${mid}-Razorpay-Proposal.pdf`:`${name}-Razorpay-Proposal.pdf`;
+
+    // Always download locally first
+    doc.save(fileName);
+
+    // Silently upload to Drive in background (no user sign-in needed)
+    const driveEl=document.getElementById('pdf-drive-status');
+    if(driveEl){driveEl.classList.remove('hidden');driveEl.innerHTML='<span class="text-gray-400">☁️ Saving to Drive...</span>';}
+    uploadToDrive(doc.output('arraybuffer'),fileName).then(result=>{
+      if(driveEl){
+        if(result.success){
+          driveEl.innerHTML='✅ <span class="text-green-600 font-medium">Saved to Razorpay Drive folder</span>';
+        } else {
+          driveEl.innerHTML='<span class="text-amber-500">⚠️ Drive save failed — PDF downloaded locally</span>';
+        }
+      }
+    }).catch(()=>{
+      if(driveEl) driveEl.innerHTML='<span class="text-amber-500">⚠️ Drive save failed — PDF downloaded locally</span>';
+    });
+
+    closeModal('pdf-modal');
+  } finally {
+    const btn=document.getElementById('pdf-generate-btn');
+    btn.textContent='Generate & Download PDF';btn.disabled=false;
+  }
+}
+
+// ================================================================
+// GOOGLE DRIVE UPLOAD — via Apps Script (no user auth needed)
+// ================================================================
+async function uploadToDrive(arrayBuffer,fileName){
+  // Convert ArrayBuffer → base64
+  const bytes=new Uint8Array(arrayBuffer);
+  let binary='';
+  bytes.forEach(b=>binary+=String.fromCharCode(b));
+  const base64=btoa(binary);
+  const res=await fetch(APPS_SCRIPT_URL,{
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({pdf:base64,filename:fileName}),
+  });
+  return res.json();
+}
+
+// ================================================================
+// INIT
+// ================================================================
+initTables();
+onGMVChange();
+onSettlementChange();
+onMCRateChange();
+checkRouteAvailability();
+setTab('competition');
+</script>
+</body>
+</html>
