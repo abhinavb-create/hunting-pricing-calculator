@@ -143,6 +143,18 @@
     </div>
   </div>
 
+  <!-- NEW VERSION BANNER -->
+  <div id="new-version-banner" class="hidden mb-4 bg-indigo-50 border-2 border-indigo-300 rounded-2xl px-5 py-3 flex items-center justify-between gap-4">
+    <div class="flex items-center gap-3">
+      <span class="text-2xl">✨</span>
+      <div>
+        <p class="text-sm font-bold text-indigo-800">Creating New Version</p>
+        <p class="text-xs text-indigo-500">Fields pre-filled from previous proposal. Edit rates and download to save as new version.</p>
+      </div>
+    </div>
+    <button onclick="_newVersionParentGroup=null;document.getElementById('new-version-banner').classList.add('hidden')" class="text-xs text-indigo-400 hover:text-indigo-700 font-semibold px-3 py-1.5 rounded-lg border border-indigo-200 hover:bg-indigo-100">Cancel</button>
+  </div>
+
   <!-- MERCHANT PROFILE -->
   <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-5 mb-4">
     <p class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">Merchant Profile</p>
@@ -1984,8 +1996,17 @@ async function generateAndDownloadPDF(){
 
       // Store in localStorage — request is queued regardless of email status
       const pending=JSON.parse(localStorage.getItem('rzp_pending_approvals')||'[]');
-      pending.push({requestId,fileName,merchantName:name,timestamp:Date.now(),status:'pending',driveLink});
+      const apRowId='ap_'+requestId;
+      pending.push({requestId,fileName,merchantName:name,timestamp:Date.now(),status:'pending',driveLink,rowId:apRowId});
       localStorage.setItem('rzp_pending_approvals',JSON.stringify(pending));
+      // Auto-link version group if this was triggered as a new version
+      if(_newVersionParentGroup){
+        statsGroupMap[apRowId]=_newVersionParentGroup;
+        localStorage.setItem('rzp_group_map',JSON.stringify(statsGroupMap));
+        _newVersionParentGroup=null;
+        const banner=document.getElementById('new-version-banner');
+        if(banner) banner.classList.add('hidden');
+      }
 
       // Always show queued — the sheet is updated even if email fails
       if(driveEl) driveEl.innerHTML='<span class="text-amber-600 font-semibold">⏳ Request queued — Abhinav will review and you\'ll be notified</span>';
@@ -2005,10 +2026,20 @@ async function generateAndDownloadPDF(){
       // ── NORMAL FLOW: download immediately ──
       doc.save(fileName);
       // Save to localStorage immediately so stats always show it
-      const dlRec={timestamp:Date.now(),userEmail:currentUser?.email||'',userName:currentUser?.name||'',merchantName:name||'',fileName,driveLink:'',statusKey:'downloaded'};
+      const snap=snapshotCalculatorState();
+      const newRowId='dl_'+Date.now();
+      const dlRec={timestamp:Date.now(),userEmail:currentUser?.email||'',userName:currentUser?.name||'',merchantName:name||'',fileName,driveLink:'',statusKey:'downloaded',rowId:newRowId,snapshot:snap};
       const localDls=JSON.parse(localStorage.getItem('rzp_downloads')||'[]');
       localDls.unshift(dlRec);
       localStorage.setItem('rzp_downloads',JSON.stringify(localDls.slice(0,200)));
+      // If this was started as a "New Version", auto-link it to the parent group
+      if(_newVersionParentGroup){
+        statsGroupMap[newRowId]=_newVersionParentGroup;
+        localStorage.setItem('rzp_group_map',JSON.stringify(statsGroupMap));
+        _newVersionParentGroup=null;
+        const banner=document.getElementById('new-version-banner');
+        if(banner) banner.classList.add('hidden');
+      }
       uploadToDrive(pdfBuffer,fileName,[],null,name).then(result=>{
         if(driveEl){
           if(result.success) driveEl.innerHTML='✅ <span class="text-green-600 font-medium">Saved to Razorpay Drive</span>';
@@ -2032,6 +2063,104 @@ async function generateAndDownloadPDF(){
       btn.textContent='Generate & Download PDF';btn.disabled=false;
     }
   }
+}
+
+// ================================================================
+// VERSION FLOW — snapshot, restore, new-version tracking
+// ================================================================
+let _newVersionParentGroup = null; // set when "New Version" is clicked from stats
+
+function snapshotCalculatorState(){
+  const snap = {
+    merchantName: document.getElementById('merchant-name')?.value||'',
+    customerName: document.getElementById('customer-name')?.value||'',
+    mid: document.getElementById('merchant-mid')?.value||'',
+    gmv: document.getElementById('gmv')?.value||'',
+    settlementType: document.getElementById('settlement-type')?.value||'T2',
+    t1Rate: document.getElementById('t1-rate')?.value||'0',
+    t0Rate: document.getElementById('t0-rate')?.value||'0.05',
+    odsRate: document.getElementById('ods-rate')?.value||'0.10',
+    gmvCredit: document.getElementById('gmv-credit')?.value||'none',
+    gmvCreditCustom: document.getElementById('gmv-credit-custom-val')?.value||'',
+    activeTab,
+    mcRate: document.getElementById('mc-rate')?.value||'0.05',
+    mcCompRate: document.getElementById('mc-comp-rate')?.value||'0.10',
+    mcPostRate: document.getElementById('mc-post-rate')?.value||'0.05',
+    rates: {},
+    flatModes: {},
+    flatFees: {},
+    flatAovs: {},
+    compFees: {},
+    splits: {},
+  };
+  ['competition','magic-checkout'].forEach(sc=>{
+    const pfx=sc==='competition'?'c':'mc';
+    snap.rates[sc]={};snap.flatModes[sc]={};snap.flatFees[sc]={};snap.flatAovs[sc]={};snap.compFees[sc]={};snap.splits[sc]={};
+    METHODS.forEach((m,i)=>{
+      snap.rates[sc][i]=document.getElementById(`${pfx}-mdr-${i}`)?.value||'';
+      snap.flatModes[sc][i]=flatMode[sc][i]||false;
+      snap.flatFees[sc][i]=flatData[sc][i]?.fee||null;
+      snap.flatAovs[sc][i]=flatData[sc][i]?.aov||50000;
+      snap.compFees[sc][i]=flatData[sc][i]?.compFee||null;
+      const splEl=document.getElementById(`${pfx}-spl-${i}`);
+      snap.splits[sc][i]=splEl?.value||'';
+    });
+  });
+  return snap;
+}
+
+function restoreCalculatorState(snap){
+  if(!snap) return;
+  const set=(id,val)=>{const el=document.getElementById(id);if(el&&val!==undefined&&val!==null)el.value=val;};
+  set('merchant-name',snap.merchantName);
+  set('customer-name',snap.customerName);
+  set('merchant-mid',snap.mid);
+  set('gmv',snap.gmv);
+  set('settlement-type',snap.settlementType);
+  set('t1-rate',snap.t1Rate);
+  set('t0-rate',snap.t0Rate);
+  set('ods-rate',snap.odsRate);
+  set('gmv-credit',snap.gmvCredit);
+  set('gmv-credit-custom-val',snap.gmvCreditCustom);
+  set('mc-rate',snap.mcRate);
+  set('mc-comp-rate',snap.mcCompRate);
+  set('mc-post-rate',snap.mcPostRate);
+  // Restore per-method rates, flat modes, splits
+  if(snap.rates){
+    ['competition','magic-checkout'].forEach(sc=>{
+      const pfx=sc==='competition'?'c':'mc';
+      if(!snap.rates[sc]) return;
+      METHODS.forEach((m,i)=>{
+        const mdrEl=document.getElementById(`${pfx}-mdr-${i}`);
+        if(mdrEl&&snap.rates[sc][i]!==undefined) mdrEl.value=snap.rates[sc][i];
+        if(snap.flatModes[sc]&&snap.flatModes[sc][i]) {
+          flatMode[sc][i]=snap.flatModes[sc][i];
+          if(snap.flatData) flatData[sc][i]={aov:snap.flatAovs?.[sc]?.[i]||50000,fee:snap.flatFees?.[sc]?.[i]||null,compFee:snap.compFees?.[sc]?.[i]||null};
+          if(flatMode[sc][i]) refreshFlatUI(sc,i);
+        }
+        const splEl=document.getElementById(`${pfx}-spl-${i}`);
+        if(splEl&&snap.splits?.[sc]?.[i]!==undefined) splEl.value=snap.splits[sc][i];
+      });
+    });
+  }
+  onSettlementChange();
+  onGMVCreditChange();
+  setTab(snap.activeTab||'competition');
+  updateOutputs();
+}
+
+function startNewVersion(rowId, parentGroup, snapJSON){
+  _newVersionParentGroup = parentGroup || rowId; // use existing group or rowId as new group
+  closeStats();
+  try{
+    const snap = JSON.parse(decodeURIComponent(snapJSON));
+    restoreCalculatorState(snap);
+  }catch(e){console.warn('Could not restore snapshot',e);}
+  // Show a banner so the user knows they're creating a new version
+  setTimeout(()=>{
+    const banner = document.getElementById('new-version-banner');
+    if(banner) banner.classList.remove('hidden');
+  }, 100);
 }
 
 // ================================================================
@@ -2403,11 +2532,12 @@ function renderStatsTable(rows){
     return `<span class="text-xs font-bold px-2.5 py-1 rounded-full ${x.c} whitespace-nowrap">${x.t}</span>`;
   };
   const versionBadge=(r)=>{
-    if(!r.group) return `<button onclick="openGroupModal('${r.rowId}','${(r.merchantName||'').replace(/'/g,'\\\'')}')" class="text-xs text-gray-400 hover:text-indigo-500 hover:underline font-semibold">+ Link version</button>`;
+    const newVerBtn=r.snapshot?`<button onclick="startNewVersion('${r.rowId}','${(r.group||r.rowId).replace(/'/g,'\\\'').replace(/\\/g,'\\\\')}','${encodeURIComponent(JSON.stringify(r.snapshot)).replace(/'/g,'%27')}')" class="mt-1.5 flex items-center gap-1 text-xs font-semibold text-indigo-600 hover:text-indigo-800 hover:underline">＋ New version</button>`:'';
+    if(!r.group) return `<button onclick="openGroupModal('${r.rowId}','${(r.merchantName||'').replace(/'/g,'\\\'')}')" class="text-xs text-gray-400 hover:text-indigo-500 hover:underline font-semibold">+ Link</button>${newVerBtn}`;
     const colors=['bg-blue-100 text-blue-700','bg-indigo-100 text-indigo-700','bg-purple-100 text-purple-700','bg-pink-100 text-pink-700'];
     const c=colors[((r.version||1)-1)%colors.length];
     const totalTxt=r.totalVersions>1?` <span class="text-gray-400 font-normal">(${r.totalVersions} total)</span>`:'';
-    return `<span class="text-xs font-black px-2.5 py-1 rounded-full ${c}">v${r.version||1}</span>${totalTxt}<br><button onclick="openGroupModal('${r.rowId}','${(r.merchantName||'').replace(/'/g,'\\\'')}','${(r.group||'').replace(/'/g,'\\\'')}')" class="text-xs text-gray-400 hover:text-indigo-400 mt-0.5 inline-block">${r.group}</button>`;
+    return `<span class="text-xs font-black px-2.5 py-1 rounded-full ${c}">v${r.version||1}</span>${totalTxt}<br><button onclick="openGroupModal('${r.rowId}','${(r.merchantName||'').replace(/'/g,'\\\'')}','${(r.group||'').replace(/'/g,'\\\'')}')" class="text-xs text-gray-400 hover:text-indigo-400 mt-0.5 inline-block">${r.group}</button>${newVerBtn}`;
   };
   const ownerDisplay=(r)=>{
     const email=r.requester||'';
@@ -2558,7 +2688,8 @@ async function loadUserHistory(){
     const isAp=type==='approval';
     const{date,time,raw}=fmtDate(d.timestamp);
     const mid=extractMID(isAp?d.fileName:d.fileName);
-    const rowId=(isAp?'ap_':'dl_')+(d.requestId||d.fileId||raw);
+    // Prefer stored rowId (from new-version flow) to ensure group-map links persist
+    const rowId=d.rowId||((isAp?'ap_':'dl_')+(d.requestId||d.fileId||raw));
     const group=statsGroupMap[rowId]||'';           // manual group set by admin
     return{
       type, rowId,
@@ -2572,6 +2703,7 @@ async function loadUserHistory(){
       driveLink:isAp?(d.driveLink||''):(d.driveLink||''),
       requester:isAp?(d.requesterEmail||''):(d.userEmail||''),
       group,
+      snapshot:(!isAp&&d.snapshot)?d.snapshot:null,
       version:null,totalVersions:null,   // filled below
     };
   };
