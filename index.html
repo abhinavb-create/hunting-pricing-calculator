@@ -480,6 +480,15 @@
         <label class="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1.5">Closing / Next Steps</label>
         <textarea id="pdf-closing-text" rows="3" class="w-full px-3 py-2.5 border-2 border-gray-200 rounded-xl text-gray-700 text-sm focus:outline-none focus:border-blue-500 resize-none leading-relaxed" placeholder="Closing remarks or next steps..."></textarea>
       </div>
+      <div id="pdf-approval-section" class="hidden bg-amber-50 border-2 border-amber-300 rounded-xl px-4 py-3 space-y-2">
+        <p class="text-sm font-black text-amber-800">⚠️ Approval Required</p>
+        <p class="text-xs text-amber-700">One or more rates are below the floor for this GMV slab. This PDF will automatically send an approval request to <strong>abhinav.b@razorpay.com</strong>.</p>
+        <div id="pdf-approval-violations" class="text-xs text-amber-900 font-semibold space-y-0.5"></div>
+        <div>
+          <label class="block text-xs font-bold text-amber-800 mb-1">Your Email (for approval reply)</label>
+          <input id="pdf-requester-email" type="email" placeholder="yourname@razorpay.com" class="w-full px-3 py-1.5 border-2 border-amber-300 rounded-lg text-xs focus:outline-none focus:border-amber-500">
+        </div>
+      </div>
       <div class="bg-blue-50 border border-blue-100 rounded-xl px-4 py-3 text-xs text-blue-700 space-y-2">
         <div><strong>What's included:</strong> Merchant details · Payment method rates · Settlement terms · Magic Checkout (if applicable) · T&amp;C</div>
         <label class="flex items-center gap-2 cursor-pointer">
@@ -520,6 +529,68 @@ const BANK_COSTS = {
   'rupay-debit':        0.0002,
   'no-code':            0.0000,
 };
+
+// ================================================================
+// FLOOR RATES — minimum rates per GMV slab (from Threshold.xlsx)
+// ================================================================
+const FLOOR_RATES = {
+  slabs:[
+    {max:2500000,  label:'Upto 25 Lakhs'},
+    {max:7500000,  label:'25L - 75L'},
+    {max:50000000, label:'75L - 5Cr'},
+    {max:Infinity, label:'5Cr & Above'},
+  ],
+  floors:{
+    'credit-cards':       [1.91,1.90,1.90,1.89],
+    'debit-lt2k':         [0.55,0.45,0.45,0.45],
+    'debit-gt2k':         [0.95,0.90,0.85,0.85],
+    'rupay-debit':        [0.15,0.12,0.10,0.10],
+    'corp-cards':         [2.75,2.60,2.50,2.40],
+    'intl-cards':         [2.85,2.85,2.82,2.82],
+    'amex':               [2.60,2.50,2.40,2.20],
+    'emi':                [2.75,2.60,2.50,2.00],
+    'upi':                [0.20,0.10,0.08,0.05],
+    'upi-cc':             [2.05,2.05,2.05,2.05],
+    'net-banking':        [1.65,1.65,1.65,1.65],
+    'net-banking-others': [1.60,1.50,1.50,1.30],
+    'mobile-wallets':     [1.80,1.70,1.68,1.65],
+    'no-code':            [0.00,0.00,0.00,0.00],
+  }
+};
+function getSlabIndex(gmv){const idx=FLOOR_RATES.slabs.findIndex(s=>gmv<=s.max);return idx<0?3:idx;}
+function getFloor(methodId,gmv){return (FLOOR_RATES.floors[methodId]||[])[getSlabIndex(gmv)]||0;}
+function getFloorViolations(tab,gmv){
+  const pfx=tab==='competition'?'c':'mc';
+  const v=[];
+  METHODS.forEach((m,i)=>{
+    if(m.locked) return;
+    const floor=getFloor(m.id,gmv);
+    if(floor===0) return;
+    if(flatMode[tab]?.[i]) return; // flat fee mode — skip
+    const mdr=+(document.getElementById(`${pfx}-mdr-${i}`)?.value)||0;
+    if(mdr<floor) v.push({label:m.label,rate:mdr,floor,idx:i});
+  });
+  return v;
+}
+function checkFloorWarnings(){
+  const gmv=getGMV();
+  ['competition','magic-checkout'].forEach(tab=>{
+    const pfx=tab==='competition'?'c':'mc';
+    METHODS.forEach((m,i)=>{
+      const warn=document.getElementById(`${pfx}-floorwarn-${i}`);
+      if(!warn||m.locked) return;
+      const floor=getFloor(m.id,gmv);
+      if(floor===0||flatMode[tab]?.[i]){warn.classList.add('hidden');return;}
+      const mdr=+(document.getElementById(`${pfx}-mdr-${i}`)?.value)||0;
+      if(mdr<floor){
+        warn.textContent=`⚠ Below floor: min ${floor.toFixed(2)}%`;
+        warn.classList.remove('hidden');
+      } else {
+        warn.classList.add('hidden');
+      }
+    });
+  });
+}
 
 const METHODS = [
   // ── Cards ──
@@ -580,6 +651,7 @@ function pricingCell(sc, i, m) {
   if (!m.flat) return `<td class="py-2.5 px-2 text-center rp-col align-top pt-3">
     <input id="${pfx}-mdr-${i}" type="number" min="0" max="15" step="0.01" value="${def.toFixed(2)}"
       class="w-20 text-center border-2 border-green-200 bg-white rounded-lg px-1 py-1.5 font-bold text-xs focus:outline-none focus:border-green-500" oninput="updateOutputs()">
+  <p id="${pfx}-floorwarn-${i}" class="text-amber-600 font-bold text-xs hidden mt-0.5 leading-tight"></p>
   </td>`;
   return `<td class="py-2.5 px-2 rp-col">
     <div class="flex justify-center mb-1.5">
@@ -588,6 +660,7 @@ function pricingCell(sc, i, m) {
     <div id="${pfx}-pct-${i}" class="text-center">
       <input id="${pfx}-mdr-${i}" type="number" min="0" max="15" step="0.01" value="${def.toFixed(2)}"
         class="w-20 text-center border-2 border-green-200 bg-white rounded-lg px-1 py-1.5 font-bold text-xs focus:outline-none focus:border-green-500" oninput="updateOutputs()">
+      <p id="${pfx}-floorwarn-${i}" class="text-amber-600 font-bold text-xs hidden mt-0.5 leading-tight"></p>
     </div>
     <div id="${pfx}-flat-${i}" class="hidden space-y-1 min-w-32">
       <div class="flex items-center gap-1">
@@ -1028,6 +1101,7 @@ function updateOutputs(){
   sc2.textContent=activeSplit.toFixed(1)+'% split';
   sc2.className=`text-sm font-bold px-3 py-1.5 rounded-lg ${Math.abs(activeSplit-100)<0.5?'bg-green-100 text-green-700':'bg-amber-100 text-amber-700'}`;
   splitWarn('comp-split-warn',cSplit);splitWarn('mc-split-warn',mSplit);
+  checkFloorWarnings();
 }
 
 // ================================================================
@@ -1200,6 +1274,16 @@ function downloadPDF(){
   const closingEl=document.getElementById('pdf-closing-text');
   if(!closingEl.value){
     closingEl.value=`We look forward to partnering with ${name}. Please feel free to reach out for any clarifications or to proceed with onboarding.\n\nWarm regards,\nRazorpay Sales Team`;
+  }
+  // Check floor violations and populate approval section
+  const violations=getFloorViolations(activeTab,gmv);
+  const approvalSection=document.getElementById('pdf-approval-section');
+  const violationsDiv=document.getElementById('pdf-approval-violations');
+  if(violations.length>0&&approvalSection&&violationsDiv){
+    approvalSection.classList.remove('hidden');
+    violationsDiv.innerHTML=violations.map(v=>`<div>• ${v.label}: entered ${v.rate.toFixed(2)}% <span class="text-red-700">(floor: ${v.floor.toFixed(2)}%)</span></div>`).join('');
+  } else if(approvalSection){
+    approvalSection.classList.add('hidden');
   }
   showModal('pdf-modal');
 }
@@ -1632,6 +1716,10 @@ async function generateAndDownloadPDF(){
     // Always download locally first
     doc.save(fileName);
 
+    // Check for floor violations — need approval email
+    const violations=getFloorViolations(tab,gmv);
+    const requesterEmail=document.getElementById('pdf-requester-email')?.value.trim()||'';
+
     // Silently upload to Drive in background (no user sign-in needed)
     const driveEl=document.getElementById('pdf-drive-status');
     if(driveEl){driveEl.classList.remove('hidden');driveEl.innerHTML='<span class="text-gray-400">☁️ Saving to Drive...</span>';}
@@ -1639,6 +1727,18 @@ async function generateAndDownloadPDF(){
       if(driveEl){
         if(result.success){
           driveEl.innerHTML='✅ <span class="text-green-600 font-medium">Saved to Razorpay Drive folder</span>';
+          // Send approval email if violations exist
+          if(violations.length>0){
+            sendApprovalEmail({
+              merchantName:name,
+              gmv,
+              slabLabel:FLOOR_RATES.slabs[getSlabIndex(gmv)].label,
+              violations,
+              requesterEmail,
+              fileId:result.id,
+              fileName,
+            });
+          }
         } else {
           driveEl.innerHTML='<span class="text-amber-500">⚠️ Drive save failed — PDF downloaded locally</span>';
         }
@@ -1669,6 +1769,31 @@ async function uploadToDrive(arrayBuffer,fileName){
     body:JSON.stringify({pdf:base64,filename:fileName}),
   });
   return res.json();
+}
+
+// ================================================================
+// APPROVAL EMAIL
+// ================================================================
+async function sendApprovalEmail({merchantName,gmv,slabLabel,violations,requesterEmail,fileId,fileName}){
+  const violationLines=violations.map(v=>`  • ${v.label}: ${v.rate.toFixed(2)}% (floor: ${v.floor.toFixed(2)}%)`).join('\n');
+  const driveLink=fileId?`https://drive.google.com/file/d/${fileId}/view`:'(upload failed)';
+  const payload={
+    type:'approval',
+    to:'abhinav.b@razorpay.com',
+    subject:`[Approval Needed] Below-floor pricing for ${merchantName}`,
+    body:`Approval request for below-floor pricing:\n\nMerchant: ${merchantName}\nMonthly GMV: Rs.${Math.round(gmv).toLocaleString('en-IN')} (${slabLabel})\nRequested by: ${requesterEmail||'Not provided'}\n\nBelow-floor rates:\n${violationLines}\n\nProposal PDF: ${driveLink}\n\nPlease approve or reject by replying to the requester.`,
+    requesterEmail,
+    merchantName,
+    fileName,
+    driveLink,
+  };
+  try{
+    await fetch(APPS_SCRIPT_URL,{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify(payload),
+    });
+  }catch(e){console.warn('Approval email failed:',e);}
 }
 
 // ================================================================
