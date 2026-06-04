@@ -7,6 +7,7 @@
 <script src="https://cdn.tailwindcss.com"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+<script src="https://accounts.google.com/gsi/client" async defer></script>
 <style>
   body{font-family:'Inter',system-ui,sans-serif;background:#f0f4ff;}
   .tab-active  {background:#3b5bdb;color:white;box-shadow:0 2px 8px #3b5bdb44;}
@@ -87,10 +88,26 @@
       <h1 class="text-2xl font-bold text-gray-800">CC &amp; UPI Pricing Calculator</h1>
       <p class="text-sm text-gray-400 mt-0.5">Net Revenue &amp; Merchant Impact · Razorpay Internal</p>
     </div>
-    <button id="pdf-btn" onclick="downloadPDF()" class="pdf-btn text-white px-5 py-2.5 rounded-xl font-semibold text-sm flex items-center gap-2 shadow-lg">
-      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414A1 1 0 0119 7.414V19a2 2 0 01-2 2z"/></svg>
-      Download PDF
-    </button>
+    <div class="flex items-center gap-3">
+      <!-- Google Sign-In button (shown when not signed in) -->
+      <div id="google-signin-btn"></div>
+      <!-- User profile (shown when signed in) -->
+      <div id="user-profile" class="hidden flex items-center gap-2">
+        <button onclick="showStatsModal()" class="text-xs text-gray-500 hover:text-indigo-600 font-semibold px-3 py-1.5 rounded-lg hover:bg-indigo-50 flex items-center gap-1 border border-gray-200 bg-white shadow-sm">
+          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
+          My Stats
+        </button>
+        <div class="flex items-center gap-2 bg-white border border-gray-200 rounded-full px-3 py-1.5 shadow-sm cursor-pointer" onclick="signOut()" title="Click to sign out">
+          <img id="user-pic" src="" class="w-6 h-6 rounded-full object-cover bg-indigo-100" alt="">
+          <span id="user-name" class="text-sm font-semibold text-gray-700"></span>
+          <svg class="w-3.5 h-3.5 text-gray-400 hover:text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/></svg>
+        </div>
+      </div>
+      <button id="pdf-btn" onclick="downloadPDF()" class="pdf-btn text-white px-5 py-2.5 rounded-xl font-semibold text-sm flex items-center gap-2 shadow-lg">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414A1 1 0 0119 7.414V19a2 2 0 01-2 2z"/></svg>
+        Download PDF
+      </button>
+    </div>
   </div>
 
   <!-- MERCHANT PROFILE -->
@@ -488,6 +505,7 @@
           <label class="block text-xs font-bold text-amber-800 mb-1">Your Email (for approval reply)</label>
           <input id="pdf-requester-email" type="email" placeholder="yourname@razorpay.com" class="w-full px-3 py-1.5 border-2 border-amber-300 rounded-lg text-xs focus:outline-none focus:border-amber-500">
         </div>
+        <div id="pdf-queued-status" class="hidden rounded-lg px-3 py-2 text-xs font-semibold"></div>
       </div>
       <div class="bg-blue-50 border border-blue-100 rounded-xl px-4 py-3 text-xs text-blue-700 space-y-2">
         <div><strong>What's included:</strong> Merchant details · Payment method rates · Settlement terms · Magic Checkout (if applicable) · T&amp;C</div>
@@ -508,6 +526,49 @@
 </div>
 
 </div><!-- /main-wrap -->
+
+<!-- ===== STATS MODAL ===== -->
+<div id="stats-modal" class="modal">
+  <div class="bg-white rounded-2xl shadow-2xl max-w-lg w-full mx-4 overflow-hidden" style="max-height:85vh;display:flex;flex-direction:column;">
+    <div class="bg-gradient-to-r from-indigo-600 to-purple-600 px-6 py-4 flex items-center justify-between flex-shrink-0">
+      <div>
+        <h2 class="text-white font-black text-lg">My Activity</h2>
+        <p id="stats-user-email" class="text-indigo-200 text-xs mt-0.5"></p>
+      </div>
+      <button onclick="closeModal('stats-modal')" class="text-white opacity-60 hover:opacity-100 text-2xl leading-none">&times;</button>
+    </div>
+    <div class="overflow-y-auto flex-1 px-6 py-5">
+      <div id="stats-loading" class="hidden text-center py-8 text-gray-400 text-sm">⏳ Loading history...</div>
+      <div id="stats-content" class="space-y-6">
+        <!-- Summary row -->
+        <div class="grid grid-cols-3 gap-3">
+          <div class="bg-blue-50 rounded-xl p-3 text-center">
+            <p id="stats-download-count" class="text-2xl font-black text-blue-700">0</p>
+            <p class="text-xs text-blue-500 font-semibold mt-0.5">Downloads</p>
+          </div>
+          <div class="bg-amber-50 rounded-xl p-3 text-center">
+            <p id="stats-pending-count" class="text-2xl font-black text-amber-600">0</p>
+            <p class="text-xs text-amber-500 font-semibold mt-0.5">Pending</p>
+          </div>
+          <div class="bg-green-50 rounded-xl p-3 text-center">
+            <p id="stats-approved-count" class="text-2xl font-black text-green-700">0</p>
+            <p class="text-xs text-green-500 font-semibold mt-0.5">Approved</p>
+          </div>
+        </div>
+        <!-- Downloads list -->
+        <div>
+          <p class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">PDF Downloads</p>
+          <div id="stats-downloads-list"></div>
+        </div>
+        <!-- Approvals list -->
+        <div>
+          <p class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">Approval Requests</p>
+          <div id="stats-approvals-list"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
 
 <script>
 // ================================================================
@@ -1255,6 +1316,7 @@ function setTab(tab){
 // PDF — CONFIG
 // ================================================================
 const APPS_SCRIPT_URL = 'https://script.google.com/a/macros/razorpay.com/s/AKfycbzBwrA0HoRI5Xsu_VlHQDP1mJ5oudEi3enmtESWwscMXrKUQq00KrD4q2eakZF1Ob0Q5A/exec';
+const SHEET_ID = '1AvZfg_j7Dt2vL7jGPUvZTlTs18nGMIeLJDRes3qkf8I';
 
 // ================================================================
 // PDF — OPEN MODAL
@@ -1275,6 +1337,14 @@ function downloadPDF(){
   if(!closingEl.value){
     closingEl.value=`We look forward to partnering with ${name}. Please feel free to reach out for any clarifications or to proceed with onboarding.\n\nWarm regards,\nRazorpay Sales Team`;
   }
+  // Pre-fill requester email from signed-in user
+  const emailEl=document.getElementById('pdf-requester-email');
+  if(emailEl&&currentUser&&!emailEl.value) emailEl.value=currentUser.email;
+
+  // Reset queued status
+  const queuedEl=document.getElementById('pdf-queued-status');
+  if(queuedEl) queuedEl.classList.add('hidden');
+
   // Check floor violations and populate approval section
   const violations=getFloorViolations(activeTab,gmv);
   const approvalSection=document.getElementById('pdf-approval-section');
@@ -1284,6 +1354,15 @@ function downloadPDF(){
     violationsDiv.innerHTML=violations.map(v=>`<div>• ${v.label}: entered ${v.rate.toFixed(2)}% <span class="text-red-700">(floor: ${v.floor.toFixed(2)}%)</span></div>`).join('');
   } else if(approvalSection){
     approvalSection.classList.add('hidden');
+  }
+  // If there's an active pending approval for this session, restore queued state
+  if(pendingApprovalId&&queuedEl){
+    queuedEl.textContent='⏳ Approval request in progress — checking status...';
+    queuedEl.className='bg-amber-50 border border-amber-300 rounded-lg px-3 py-2 text-xs text-amber-800 font-semibold';
+    queuedEl.classList.remove('hidden');
+    resetPdfBtn();
+    const btn=document.getElementById('pdf-generate-btn');
+    if(btn){btn.textContent='⏳ Queued — Awaiting Approval';btn.disabled=true;btn.className='flex-1 bg-gradient-to-r from-amber-500 to-orange-500 text-white font-bold py-2.5 rounded-xl text-sm shadow-lg opacity-80 cursor-not-allowed';}
   }
   showModal('pdf-modal');
 }
@@ -1301,8 +1380,15 @@ const pdfLabel = s => s.replace(/≤/g,'<=').replace(/—/g,'-').replace(/[^\x00
 const RZP_LOGO_B64='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';
 
 async function generateAndDownloadPDF(){
+  if(!currentUser){
+    alert('Please sign in with your Razorpay Google account to download PDFs.');
+    if(window.google?.accounts?.id) google.accounts.id.prompt();
+    return;
+  }
   const btn=document.getElementById('pdf-generate-btn');
+  const driveEl=document.getElementById('pdf-drive-status');
   btn.textContent='Generating...';btn.disabled=true;
+  let isQueued=false;
   try{
     const name=document.getElementById('merchant-name').value.trim();
     const customerName=document.getElementById('customer-name').value.trim();
@@ -1713,52 +1799,87 @@ async function generateAndDownloadPDF(){
 
     const fileName=mid?`${name}-${mid}-Razorpay-Proposal.pdf`:`${name}-Razorpay-Proposal.pdf`;
 
-    // Always download locally first
-    doc.save(fileName);
-
-    // Check for floor violations — need approval email
+    // Check for floor violations
     const violations=getFloorViolations(tab,gmv);
-    const requesterEmail=document.getElementById('pdf-requester-email')?.value.trim()||'';
+    const requesterEmail=document.getElementById('pdf-requester-email')?.value.trim()||currentUser?.email||'';
+    const pdfBuffer=doc.output('arraybuffer');
 
-    // Silently upload to Drive in background (no user sign-in needed)
-    const driveEl=document.getElementById('pdf-drive-status');
-    if(driveEl){driveEl.classList.remove('hidden');driveEl.innerHTML='<span class="text-gray-400">☁️ Saving to Drive...</span>';}
-    uploadToDrive(doc.output('arraybuffer'),fileName).then(result=>{
-      if(driveEl){
-        if(result.success){
-          driveEl.innerHTML='✅ <span class="text-green-600 font-medium">Saved to Razorpay Drive folder</span>';
-          // Send approval email if violations exist
-          if(violations.length>0){
-            sendApprovalEmail({
-              merchantName:name,
-              gmv,
-              slabLabel:FLOOR_RATES.slabs[getSlabIndex(gmv)].label,
-              violations,
-              requesterEmail,
-              fileId:result.id,
-              fileName,
-            });
-          }
-        } else {
-          driveEl.innerHTML='<span class="text-amber-500">⚠️ Drive save failed — PDF downloaded locally</span>';
-        }
+    if(driveEl){driveEl.classList.remove('hidden');driveEl.innerHTML='<span class="text-gray-400">☁️ Uploading to Drive...</span>';}
+
+    if(violations.length>0){
+      // ── APPROVAL FLOW: don't download yet ──
+      isQueued=true;
+      const requestId=genRequestId();
+      pendingApprovalId=requestId;
+      pendingPDFBuffer=pdfBuffer;
+      pendingFileName=fileName;
+
+      let fileId=null;
+      let driveLink='';
+      try{
+        const uploadResult=await uploadToDrive(pdfBuffer,fileName,violations,requestId);
+        if(uploadResult.success){fileId=uploadResult.id;driveLink=`https://drive.google.com/file/d/${fileId}/view`;}
+      }catch(e){console.warn('Upload error:',e);}
+
+      try{
+        await requestApproval({
+          requestId,
+          requesterEmail,
+          requesterName:currentUser.name,
+          merchantName:name,
+          gmv,
+          slabLabel:FLOOR_RATES.slabs[getSlabIndex(gmv)].label,
+          violations,
+          fileId,driveLink,fileName,
+        });
+      }catch(e){console.warn('Approval request error:',e);}
+
+      // Store in localStorage
+      const pending=JSON.parse(localStorage.getItem('rzp_pending_approvals')||'[]');
+      pending.push({requestId,fileName,merchantName:name,timestamp:Date.now(),status:'pending',driveLink});
+      localStorage.setItem('rzp_pending_approvals',JSON.stringify(pending));
+
+      // Update UI to queued state
+      if(driveEl) driveEl.innerHTML='<span class="text-amber-600 font-semibold">✉️ Approval request sent to Abhinav — download queued</span>';
+      const queuedEl=document.getElementById('pdf-queued-status');
+      if(queuedEl){
+        queuedEl.textContent='⏳ Waiting for approval. You\'ll be notified when approved.';
+        queuedEl.className='bg-amber-50 border border-amber-300 rounded-lg px-3 py-2 text-xs text-amber-800 font-semibold';
+        queuedEl.classList.remove('hidden');
       }
-    }).catch(()=>{
-      if(driveEl) driveEl.innerHTML='<span class="text-amber-500">⚠️ Drive save failed — PDF downloaded locally</span>';
-    });
+      btn.textContent='⏳ Queued — Awaiting Approval';
+      btn.className='flex-1 bg-gradient-to-r from-amber-500 to-orange-500 text-white font-bold py-2.5 rounded-xl text-sm shadow-lg opacity-80 cursor-not-allowed';
 
-    closeModal('pdf-modal');
-  } finally {
-    const btn=document.getElementById('pdf-generate-btn');
-    btn.textContent='Generate & Download PDF';btn.disabled=false;
+      // Start polling for approval status
+      startApprovalPolling(requestId);
+
+    }else{
+      // ── NORMAL FLOW: download immediately ──
+      doc.save(fileName);
+      uploadToDrive(pdfBuffer,fileName,[],null).then(result=>{
+        if(driveEl){
+          if(result.success) driveEl.innerHTML='✅ <span class="text-green-600 font-medium">Saved to Razorpay Drive</span>';
+          else driveEl.innerHTML='<span class="text-amber-500">⚠️ Drive save failed — PDF downloaded locally</span>';
+        }
+      }).catch(()=>{
+        if(driveEl) driveEl.innerHTML='<span class="text-amber-500">⚠️ Drive save failed — PDF downloaded locally</span>';
+      });
+      closeModal('pdf-modal');
+    }
+  }catch(err){
+    console.error('PDF error:',err);
+    if(driveEl) driveEl.innerHTML='<span class="text-red-500">❌ Error generating PDF. Please try again.</span>';
+  }finally{
+    if(!isQueued){
+      btn.textContent='Generate & Download PDF';btn.disabled=false;
+    }
   }
 }
 
 // ================================================================
 // GOOGLE DRIVE UPLOAD — via Apps Script (no user auth needed)
 // ================================================================
-async function uploadToDrive(arrayBuffer,fileName){
-  // Convert ArrayBuffer → base64
+async function uploadToDrive(arrayBuffer,fileName,violations,requestId){
   const bytes=new Uint8Array(arrayBuffer);
   let binary='';
   bytes.forEach(b=>binary+=String.fromCharCode(b));
@@ -1766,34 +1887,282 @@ async function uploadToDrive(arrayBuffer,fileName){
   const res=await fetch(APPS_SCRIPT_URL,{
     method:'POST',
     headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({pdf:base64,filename:fileName}),
+    body:JSON.stringify({
+      type:'pdf_upload',
+      pdf:base64,
+      filename:fileName,
+      userEmail:currentUser?.email||'',
+      userName:currentUser?.name||'',
+      hasViolations:violations&&violations.length>0,
+      requestId:requestId||null,
+    }),
   });
   return res.json();
 }
 
 // ================================================================
-// APPROVAL EMAIL
+// GOOGLE SIGN-IN
 // ================================================================
-async function sendApprovalEmail({merchantName,gmv,slabLabel,violations,requesterEmail,fileId,fileName}){
-  const violationLines=violations.map(v=>`  • ${v.label}: ${v.rate.toFixed(2)}% (floor: ${v.floor.toFixed(2)}%)`).join('\n');
-  const driveLink=fileId?`https://drive.google.com/file/d/${fileId}/view`:'(upload failed)';
-  const payload={
-    type:'approval',
-    to:'abhinav.b@razorpay.com',
-    subject:`[Approval Needed] Below-floor pricing for ${merchantName}`,
-    body:`Approval request for below-floor pricing:\n\nMerchant: ${merchantName}\nMonthly GMV: Rs.${Math.round(gmv).toLocaleString('en-IN')} (${slabLabel})\nRequested by: ${requesterEmail||'Not provided'}\n\nBelow-floor rates:\n${violationLines}\n\nProposal PDF: ${driveLink}\n\nPlease approve or reject by replying to the requester.`,
-    requesterEmail,
-    merchantName,
-    fileName,
-    driveLink,
-  };
+let currentUser=JSON.parse(localStorage.getItem('rzp_user')||'null');
+
+function decodeJWT(token){
+  const b=token.split('.')[1].replace(/-/g,'+').replace(/_/g,'/');
+  const pad=b.length%4;
+  return JSON.parse(atob(pad?b+'===='.slice(0,4-pad):b));
+}
+
+function handleCredentialResponse(response){
   try{
-    await fetch(APPS_SCRIPT_URL,{
+    const payload=decodeJWT(response.credential);
+    currentUser={email:payload.email,name:payload.name,picture:payload.picture};
+    localStorage.setItem('rzp_user',JSON.stringify(currentUser));
+    updateUserUI();
+  }catch(e){console.error('GSI decode error:',e);}
+}
+
+function initGoogleSignIn(){
+  google.accounts.id.initialize({
+    client_id:'988966755183-fbs79ibk466rgdie076qrv9jq3flngk1.apps.googleusercontent.com',
+    callback:handleCredentialResponse,
+    auto_select:!!currentUser,
+    hosted_domain:'razorpay.com',
+  });
+  if(!currentUser){
+    google.accounts.id.renderButton(
+      document.getElementById('google-signin-btn'),
+      {theme:'outline',size:'medium',text:'signin_with',shape:'pill'}
+    );
+    google.accounts.id.prompt();
+  }else{
+    updateUserUI();
+  }
+}
+
+function updateUserUI(){
+  const signinDiv=document.getElementById('google-signin-btn');
+  const profileDiv=document.getElementById('user-profile');
+  if(!currentUser){
+    signinDiv?.classList.remove('hidden');
+    profileDiv?.classList.add('hidden');
+    return;
+  }
+  signinDiv?.classList.add('hidden');
+  profileDiv?.classList.remove('hidden');
+  const nameEl=document.getElementById('user-name');
+  const picEl=document.getElementById('user-pic');
+  if(nameEl) nameEl.textContent=currentUser.name?.split(' ')[0]||currentUser.email.split('@')[0];
+  if(picEl&&currentUser.picture) picEl.src=currentUser.picture;
+}
+
+function signOut(){
+  currentUser=null;
+  localStorage.removeItem('rzp_user');
+  stopApprovalPolling();
+  if(window.google?.accounts?.id) google.accounts.id.disableAutoSelect();
+  updateUserUI();
+  setTimeout(()=>{
+    if(window.google?.accounts?.id){
+      google.accounts.id.renderButton(
+        document.getElementById('google-signin-btn'),
+        {theme:'outline',size:'medium',text:'signin_with',shape:'pill'}
+      );
+    }
+  },100);
+}
+
+window.onGoogleLibraryLoad=initGoogleSignIn;
+
+// ================================================================
+// APPROVAL FLOW
+// ================================================================
+let pendingApprovalId=null;
+let pendingPDFBuffer=null;
+let pendingFileName=null;
+let approvalPollTimer=null;
+
+function genRequestId(){
+  return Date.now().toString(36)+Math.random().toString(36).slice(2,8);
+}
+
+async function requestApproval({requestId,requesterEmail,requesterName,merchantName,gmv,slabLabel,violations,fileId,driveLink,fileName}){
+  const res=await fetch(APPS_SCRIPT_URL,{
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({
+      type:'approval_request',
+      requestId,requesterEmail,requesterName,
+      merchantName,gmv,slabLabel,violations,
+      fileId,driveLink,fileName,
+    }),
+  });
+  return res.json();
+}
+
+function startApprovalPolling(requestId){
+  stopApprovalPolling();
+  approvalPollTimer=setInterval(()=>pollApprovalStatus(requestId),15000);
+}
+
+function stopApprovalPolling(){
+  if(approvalPollTimer){clearInterval(approvalPollTimer);approvalPollTimer=null;}
+}
+
+async function pollApprovalStatus(requestId){
+  try{
+    const res=await fetch(APPS_SCRIPT_URL,{
       method:'POST',
       headers:{'Content-Type':'application/json'},
-      body:JSON.stringify(payload),
+      body:JSON.stringify({type:'check_status',requestId}),
     });
-  }catch(e){console.warn('Approval email failed:',e);}
+    const data=await res.json();
+    if(data.status==='approved'||data.status==='rejected'){
+      handleApprovalResolved(requestId,data.status);
+    }
+  }catch(e){console.warn('Poll error:',e);}
+}
+
+function handleApprovalResolved(requestId,status){
+  stopApprovalPolling();
+  const btn=document.getElementById('pdf-generate-btn');
+  const driveEl=document.getElementById('pdf-drive-status');
+  const queuedEl=document.getElementById('pdf-queued-status');
+
+  if(status==='approved'){
+    // Trigger PDF download
+    if(pendingPDFBuffer&&pendingFileName){
+      const blob=new Blob([pendingPDFBuffer],{type:'application/pdf'});
+      const url=URL.createObjectURL(blob);
+      const a=document.createElement('a');
+      a.href=url;a.download=pendingFileName;a.click();
+      setTimeout(()=>URL.revokeObjectURL(url),2000);
+    }
+    if(driveEl) driveEl.innerHTML='✅ <span class="text-green-600 font-semibold">Approved! PDF downloading...</span>';
+    if(queuedEl){
+      queuedEl.textContent='✅ Approved! Your PDF is downloading.';
+      queuedEl.className='bg-green-50 border border-green-300 rounded-lg px-3 py-2 text-xs text-green-800 font-semibold';
+    }
+    if(btn) btn.textContent='✅ Approved — Downloading!';
+    setTimeout(()=>{closeModal('pdf-modal');resetPdfBtn();},2500);
+  }else{
+    if(driveEl) driveEl.innerHTML='❌ <span class="text-red-600 font-semibold">Request rejected. Please revise pricing.</span>';
+    if(queuedEl){
+      queuedEl.textContent='❌ Rejected. Please revise pricing or seek manual approval.';
+      queuedEl.className='bg-red-50 border border-red-300 rounded-lg px-3 py-2 text-xs text-red-800 font-semibold';
+    }
+    if(btn){btn.textContent='Revise & Re-submit';btn.disabled=false;btn.className='flex-1 bg-gradient-to-r from-red-500 to-red-600 text-white font-bold py-2.5 rounded-xl text-sm shadow-lg hover:opacity-90';}
+  }
+
+  // Update localStorage
+  const pending=JSON.parse(localStorage.getItem('rzp_pending_approvals')||'[]');
+  const idx=pending.findIndex(p=>p.requestId===requestId);
+  if(idx>=0) pending[idx].status=status;
+  localStorage.setItem('rzp_pending_approvals',JSON.stringify(pending));
+
+  pendingApprovalId=null;
+  pendingPDFBuffer=null;
+  pendingFileName=null;
+}
+
+function resetPdfBtn(){
+  const btn=document.getElementById('pdf-generate-btn');
+  if(btn){
+    btn.textContent='Generate & Download PDF';
+    btn.disabled=false;
+    btn.className='flex-1 bg-gradient-to-r from-blue-700 to-indigo-700 text-white font-bold py-2.5 rounded-xl text-sm shadow-lg hover:opacity-90';
+  }
+}
+
+// ================================================================
+// STATS MODAL
+// ================================================================
+function showStatsModal(){
+  const emailEl=document.getElementById('stats-user-email');
+  if(emailEl&&currentUser) emailEl.textContent=currentUser.email;
+  showModal('stats-modal');
+  loadUserHistory();
+}
+
+async function loadUserHistory(){
+  const loadingEl=document.getElementById('stats-loading');
+  const contentEl=document.getElementById('stats-content');
+  if(loadingEl) loadingEl.classList.remove('hidden');
+  if(contentEl) contentEl.style.opacity='0.4';
+
+  let downloads=[];
+  let approvals=[];
+
+  try{
+    const res=await fetch(APPS_SCRIPT_URL,{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({type:'get_history',email:currentUser?.email||''}),
+    });
+    const data=await res.json();
+    downloads=data.downloads||[];
+    approvals=data.approvals||[];
+  }catch(e){
+    // Fallback to localStorage
+    approvals=JSON.parse(localStorage.getItem('rzp_pending_approvals')||'[]');
+  }
+
+  // Counts
+  const pending=approvals.filter(a=>a.status==='pending').length;
+  const approved=approvals.filter(a=>a.status==='approved').length;
+  const dlCountEl=document.getElementById('stats-download-count');
+  const pendingCountEl=document.getElementById('stats-pending-count');
+  const approvedCountEl=document.getElementById('stats-approved-count');
+  if(dlCountEl) dlCountEl.textContent=downloads.length;
+  if(pendingCountEl) pendingCountEl.textContent=pending;
+  if(approvedCountEl) approvedCountEl.textContent=approved;
+
+  // Downloads list
+  const dlEl=document.getElementById('stats-downloads-list');
+  if(dlEl){
+    if(!downloads.length){
+      dlEl.innerHTML='<p class="text-xs text-gray-400 text-center py-3">No downloads recorded yet.</p>';
+    }else{
+      dlEl.innerHTML=downloads.slice(0,20).map(d=>`
+        <div class="flex items-start justify-between py-2.5 border-b border-gray-100 last:border-0">
+          <div class="min-w-0 flex-1">
+            <p class="text-sm font-semibold text-gray-800 truncate">${d.merchantName||'Unknown Merchant'}</p>
+            <p class="text-xs text-gray-400 truncate">${d.fileName||''}</p>
+          </div>
+          <div class="text-right ml-3 flex-shrink-0">
+            <p class="text-xs text-gray-500">${d.timestamp?new Date(d.timestamp).toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'2-digit'}):''}</p>
+            ${d.driveLink?`<a href="${d.driveLink}" target="_blank" class="text-xs text-blue-500 hover:underline">View ↗</a>`:''}
+          </div>
+        </div>
+      `).join('');
+    }
+  }
+
+  // Approvals list
+  const appEl=document.getElementById('stats-approvals-list');
+  if(appEl){
+    if(!approvals.length){
+      appEl.innerHTML='<p class="text-xs text-gray-400 text-center py-3">No approval requests.</p>';
+    }else{
+      appEl.innerHTML=approvals.slice(0,20).map(a=>{
+        const sc=a.status==='approved'?'text-green-600 bg-green-50':a.status==='rejected'?'text-red-600 bg-red-50':'text-amber-600 bg-amber-50';
+        const st=a.status==='approved'?'✅ Approved':a.status==='rejected'?'❌ Rejected':'⏳ Pending';
+        return `
+          <div class="flex items-start justify-between py-2.5 border-b border-gray-100 last:border-0">
+            <div class="min-w-0 flex-1">
+              <p class="text-sm font-semibold text-gray-800 truncate">${a.merchantName||'Unknown'}</p>
+              <p class="text-xs text-gray-400 truncate">${a.fileName||''}</p>
+            </div>
+            <div class="text-right ml-3 flex-shrink-0">
+              <span class="text-xs font-bold px-2 py-0.5 rounded-full ${sc}">${st}</span>
+              ${a.driveLink?`<br><a href="${a.driveLink}" target="_blank" class="text-xs text-blue-500 hover:underline mt-0.5 inline-block">View ↗</a>`:''}
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+  }
+
+  if(loadingEl) loadingEl.classList.add('hidden');
+  if(contentEl) contentEl.style.opacity='1';
 }
 
 // ================================================================
@@ -1805,6 +2174,8 @@ onSettlementChange();
 onMCRateChange();
 checkRouteAvailability();
 setTab('competition');
+// Show user profile if already signed in from a previous session
+if(currentUser) updateUserUI();
 </script>
 </body>
 </html>
