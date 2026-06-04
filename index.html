@@ -3169,10 +3169,12 @@ function renderStatsTable(rows){
   if(!window._snapCache) window._snapCache={};
   const versionBadge=(r)=>{
     if(r.snapshot) window._snapCache[r.rowId]=r.snapshot;
-    const newVerBtn=(r.type==='downloaded'||r.statusKey==='downloaded')
+    // Show "+ New version" for any row that has a snapshot OR is a download/approved
+    const canNewVer=r.snapshot||(r.type==='downloaded')||r.statusKey==='downloaded'||r.statusKey==='approved';
+    const newVerBtn=canNewVer
       ?`<button onclick="startNewVersionFromCache('${r.rowId}','${(r.group||r.rowId).replace(/'/g,'%27').replace(/\\/g,'%5C')}')" class="mt-1.5 flex items-center gap-1 text-xs font-semibold text-indigo-600 hover:text-indigo-800 hover:underline">＋ New version</button>`
       :'';
-    if(!r.group) return `<button onclick="openGroupModal('${r.rowId}','${(r.merchantName||'').replace(/'/g,'\\\'')}')" class="text-xs text-gray-400 hover:text-indigo-500 hover:underline font-semibold">+ Link</button>${newVerBtn}`;
+    if(!r.group) return `<button onclick="openGroupModal('${r.rowId}','${(r.merchantName||'').replace(/'/g,'\\\'')}')" class="text-xs text-indigo-400 hover:text-indigo-600 hover:underline font-bold">+ Link versions</button>${newVerBtn}`;
     const colors=['bg-blue-100 text-blue-700','bg-indigo-100 text-indigo-700','bg-purple-100 text-purple-700','bg-pink-100 text-pink-700'];
     const c=colors[((r.version||1)-1)%colors.length];
     const totalTxt=r.totalVersions>1?` <span class="text-gray-400 font-normal">(${r.totalVersions} total)</span>`:'';
@@ -3329,7 +3331,14 @@ async function loadUserHistory(){
         merchantName:r[3]||'',status:r[4]||'pending',resolvedAt:r[5]||'',
         gmv:parseFloat(r[6])||0,slabLabel:r[7]||'',driveLink:r[8]||'',
         teamGroup:r[10]||'',
-        timestamp:r[0]?parseInt(r[0].split('_')[0]||Date.now()):Date.now(),
+        timestamp:(()=>{
+          // requestId = Date.now().toString(36) + random — decode base36 timestamp
+          const id=r[0]||'';
+          if(!id) return Date.now();
+          const base36ts=parseInt(id.substring(0,9),36);
+          // valid ms timestamp is > year 2020 (1577836800000)
+          return base36ts>1577836800000?base36ts:Date.now();
+        })(),
       })).filter(r=>admin||r.requesterEmail===(currentUser?.email||''));
       // Merge: sheet has authoritative status; localStorage fills gaps
       const sheetApIds=new Set(approvals.map(a=>a.requestId));
@@ -3373,7 +3382,12 @@ async function loadUserHistory(){
 
   const makeRow=(d,type)=>{
     const isAp=type==='approval';
-    const{date,time,raw}=fmtDate(d.timestamp);
+    // Resolve timestamp: use explicit field, or decode from requestId (base36), or now
+    let ts=d.timestamp||0;
+    if(!ts&&d.requestId){const b=parseInt((d.requestId||'').substring(0,9),36);if(b>1577836800000)ts=b;}
+    if(!ts&&d.fileId){const b=parseInt((d.fileId||'').substring(0,9),36);if(b>1577836800000)ts=b;}
+    if(!ts) ts=Date.now();
+    const{date,time,raw}=fmtDate(ts);
     const mid=extractMID(isAp?d.fileName:d.fileName);
     // Prefer stored rowId (from new-version flow) to ensure group-map links persist
     const rowId=d.rowId||((isAp?'ap_':'dl_')+(d.requestId||d.fileId||raw));
