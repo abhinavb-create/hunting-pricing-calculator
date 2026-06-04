@@ -2393,63 +2393,123 @@ function genRequestId(){
   return Date.now().toString(36)+Math.random().toString(36).slice(2,8);
 }
 
-// ── Email test (callable from Stats page) ────────────────────────────
+// ══════════════════════════════════════════════════════════════════════
+// GMAIL API — send email directly from browser using signed-in account
+// ══════════════════════════════════════════════════════════════════════
+let _gmailToken=null;
+let _gmailTokenExpiry=0;
+let _gmailTokenClient=null;
+let _gmailResolve=null;
+
+function _initGmailClient(){
+  if(_gmailTokenClient) return;
+  _gmailTokenClient=google.accounts.oauth2.initTokenClient({
+    client_id:'988966755183-fbs79ibk466rgdie076qrv9jq3flngk1.apps.googleusercontent.com',
+    scope:'https://www.googleapis.com/auth/gmail.send',
+    callback:(resp)=>{
+      if(resp.error){ console.error('Gmail token error:',resp.error); if(_gmailResolve){_gmailResolve({success:false,error:resp.error});_gmailResolve=null;} return; }
+      _gmailToken=resp.access_token;
+      _gmailTokenExpiry=Date.now()+(Number(resp.expires_in||3600)-60)*1000;
+      if(_gmailResolve){_gmailResolve({success:true,token:resp.access_token});_gmailResolve=null;}
+    },
+  });
+}
+
+function _getGmailToken(forceConsent){
+  return new Promise((resolve)=>{
+    _initGmailClient();
+    // If token still valid, use it directly
+    if(!forceConsent && _gmailToken && Date.now()<_gmailTokenExpiry){
+      resolve({success:true,token:_gmailToken}); return;
+    }
+    _gmailResolve=resolve;
+    _gmailTokenClient.requestAccessToken({prompt: forceConsent?'consent':''});
+    // Timeout after 30s (user may have closed the popup)
+    setTimeout(()=>{ if(_gmailResolve){_gmailResolve({success:false,error:'Token request timed out or cancelled'});_gmailResolve=null;} },30000);
+  });
+}
+
+async function sendEmailViaGmail({to,subject,body},forceConsent=false){
+  const tokenResult=await _getGmailToken(forceConsent);
+  if(!tokenResult.success) return{success:false,error:tokenResult.error};
+  const mime=[
+    'To: '+to,
+    'From: '+currentUser.email,
+    'Subject: '+subject,
+    'Content-Type: text/plain; charset=utf-8',
+    '',
+    body,
+  ].join('\r\n');
+  const encoded=btoa(unescape(encodeURIComponent(mime))).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
+  try{
+    const res=await fetch('https://gmail.googleapis.com/gmail/v1/users/me/messages/send',{
+      method:'POST',
+      headers:{'Authorization':'Bearer '+tokenResult.token,'Content-Type':'application/json'},
+      body:JSON.stringify({raw:encoded}),
+    });
+    const data=await res.json();
+    if(data.id){ console.log('[Gmail] Sent, message id:',data.id); return{success:true,messageId:data.id}; }
+    // Token expired mid-session — retry once with fresh token
+    if(data.error?.code===401&&!forceConsent){ _gmailToken=null; return sendEmailViaGmail({to,subject,body},true); }
+    console.error('[Gmail] Send error:',data.error);
+    return{success:false,error:data.error?.message||JSON.stringify(data.error)};
+  }catch(e){
+    return{success:false,error:e.message};
+  }
+}
+
+// ── Test email ─────────────────────────────────────────────────────────
 async function runEmailTest(){
   const btn=document.getElementById('test-email-btn');
   if(btn){btn.textContent='⏳ Testing...';btn.disabled=true;}
-  const steps=[];
-  // Step 1: Can we reach Apps Script at all?
-  try{
-    const r=await fetch(APPS_SCRIPT_URL,{method:'POST',headers:{'Content-Type':'text/plain'},body:JSON.stringify({type:'send_email',to:'abhinav.b@razorpay.com',subject:'[Test] Pricing Calculator email test',body:'This is a test email from the Hunting Pricing Calculator. If you received this, MailApp is working correctly.\n\nSent by: '+(currentUser?.email||'unknown')})});
-    if(!r.ok){steps.push('❌ HTTP '+r.status+' from Apps Script');}
-    else{
-      const d=await r.json();
-      if(d.success) steps.push('✅ Apps Script responded — email sent via MailApp');
-      else steps.push('❌ Apps Script error: '+d.error);
-    }
-  }catch(e){steps.push('❌ Cannot reach Apps Script: '+e.message);}
+  const result=await sendEmailViaGmail({
+    to:'abhinav.b@razorpay.com',
+    subject:'[Test] Pricing Calculator — Gmail API test',
+    body:'Gmail API is working ✅\n\nSent by: '+(currentUser?.email||'unknown')+'\nTime: '+new Date().toLocaleString('en-IN'),
+  },true); // force consent to ensure scope is granted
   if(btn){btn.textContent='🧪 Test Email';btn.disabled=false;}
-  alert('Email Test Results:\n\n'+steps.join('\n')+'\n\nCheck your inbox at abhinav.b@razorpay.com\n(also check Spam folder)');
-}
-
-// ── Email via Apps Script (MailApp runs as script owner — reliable) ────
-async function sendEmailViaAppsScript(emailJob){
-  try{
-    const res=await fetch(APPS_SCRIPT_URL,{
-      method:'POST',
-      headers:{'Content-Type':'text/plain'},
-      body:JSON.stringify({type:'send_email',...emailJob}),
-    });
-    return await res.json();
-  }catch(e){
-    console.warn('Email via Apps Script failed:',e);
-    return{success:false,error:String(e)};
-  }
+  alert('Email Test:\n\n'+(result.success?'✅ Sent! Check your inbox.':'❌ Failed: '+result.error));
 }
 
 async function requestApproval({requestId,requesterEmail,requesterName,merchantName,gmv,slabLabel,violations,fileId,driveLink,fileName}){
-  const payload={
-    type:'approval_request',
-    requestId,requesterEmail,requesterName,merchantName,gmv,slabLabel,violations,fileId,driveLink,fileName,
-    teamGroup:currentUser?.teamGroup||'',
-  };
-  console.log('[Email] Sending approval request to Apps Script:', APPS_SCRIPT_URL);
-  console.log('[Email] Payload:', JSON.stringify(payload));
+  // 1. Log to sheet via Apps Script (fire-and-forget, CORS-safe with no-cors)
   try{
-    const res=await fetch(APPS_SCRIPT_URL,{
+    fetch(APPS_SCRIPT_URL,{
       method:'POST',
+      mode:'no-cors',
       headers:{'Content-Type':'text/plain'},
-      body:JSON.stringify(payload),
+      body:JSON.stringify({type:'approval_request',requestId,requesterEmail,requesterName,merchantName,gmv,slabLabel,violations,fileId,driveLink,fileName,teamGroup:currentUser?.teamGroup||''}),
     });
-    if(!res.ok){ console.error('[Email] HTTP error:',res.status,res.statusText); return{success:false,error:'HTTP '+res.status}; }
-    const result=await res.json();
-    console.log('[Email] Apps Script response:',result);
-    if(!result.success) console.error('[Email] Apps Script error:',result.error);
-    return result;
-  }catch(e){
-    console.error('[Email] Fetch failed:',e);
-    return{success:false,error:String(e)};
-  }
+  }catch(e){console.warn('Sheet log failed:',e);}
+
+  // 2. Send email via Gmail API (uses requester's signed-in Google account)
+  const scriptUrl=APPS_SCRIPT_URL;
+  const approveUrl=scriptUrl+'?action=approve&requestId='+requestId;
+  const rejectUrl=scriptUrl+'?action=reject&requestId='+requestId;
+  const body=[
+    'Approval request from: '+requesterName+' ('+requesterEmail+')',
+    'Team     : '+(currentUser?.teamGroup||'Not set'),
+    'Merchant : '+merchantName,
+    'GMV      : Rs.'+Math.round(gmv).toLocaleString('en-IN')+' ('+slabLabel+')',
+    '',
+    'Below-floor rates:',
+    ...(violations||[]).map(v=>'  - '+v.label+': '+Number(v.rate).toFixed(2)+'%'),
+    '',
+    'PDF: '+(driveLink||'(uploading)'),
+    '',
+    '─────────────────────────────',
+    'APPROVE: '+approveUrl,
+    'REJECT : '+rejectUrl,
+    '─────────────────────────────',
+  ].join('\n');
+
+  const emailResult=await sendEmailViaGmail({
+    to:'abhinav.b@razorpay.com',
+    subject:'[Approval Needed] '+merchantName+' — below-floor pricing',
+    body,
+  });
+  console.log('[Gmail] Approval email result:',emailResult);
+  return emailResult;
 }
 
 function startApprovalPolling(requestId){
