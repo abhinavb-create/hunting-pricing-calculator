@@ -2242,29 +2242,100 @@ function startNewVersion(rowId, parentGroup, snapJSON){
 }
 
 // ================================================================
-// GOOGLE DRIVE UPLOAD — via Apps Script (no user auth needed)
+// GOOGLE DRIVE UPLOAD — Drive API directly (no Apps Script)
 // ================================================================
-async function uploadToDrive(arrayBuffer,fileName,violations,requestId,merchantName){
-  const bytes=new Uint8Array(arrayBuffer);
-  let binary='';
-  bytes.forEach(b=>binary+=String.fromCharCode(b));
-  const base64=btoa(binary);
-  const res=await fetch(APPS_SCRIPT_URL,{
-    method:'POST',
-    headers:{'Content-Type':'text/plain'},
-    body:JSON.stringify({
-      type:'pdf_upload',
-      pdf:base64,
-      filename:fileName,
-      merchantName:merchantName||'',
-      userEmail:currentUser?.email||'',
-      userName:currentUser?.name||'',
-      teamGroup:currentUser?.teamGroup||'',
-      hasViolations:violations&&violations.length>0,
-      requestId:requestId||null,
-    }),
+const DRIVE_FOLDER_NAME='Hunting Pricing Calculator';
+let _driveFolderId=null;
+
+async function getOrCreateDriveFolder(){
+  if(_driveFolderId) return _driveFolderId;
+  const tok=await _getToken(false);
+  if(!tok.success) return null;
+  // Search for existing folder
+  const q=encodeURIComponent(`name='${DRIVE_FOLDER_NAME}' and mimeType='application/vnd.google-apps.folder' and trashed=false`);
+  const searchRes=await fetch(`https://www.googleapis.com/drive/v3/files?q=${q}&fields=files(id,name)`,{
+    headers:{'Authorization':'Bearer '+tok.token},
   });
-  return res.json();
+  const searchData=await searchRes.json();
+  if(searchData.files&&searchData.files.length>0){
+    _driveFolderId=searchData.files[0].id;
+    return _driveFolderId;
+  }
+  // Create folder
+  const createRes=await fetch('https://www.googleapis.com/drive/v3/files',{
+    method:'POST',
+    headers:{'Authorization':'Bearer '+tok.token,'Content-Type':'application/json'},
+    body:JSON.stringify({name:DRIVE_FOLDER_NAME,mimeType:'application/vnd.google-apps.folder'}),
+  });
+  const folder=await createRes.json();
+  _driveFolderId=folder.id;
+  return _driveFolderId;
+}
+
+async function uploadToDrive(arrayBuffer,fileName,violations,requestId,merchantName){
+  try{
+    const tok=await _getToken(false);
+    if(!tok.success) return{success:false,error:'No token'};
+    const folderId=await getOrCreateDriveFolder();
+    // Multipart upload
+    const metadata={name:fileName,parents:folderId?[folderId]:[]};
+    const boundary='rzp_boundary_'+Date.now();
+    const bytes=new Uint8Array(arrayBuffer);
+    // Build multipart body
+    const metaPart='--'+boundary+'\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n'+JSON.stringify(metadata)+'\r\n';
+    const filePart='--'+boundary+'\r\nContent-Type: application/pdf\r\n\r\n';
+    const ending='\r\n--'+boundary+'--';
+    const metaBytes=new TextEncoder().encode(metaPart);
+    const fileHeaderBytes=new TextEncoder().encode(filePart);
+    const endBytes=new TextEncoder().encode(ending);
+    const body=new Uint8Array(metaBytes.length+fileHeaderBytes.length+bytes.length+endBytes.length);
+    body.set(metaBytes,0);
+    body.set(fileHeaderBytes,metaBytes.length);
+    body.set(bytes,metaBytes.length+fileHeaderBytes.length);
+    body.set(endBytes,metaBytes.length+fileHeaderBytes.length+bytes.length);
+
+    const uploadRes=await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id,name,webViewLink',{
+      method:'POST',
+      headers:{'Authorization':'Bearer '+tok.token,'Content-Type':'multipart/related; boundary='+boundary},
+      body,
+    });
+    const file=await uploadRes.json();
+    if(!file.id) return{success:false,error:file.error?.message||'Upload failed'};
+    // Make file readable by anyone with link
+    await fetch(`https://www.googleapis.com/drive/v3/files/${file.id}/permissions`,{
+      method:'POST',
+      headers:{'Authorization':'Bearer '+tok.token,'Content-Type':'application/json'},
+      body:JSON.stringify({role:'reader',type:'anyone'}),
+    });
+    const driveLink=`https://drive.google.com/file/d/${file.id}/view`;
+    // Log to Downloads sheet
+    await logDownloadToSheet({fileName,merchantName:merchantName||'',fileId:file.id,driveLink,hasViolations:!!(violations&&violations.length),requestId:requestId||''});
+    return{success:true,fileId:file.id,driveLink};
+  }catch(e){
+    console.error('[Drive] Upload error:',e);
+    return{success:false,error:e.message};
+  }
+}
+
+async function logDownloadToSheet({fileName,merchantName,fileId,driveLink,hasViolations,requestId}){
+  const tok=await _getToken(false);
+  if(!tok.success) return;
+  const row=[
+    new Date().toISOString(),
+    currentUser?.email||'',
+    merchantName||'',
+    fileName||'',
+    fileId||'',
+    driveLink||'',
+    hasViolations?'YES':'NO',
+    requestId||'',
+    currentUser?.teamGroup||'',
+  ];
+  await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/Downloads!A:I:append?valueInputOption=RAW&insertDataOption=INSERT_ROWS`,{
+    method:'POST',
+    headers:{'Authorization':'Bearer '+tok.token,'Content-Type':'application/json'},
+    body:JSON.stringify({values:[row]}),
+  }).catch(e=>console.warn('[Sheets] Download log failed:',e));
 }
 
 // ================================================================
@@ -2382,6 +2453,90 @@ function signOut(){
 window.onGoogleLibraryLoad=initGoogleSignIn;
 
 // ================================================================
+// APPROVE / REJECT — handle ?action= URL params (no Apps Script)
+// ================================================================
+async function handleApproveRejectUrl(){
+  const params=new URLSearchParams(window.location.search);
+  const action=params.get('action');
+  const requestId=params.get('requestId');
+  const merchant=params.get('merchant')||'';
+  if(!action||!requestId||(action!=='approve'&&action!=='reject')) return;
+
+  // Show full-screen confirmation overlay
+  document.body.innerHTML=`<div id="ar-screen" style="min-height:100vh;display:flex;align-items:center;justify-content:center;background:#f3f4f6;font-family:Arial,sans-serif">
+    <div style="background:#fff;border-radius:20px;padding:48px 40px;max-width:480px;width:90%;text-align:center;box-shadow:0 8px 40px rgba(0,0,0,0.12)">
+      <div style="font-size:48px;margin-bottom:16px">${action==='approve'?'✅':'❌'}</div>
+      <div style="font-size:22px;font-weight:800;color:#111;margin-bottom:8px">${action==='approve'?'Approve Proposal':'Reject Proposal'}</div>
+      <div style="font-size:15px;color:#6b7280;margin-bottom:8px">Merchant: <strong style="color:#111">${decodeURIComponent(merchant)}</strong></div>
+      <div style="font-size:13px;color:#9ca3af;margin-bottom:28px">Request ID: ${requestId}</div>
+      <div id="ar-status" style="font-size:14px;color:#6b7280;margin-bottom:20px">Sign in with your Razorpay account to confirm.</div>
+      <div id="ar-signin-btn" style="display:flex;justify-content:center"></div>
+    </div>
+  </div>`;
+
+  // Init Google Sign-In for this screen
+  google.accounts.id.initialize({
+    client_id:'988966755183-fbs79ibk466rgdie076qrv9jq3flngk1.apps.googleusercontent.com',
+    hosted_domain:'razorpay.com',
+    callback:async(resp)=>{
+      const payload=decodeJWT(resp.credential);
+      const email=payload.email;
+      const statusEl=document.getElementById('ar-status');
+      if(email.toLowerCase()!==ADMIN_EMAIL.toLowerCase()){
+        statusEl.innerHTML='<span style="color:#dc2626">❌ Only abhinav.b@razorpay.com can approve/reject.</span>';
+        return;
+      }
+      statusEl.innerHTML='<span style="color:#6b7280">⏳ Processing...</span>';
+      // Get token to write to sheet
+      _initTokenClient();
+      _gTokenResolve=async(tok)=>{
+        _gTokenResolve=null;
+        if(!tok.success){statusEl.innerHTML='<span style="color:#dc2626">❌ Auth failed: '+tok.error+'</span>';return;}
+        _gToken=tok.token;_gTokenExpiry=Date.now()+3500000;
+        // Find the row in Approvals sheet and update status
+        try{
+          const readRes=await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/Approvals!A:A`,{headers:{'Authorization':'Bearer '+tok.token}});
+          const readData=await readRes.json();
+          const rows=readData.values||[];
+          let rowNum=-1;
+          for(let i=1;i<rows.length;i++){if(rows[i][0]===requestId){rowNum=i+1;break;}}
+          if(rowNum<0){statusEl.innerHTML='<span style="color:#dc2626">❌ Request ID not found in sheet.</span>';return;}
+          // Update col E (status) and col F (resolvedAt)
+          await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/Approvals!E${rowNum}:F${rowNum}?valueInputOption=RAW`,{
+            method:'PUT',headers:{'Authorization':'Bearer '+tok.token,'Content-Type':'application/json'},
+            body:JSON.stringify({values:[[action==='approve'?'approved':'rejected',new Date().toISOString()]]}),
+          });
+          // Get requester email from sheet to notify them
+          const rowRes=await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/Approvals!A${rowNum}:D${rowNum}`,{headers:{'Authorization':'Bearer '+tok.token}});
+          const rowData=await rowRes.json();
+          const requesterEmail=(rowData.values&&rowData.values[0]&&rowData.values[0][2])||'';
+          const merchantName=(rowData.values&&rowData.values[0]&&rowData.values[0][3])||decodeURIComponent(merchant);
+          // Send notification email to requester
+          if(requesterEmail){
+            const notifyHtml=`<div style="font-family:Arial;padding:32px;background:#f3f4f6"><div style="background:#fff;max-width:480px;margin:auto;border-radius:16px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,0.08)">
+              <div style="background:${action==='approve'?'linear-gradient(135deg,#16a34a,#15803d)':'linear-gradient(135deg,#dc2626,#b91c1c)'};padding:24px 28px">
+                <div style="font-size:20px;font-weight:800;color:#fff">${action==='approve'?'✅ Proposal Approved':'❌ Proposal Rejected'}</div>
+              </div>
+              <div style="padding:24px 28px">
+                <p style="font-size:14px;color:#374151">Your pricing proposal for <strong>${merchantName}</strong> has been <strong>${action==='approve'?'approved':'rejected'}</strong>.</p>
+                ${action==='approved'?'<p style="font-size:13px;color:#16a34a;font-weight:600">You can now download the PDF from the calculator.</p>':'<p style="font-size:13px;color:#dc2626;font-weight:600">Please revise the pricing and resubmit.</p>'}
+                <a href="https://abhinavb-create.github.io/hunting-pricing-calculator/" style="display:inline-block;margin-top:16px;background:#1f3fa3;color:#fff;text-decoration:none;font-size:13px;font-weight:700;padding:10px 24px;border-radius:8px">Open Calculator →</a>
+              </div>
+            </div></div>`;
+            await sendEmailViaGmail({to:requesterEmail,subject:`[Pricing] ${merchantName} — ${action==='approve'?'Approved ✅':'Rejected ❌'}`,htmlBody:notifyHtml});
+          }
+          statusEl.innerHTML=`<span style="color:${action==='approve'?'#16a34a':'#dc2626'};font-weight:700;font-size:16px">${action==='approve'?'✅ Approved!':'❌ Rejected!'} Requester has been notified.</span>`;
+          document.getElementById('ar-signin-btn').innerHTML='<a href="https://abhinavb-create.github.io/hunting-pricing-calculator/" style="display:inline-block;margin-top:16px;background:#1f3fa3;color:#fff;text-decoration:none;font-size:13px;font-weight:700;padding:10px 24px;border-radius:8px">← Back to Calculator</a>';
+        }catch(err){statusEl.innerHTML='<span style="color:#dc2626">❌ Error: '+err.message+'</span>';}
+      };
+      _gTokenClient.requestAccessToken({prompt:''});
+    },
+  });
+  google.accounts.id.renderButton(document.getElementById('ar-signin-btn'),{theme:'filled_blue',size:'large',text:'signin_with',shape:'rectangular',width:260});
+  google.accounts.id.prompt();
+}
+
+// ================================================================
 // APPROVAL FLOW
 // ================================================================
 let pendingApprovalId=null;
@@ -2405,7 +2560,7 @@ function _initTokenClient(){
   if(_gTokenClient) return;
   _gTokenClient=google.accounts.oauth2.initTokenClient({
     client_id:'988966755183-fbs79ibk466rgdie076qrv9jq3flngk1.apps.googleusercontent.com',
-    scope:'https://www.googleapis.com/auth/gmail.send https://www.googleapis.com/auth/spreadsheets',
+    scope:'https://www.googleapis.com/auth/gmail.send https://www.googleapis.com/auth/spreadsheets https://www.googleapis.com/auth/drive.file',
     callback:(resp)=>{
       if(resp.error){console.error('Token error:',resp.error);if(_gTokenResolve){_gTokenResolve({success:false,error:resp.error});_gTokenResolve=null;}return;}
       _gToken=resp.access_token;
@@ -2513,8 +2668,9 @@ async function runEmailTest(){
 
 async function requestApproval({requestId,requesterEmail,requesterName,merchantName,gmv,slabLabel,violations,fileId,driveLink,fileName}){
   const teamGroup=currentUser?.teamGroup||'';
-  const approveUrl=APPS_SCRIPT_URL+'?action=approve&requestId='+requestId;
-  const rejectUrl=APPS_SCRIPT_URL+'?action=reject&requestId='+requestId;
+  const base='https://abhinavb-create.github.io/hunting-pricing-calculator/';
+  const approveUrl=base+'?action=approve&requestId='+requestId+'&merchant='+encodeURIComponent(merchantName);
+  const rejectUrl=base+'?action=reject&requestId='+requestId+'&merchant='+encodeURIComponent(merchantName);
 
   // 1. Log approval row directly to Google Sheet via Sheets API
   await logApprovalToSheet({requestId,fileName,requesterEmail,merchantName,gmv,slabLabel,driveLink,violations,teamGroup});
@@ -2543,16 +2699,22 @@ function stopApprovalPolling(){
 
 async function pollApprovalStatus(requestId){
   try{
-    const res=await fetch(APPS_SCRIPT_URL,{
-      method:'POST',
-      headers:{'Content-Type':'text/plain'},
-      body:JSON.stringify({type:'check_status',requestId}),
+    const tok=await _getToken(false);
+    if(!tok.success) return;
+    // Read Approvals sheet directly
+    const res=await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/Approvals!A:E`,{
+      headers:{'Authorization':'Bearer '+tok.token},
     });
     const data=await res.json();
-    if(data.status==='approved'||data.status==='rejected'){
-      handleApprovalResolved(requestId,data.status);
+    const rows=data.values||[];
+    for(let i=1;i<rows.length;i++){
+      if(rows[i][0]===requestId){
+        const status=rows[i][4]||'pending';
+        if(status==='approved'||status==='rejected') handleApprovalResolved(requestId,status);
+        return;
+      }
     }
-  }catch(e){console.warn('Poll error:',e);}
+  }catch(e){console.warn('[Poll] Error:',e);}
 }
 
 function handleApprovalResolved(requestId,status){
@@ -2591,6 +2753,12 @@ function handleApprovalResolved(requestId,status){
   const idx=pending.findIndex(p=>p.requestId===requestId);
   if(idx>=0) pending[idx].status=status;
   localStorage.setItem('rzp_pending_approvals',JSON.stringify(pending));
+
+  // Update statsAllRows in memory so stats page reflects immediately
+  statsAllRows.forEach(r=>{if(r.rowId==='ap_'+requestId||r.requestId===requestId) r.statusKey=status;});
+  // If stats page is open, re-render
+  const statsPage=document.getElementById('stats-page');
+  if(statsPage&&!statsPage.classList.contains('hidden')) filterStats();
 
   pendingApprovalId=null;
   pendingPDFBuffer=null;
@@ -2804,29 +2972,55 @@ async function loadUserHistory(){
   let approvals=[];
   const admin=isAdmin();
 
-  // Always load localStorage downloads as baseline
+  // Load from Sheets API directly — no Apps Script
   const localDls=JSON.parse(localStorage.getItem('rzp_downloads')||'[]');
-  // Filter to current user's records unless admin
   downloads=admin?localDls:localDls.filter(d=>d.userEmail===(currentUser?.email||''));
 
   try{
-    const res=await fetch(APPS_SCRIPT_URL,{
-      method:'POST',
-      headers:{'Content-Type':'text/plain'},
-      body:JSON.stringify({type:'get_history',email:currentUser?.email||'',isAdmin:admin}),
-    });
-    const data=await res.json();
-    // Merge: use server downloads if available, else keep localStorage ones
-    if(data.downloads&&data.downloads.length>0){
-      // Merge server records with localStorage, dedupe by fileName+userEmail
-      const serverDls=data.downloads;
-      const lsFileNames=new Set(localDls.map(d=>d.fileName+'|'+(d.userEmail||'')));
-      const serverOnly=serverDls.filter(d=>!lsFileNames.has((d.fileName||'')+'|'+(d.userEmail||'')));
+    const tok=await _getToken(false);
+    if(tok.success){
+      // Fetch Downloads sheet
+      const dlRes=await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/Downloads!A:I`,{
+        headers:{'Authorization':'Bearer '+tok.token},
+      });
+      const dlData=await dlRes.json();
+      const dlRows=(dlData.values||[]).slice(1); // skip header
+      const serverDls=dlRows.map(r=>({
+        timestamp:r[0]?new Date(r[0]).getTime():0,
+        userEmail:r[1]||'',teamGroup:r[8]||'',
+        merchantName:r[2]||'',fileName:r[3]||'',
+        fileId:r[4]||'',driveLink:r[5]||'',
+        hasViolations:r[6]==='YES',requestId:r[7]||'',
+      })).filter(r=>admin||r.userEmail===(currentUser?.email||''));
+      // Merge: localStorage + server, dedupe by fileName+email
+      const lsKeys=new Set(localDls.map(d=>d.fileName+'|'+(d.userEmail||'')));
+      const serverOnly=serverDls.filter(d=>!lsKeys.has(d.fileName+'|'+(d.userEmail||'')));
       downloads=[...localDls,...serverOnly];
       if(!admin) downloads=downloads.filter(d=>d.userEmail===(currentUser?.email||''));
+
+      // Fetch Approvals sheet
+      const apRes=await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/Approvals!A:K`,{
+        headers:{'Authorization':'Bearer '+tok.token},
+      });
+      const apData=await apRes.json();
+      const apRows=(apData.values||[]).slice(1);
+      approvals=apRows.map(r=>({
+        requestId:r[0]||'',fileName:r[1]||'',requesterEmail:r[2]||'',
+        merchantName:r[3]||'',status:r[4]||'pending',resolvedAt:r[5]||'',
+        gmv:parseFloat(r[6])||0,slabLabel:r[7]||'',driveLink:r[8]||'',
+        teamGroup:r[10]||'',
+        timestamp:r[0]?parseInt(r[0].split('_')[0]||Date.now()):Date.now(),
+      })).filter(r=>admin||r.requesterEmail===(currentUser?.email||''));
+      // Also merge localStorage approvals not yet in sheet
+      const sheetApIds=new Set(approvals.map(a=>a.requestId));
+      const localAps=JSON.parse(localStorage.getItem('rzp_pending_approvals')||'[]');
+      const localOnly=localAps.filter(a=>!sheetApIds.has(a.requestId));
+      approvals=[...approvals,...localOnly];
+    } else {
+      approvals=JSON.parse(localStorage.getItem('rzp_pending_approvals')||'[]');
     }
-    approvals=data.approvals||[];
   }catch(e){
+    console.warn('[History] Sheets API error:',e);
     approvals=JSON.parse(localStorage.getItem('rzp_pending_approvals')||'[]');
   }
 
@@ -2907,9 +3101,14 @@ onGMVChange();
 onSettlementChange();
 onMCRateChange();
 checkRouteAvailability();
-setTab('competition');
-// Show user profile if already signed in from a previous session
-if(currentUser) updateUserUI();
+// Handle approve/reject URL params — must run before normal init
+if(window.location.search.includes('action=approve')||window.location.search.includes('action=reject')){
+  handleApproveRejectUrl();
+} else {
+  setTab('competition');
+  // Show user profile if already signed in from a previous session
+  if(currentUser) updateUserUI();
+}
 </script>
 </body>
 </html>
