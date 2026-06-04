@@ -2394,119 +2394,139 @@ function genRequestId(){
 }
 
 // ══════════════════════════════════════════════════════════════════════
-// GMAIL API — send email directly from browser using signed-in account
+// GOOGLE API TOKEN — gmail.send + spreadsheets (single token client)
 // ══════════════════════════════════════════════════════════════════════
-let _gmailToken=null;
-let _gmailTokenExpiry=0;
-let _gmailTokenClient=null;
-let _gmailResolve=null;
+let _gToken=null;
+let _gTokenExpiry=0;
+let _gTokenClient=null;
+let _gTokenResolve=null;
 
-function _initGmailClient(){
-  if(_gmailTokenClient) return;
-  _gmailTokenClient=google.accounts.oauth2.initTokenClient({
+function _initTokenClient(){
+  if(_gTokenClient) return;
+  _gTokenClient=google.accounts.oauth2.initTokenClient({
     client_id:'988966755183-fbs79ibk466rgdie076qrv9jq3flngk1.apps.googleusercontent.com',
-    scope:'https://www.googleapis.com/auth/gmail.send',
+    scope:'https://www.googleapis.com/auth/gmail.send https://www.googleapis.com/auth/spreadsheets',
     callback:(resp)=>{
-      if(resp.error){ console.error('Gmail token error:',resp.error); if(_gmailResolve){_gmailResolve({success:false,error:resp.error});_gmailResolve=null;} return; }
-      _gmailToken=resp.access_token;
-      _gmailTokenExpiry=Date.now()+(Number(resp.expires_in||3600)-60)*1000;
-      if(_gmailResolve){_gmailResolve({success:true,token:resp.access_token});_gmailResolve=null;}
+      if(resp.error){console.error('Token error:',resp.error);if(_gTokenResolve){_gTokenResolve({success:false,error:resp.error});_gTokenResolve=null;}return;}
+      _gToken=resp.access_token;
+      _gTokenExpiry=Date.now()+(Number(resp.expires_in||3600)-60)*1000;
+      if(_gTokenResolve){_gTokenResolve({success:true,token:resp.access_token});_gTokenResolve=null;}
     },
   });
 }
 
-function _getGmailToken(forceConsent){
-  return new Promise((resolve)=>{
-    _initGmailClient();
-    // If token still valid, use it directly
-    if(!forceConsent && _gmailToken && Date.now()<_gmailTokenExpiry){
-      resolve({success:true,token:_gmailToken}); return;
-    }
-    _gmailResolve=resolve;
-    _gmailTokenClient.requestAccessToken({prompt: forceConsent?'consent':''});
-    // Timeout after 30s (user may have closed the popup)
-    setTimeout(()=>{ if(_gmailResolve){_gmailResolve({success:false,error:'Token request timed out or cancelled'});_gmailResolve=null;} },30000);
+function _getToken(forceConsent){
+  return new Promise(resolve=>{
+    _initTokenClient();
+    if(!forceConsent&&_gToken&&Date.now()<_gTokenExpiry){resolve({success:true,token:_gToken});return;}
+    _gTokenResolve=resolve;
+    _gTokenClient.requestAccessToken({prompt:forceConsent?'consent':''});
+    setTimeout(()=>{if(_gTokenResolve){_gTokenResolve({success:false,error:'Cancelled or timed out'});_gTokenResolve=null;}},30000);
   });
 }
 
-async function sendEmailViaGmail({to,subject,body},forceConsent=false){
-  const tokenResult=await _getGmailToken(forceConsent);
-  if(!tokenResult.success) return{success:false,error:tokenResult.error};
+// ── Write approval row directly to Google Sheet ────────────────────────
+async function logApprovalToSheet({requestId,fileName,requesterEmail,merchantName,gmv,slabLabel,driveLink,violations,teamGroup}){
+  const tok=await _getToken(false);
+  if(!tok.success){console.warn('Sheet log skipped — no token');return;}
+  const violText=(violations||[]).map(v=>v.label+': '+Number(v.rate).toFixed(2)+'%').join('; ');
+  const row=[requestId,fileName,requesterEmail,merchantName,'pending','',gmv||0,slabLabel||'',driveLink||'',violText,teamGroup||''];
+  try{
+    await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/Approvals!A:K:append?valueInputOption=RAW&insertDataOption=INSERT_ROWS`,{
+      method:'POST',
+      headers:{'Authorization':'Bearer '+tok.token,'Content-Type':'application/json'},
+      body:JSON.stringify({values:[row]}),
+    });
+    console.log('[Sheets] Approval logged');
+  }catch(e){console.warn('[Sheets] Log failed:',e);}
+}
+
+// ── Send HTML email via Gmail API ──────────────────────────────────────
+async function sendEmailViaGmail({to,subject,htmlBody},forceConsent=false){
+  const tok=await _getToken(forceConsent);
+  if(!tok.success)return{success:false,error:tok.error};
   const mime=[
     'To: '+to,
     'From: '+currentUser.email,
     'Subject: '+subject,
-    'Content-Type: text/plain; charset=utf-8',
+    'MIME-Version: 1.0',
+    'Content-Type: text/html; charset=utf-8',
     '',
-    body,
+    htmlBody,
   ].join('\r\n');
   const encoded=btoa(unescape(encodeURIComponent(mime))).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
   try{
     const res=await fetch('https://gmail.googleapis.com/gmail/v1/users/me/messages/send',{
       method:'POST',
-      headers:{'Authorization':'Bearer '+tokenResult.token,'Content-Type':'application/json'},
+      headers:{'Authorization':'Bearer '+tok.token,'Content-Type':'application/json'},
       body:JSON.stringify({raw:encoded}),
     });
     const data=await res.json();
-    if(data.id){ console.log('[Gmail] Sent, message id:',data.id); return{success:true,messageId:data.id}; }
-    // Token expired mid-session — retry once with fresh token
-    if(data.error?.code===401&&!forceConsent){ _gmailToken=null; return sendEmailViaGmail({to,subject,body},true); }
-    console.error('[Gmail] Send error:',data.error);
-    return{success:false,error:data.error?.message||JSON.stringify(data.error)};
-  }catch(e){
-    return{success:false,error:e.message};
-  }
+    if(data.id)return{success:true,messageId:data.id};
+    if(data.error?.code===401&&!forceConsent){_gToken=null;return sendEmailViaGmail({to,subject,htmlBody},true);}
+    return{success:false,error:data.error?.message||JSON.stringify(data)};
+  }catch(e){return{success:false,error:e.message};}
+}
+
+function buildApprovalEmailHtml({requesterName,requesterEmail,teamGroup,merchantName,gmv,slabLabel,violations,driveLink,approveUrl,rejectUrl}){
+  const violRows=(violations||[]).map(v=>`
+    <tr><td style="padding:8px 12px;border-bottom:1px solid #f0f0f0;font-size:13px;color:#374151">${v.label}</td>
+    <td style="padding:8px 12px;border-bottom:1px solid #f0f0f0;font-size:13px;font-weight:700;color:#dc2626;text-align:right">${Number(v.rate).toFixed(2)}%</td></tr>`).join('');
+  return `<!DOCTYPE html><html><body style="margin:0;padding:0;background:#f3f4f6;font-family:Arial,sans-serif">
+  <div style="max-width:580px;margin:32px auto;background:#fff;border-radius:16px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,0.08)">
+    <div style="background:linear-gradient(135deg,#1f3fa3,#4f46e5);padding:28px 32px">
+      <div style="font-size:11px;font-weight:700;color:#a5b4fc;letter-spacing:2px;text-transform:uppercase;margin-bottom:6px">Razorpay · Hunting Pricing</div>
+      <div style="font-size:22px;font-weight:800;color:#fff">Approval Required</div>
+      <div style="font-size:13px;color:#c7d2fe;margin-top:4px">Below-floor pricing submitted for review</div>
+    </div>
+    <div style="padding:28px 32px">
+      <table style="width:100%;border-collapse:collapse;margin-bottom:20px">
+        <tr><td style="padding:6px 0;font-size:12px;color:#6b7280;width:110px">Requested by</td><td style="padding:6px 0;font-size:13px;font-weight:600;color:#111827">${requesterName} &lt;${requesterEmail}&gt;</td></tr>
+        <tr><td style="padding:6px 0;font-size:12px;color:#6b7280">Team</td><td style="padding:6px 0;font-size:13px;font-weight:600;color:#111827">${teamGroup||'Not set'}</td></tr>
+        <tr><td style="padding:6px 0;font-size:12px;color:#6b7280">Merchant</td><td style="padding:6px 0;font-size:13px;font-weight:700;color:#111827">${merchantName}</td></tr>
+        <tr><td style="padding:6px 0;font-size:12px;color:#6b7280">GMV</td><td style="padding:6px 0;font-size:13px;font-weight:600;color:#111827">₹${Math.round(gmv||0).toLocaleString('en-IN')} <span style="color:#6b7280;font-weight:400">(${slabLabel})</span></td></tr>
+      </table>
+      <div style="font-size:12px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px">Below-Floor Rates</div>
+      <table style="width:100%;border-collapse:collapse;border:1px solid #e5e7eb;border-radius:8px;overflow:hidden;margin-bottom:24px">
+        <tr style="background:#f9fafb"><th style="padding:8px 12px;font-size:11px;color:#6b7280;text-align:left;font-weight:600">Payment Method</th><th style="padding:8px 12px;font-size:11px;color:#6b7280;text-align:right;font-weight:600">Rate Offered</th></tr>
+        ${violRows}
+      </table>
+      ${driveLink?`<div style="margin-bottom:24px"><a href="${driveLink}" style="font-size:13px;color:#4f46e5;text-decoration:none;font-weight:600">📄 View Proposal PDF →</a></div>`:''}
+      <div style="display:flex;gap:12px;margin-bottom:8px">
+        <a href="${approveUrl}" style="display:inline-block;background:#16a34a;color:#fff;text-decoration:none;font-size:14px;font-weight:700;padding:12px 32px;border-radius:8px;margin-right:12px">✅ Approve</a>
+        <a href="${rejectUrl}" style="display:inline-block;background:#dc2626;color:#fff;text-decoration:none;font-size:14px;font-weight:700;padding:12px 32px;border-radius:8px">❌ Reject</a>
+      </div>
+      <div style="font-size:11px;color:#9ca3af;margin-top:16px">Clicking Approve or Reject will update the status and notify the requester automatically.</div>
+    </div>
+  </div></body></html>`;
 }
 
 // ── Test email ─────────────────────────────────────────────────────────
 async function runEmailTest(){
   const btn=document.getElementById('test-email-btn');
   if(btn){btn.textContent='⏳ Testing...';btn.disabled=true;}
-  const result=await sendEmailViaGmail({
-    to:'abhinav.b@razorpay.com',
-    subject:'[Test] Pricing Calculator — Gmail API test',
-    body:'Gmail API is working ✅\n\nSent by: '+(currentUser?.email||'unknown')+'\nTime: '+new Date().toLocaleString('en-IN'),
-  },true); // force consent to ensure scope is granted
+  const html=`<div style="font-family:Arial;padding:24px;background:#f3f4f6"><div style="background:#fff;max-width:480px;margin:auto;padding:24px;border-radius:12px;box-shadow:0 2px 8px rgba(0,0,0,0.08)"><div style="font-size:20px;font-weight:800;color:#1f3fa3;margin-bottom:8px">✅ Email test successful</div><p style="color:#374151;font-size:14px">Gmail API is working correctly for the Hunting Pricing Calculator.</p><p style="color:#6b7280;font-size:12px">Sent by: ${currentUser?.email||'unknown'}<br>Time: ${new Date().toLocaleString('en-IN')}</p></div></div>`;
+  const result=await sendEmailViaGmail({to:'abhinav.b@razorpay.com',subject:'[Test] Pricing Calculator — email test',htmlBody:html},true);
   if(btn){btn.textContent='🧪 Test Email';btn.disabled=false;}
   alert('Email Test:\n\n'+(result.success?'✅ Sent! Check your inbox.':'❌ Failed: '+result.error));
 }
 
 async function requestApproval({requestId,requesterEmail,requesterName,merchantName,gmv,slabLabel,violations,fileId,driveLink,fileName}){
-  // 1. Log to sheet via Apps Script (fire-and-forget, CORS-safe with no-cors)
-  try{
-    fetch(APPS_SCRIPT_URL,{
-      method:'POST',
-      mode:'no-cors',
-      headers:{'Content-Type':'text/plain'},
-      body:JSON.stringify({type:'approval_request',requestId,requesterEmail,requesterName,merchantName,gmv,slabLabel,violations,fileId,driveLink,fileName,teamGroup:currentUser?.teamGroup||''}),
-    });
-  }catch(e){console.warn('Sheet log failed:',e);}
+  const teamGroup=currentUser?.teamGroup||'';
+  const approveUrl=APPS_SCRIPT_URL+'?action=approve&requestId='+requestId;
+  const rejectUrl=APPS_SCRIPT_URL+'?action=reject&requestId='+requestId;
 
-  // 2. Send email via Gmail API (uses requester's signed-in Google account)
-  const scriptUrl=APPS_SCRIPT_URL;
-  const approveUrl=scriptUrl+'?action=approve&requestId='+requestId;
-  const rejectUrl=scriptUrl+'?action=reject&requestId='+requestId;
-  const body=[
-    'Approval request from: '+requesterName+' ('+requesterEmail+')',
-    'Team     : '+(currentUser?.teamGroup||'Not set'),
-    'Merchant : '+merchantName,
-    'GMV      : Rs.'+Math.round(gmv).toLocaleString('en-IN')+' ('+slabLabel+')',
-    '',
-    'Below-floor rates:',
-    ...(violations||[]).map(v=>'  - '+v.label+': '+Number(v.rate).toFixed(2)+'%'),
-    '',
-    'PDF: '+(driveLink||'(uploading)'),
-    '',
-    '─────────────────────────────',
-    'APPROVE: '+approveUrl,
-    'REJECT : '+rejectUrl,
-    '─────────────────────────────',
-  ].join('\n');
+  // 1. Log approval row directly to Google Sheet via Sheets API
+  await logApprovalToSheet({requestId,fileName,requesterEmail,merchantName,gmv,slabLabel,driveLink,violations,teamGroup});
 
+  // 2. Send beautiful HTML approval email via Gmail API
+  const htmlBody=buildApprovalEmailHtml({
+    requesterName,requesterEmail,teamGroup,merchantName,gmv,slabLabel,violations,driveLink,approveUrl,rejectUrl,
+  });
   const emailResult=await sendEmailViaGmail({
     to:'abhinav.b@razorpay.com',
-    subject:'[Approval Needed] '+merchantName+' — below-floor pricing',
-    body,
+    subject:'[Approval Needed] '+merchantName+' — '+requesterName,
+    htmlBody,
   });
   console.log('[Gmail] Approval email result:',emailResult);
   return emailResult;
