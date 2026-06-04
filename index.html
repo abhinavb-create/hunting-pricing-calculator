@@ -80,7 +80,40 @@
   </div>
 </div>
 
-<div class="max-w-6xl mx-auto" id="main-wrap">
+<!-- ===== SIGN-IN SCREEN ===== -->
+<div id="signin-screen" class="fixed inset-0 z-50 flex items-center justify-center p-4" style="background:linear-gradient(135deg,#0f1c4d 0%,#1f3fa3 50%,#7048e8 100%);">
+  <div class="w-full max-w-md">
+    <!-- Card -->
+    <div class="bg-white rounded-3xl shadow-2xl overflow-hidden">
+      <!-- Top accent bar -->
+      <div class="h-1.5 bg-gradient-to-r from-blue-500 via-indigo-500 to-purple-500"></div>
+      <div class="px-8 pt-8 pb-6 text-center">
+        <!-- Logo -->
+        <img id="signin-logo" src="" alt="Razorpay" class="h-9 mx-auto mb-6 opacity-0 transition-opacity duration-300">
+        <!-- Title -->
+        <h1 class="text-2xl font-black text-gray-900 tracking-tight">Hunting Pricing Calculator</h1>
+        <p class="text-sm text-gray-500 mt-1.5 mb-7">Razorpay Internal &nbsp;·&nbsp; Sales Team Only</p>
+        <!-- Feature list -->
+        <div class="bg-slate-50 rounded-2xl px-5 py-4 mb-7 text-left space-y-2.5">
+          <div class="flex items-center gap-2.5 text-sm text-gray-600"><span class="w-5 h-5 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center text-xs font-bold flex-shrink-0">✦</span>CC, UPI & Net Banking rate modelling</div>
+          <div class="flex items-center gap-2.5 text-sm text-gray-600"><span class="w-5 h-5 rounded-full bg-indigo-100 text-indigo-600 flex items-center justify-center text-xs font-bold flex-shrink-0">✦</span>Auto-generated merchant proposal PDF</div>
+          <div class="flex items-center gap-2.5 text-sm text-gray-600"><span class="w-5 h-5 rounded-full bg-purple-100 text-purple-600 flex items-center justify-center text-xs font-bold flex-shrink-0">✦</span>Floor rate enforcement + approval workflow</div>
+          <div class="flex items-center gap-2.5 text-sm text-gray-600"><span class="w-5 h-5 rounded-full bg-green-100 text-green-600 flex items-center justify-center text-xs font-bold flex-shrink-0">✦</span>Download history &amp; approval status tracking</div>
+        </div>
+        <!-- Sign-in button -->
+        <p class="text-xs text-gray-400 mb-3">Sign in with your <strong>@razorpay.com</strong> account</p>
+        <div id="signin-screen-btn" class="flex justify-center min-h-[44px] items-center"></div>
+      </div>
+      <!-- Footer -->
+      <div class="bg-slate-50 border-t border-slate-100 px-8 py-3 text-center">
+        <p class="text-xs text-gray-400">🔒 For internal use only &nbsp;·&nbsp; Do not share with merchants</p>
+      </div>
+    </div>
+    <p class="text-center text-white/40 text-xs mt-5">Razorpay Software Pvt Ltd · Confidential</p>
+  </div>
+</div>
+
+<div class="max-w-6xl mx-auto hidden" id="main-wrap">
 
   <!-- Header -->
   <div class="flex items-center justify-between mb-5">
@@ -1816,13 +1849,17 @@ async function generateAndDownloadPDF(){
 
       let fileId=null;
       let driveLink='';
+      if(driveEl) driveEl.innerHTML='<span class="text-gray-400">☁️ Step 1/2: Uploading PDF to Drive...</span>';
       try{
         const uploadResult=await uploadToDrive(pdfBuffer,fileName,violations,requestId);
         if(uploadResult.success){fileId=uploadResult.id;driveLink=`https://drive.google.com/file/d/${fileId}/view`;}
+        else{console.warn('Upload returned error:',uploadResult);}
       }catch(e){console.warn('Upload error:',e);}
 
+      if(driveEl) driveEl.innerHTML='<span class="text-gray-400">✉️ Step 2/2: Sending approval email...</span>';
+      let approvalSent=false;
       try{
-        await requestApproval({
+        const approvalResult=await requestApproval({
           requestId,
           requesterEmail,
           requesterName:currentUser.name,
@@ -1832,6 +1869,8 @@ async function generateAndDownloadPDF(){
           violations,
           fileId,driveLink,fileName,
         });
+        approvalSent=approvalResult?.success===true;
+        if(!approvalSent) console.warn('Approval request response:',approvalResult);
       }catch(e){console.warn('Approval request error:',e);}
 
       // Store in localStorage
@@ -1840,7 +1879,9 @@ async function generateAndDownloadPDF(){
       localStorage.setItem('rzp_pending_approvals',JSON.stringify(pending));
 
       // Update UI to queued state
-      if(driveEl) driveEl.innerHTML='<span class="text-amber-600 font-semibold">✉️ Approval request sent to Abhinav — download queued</span>';
+      if(driveEl) driveEl.innerHTML=approvalSent
+        ?'<span class="text-amber-600 font-semibold">✉️ Approval email sent to Abhinav — download queued</span>'
+        :'<span class="text-red-500">⚠️ Approval email failed — check Apps Script authorization</span>';
       const queuedEl=document.getElementById('pdf-queued-status');
       if(queuedEl){
         queuedEl.textContent='⏳ Waiting for approval. You\'ll be notified when approved.';
@@ -1921,6 +1962,10 @@ function handleCredentialResponse(response){
 }
 
 function initGoogleSignIn(){
+  // Set logo on sign-in screen
+  const logoEl=document.getElementById('signin-logo');
+  if(logoEl){logoEl.src='data:image/png;base64,'+RZP_LOGO_B64;logoEl.style.opacity='1';}
+
   google.accounts.id.initialize({
     client_id:'988966755183-fbs79ibk466rgdie076qrv9jq3flngk1.apps.googleusercontent.com',
     callback:handleCredentialResponse,
@@ -1928,6 +1973,12 @@ function initGoogleSignIn(){
     hosted_domain:'razorpay.com',
   });
   if(!currentUser){
+    // Render on landing screen (large, prominent)
+    google.accounts.id.renderButton(
+      document.getElementById('signin-screen-btn'),
+      {theme:'filled_blue',size:'large',text:'signin_with',shape:'rectangular',width:280}
+    );
+    // Also render in header (small pill)
     google.accounts.id.renderButton(
       document.getElementById('google-signin-btn'),
       {theme:'outline',size:'medium',text:'signin_with',shape:'pill'}
@@ -1939,13 +1990,22 @@ function initGoogleSignIn(){
 }
 
 function updateUserUI(){
+  const signinScreen=document.getElementById('signin-screen');
+  const mainWrap=document.getElementById('main-wrap');
   const signinDiv=document.getElementById('google-signin-btn');
   const profileDiv=document.getElementById('user-profile');
+
   if(!currentUser){
+    // Show landing screen, hide app
+    signinScreen?.classList.remove('hidden');
+    mainWrap?.classList.add('hidden');
     signinDiv?.classList.remove('hidden');
     profileDiv?.classList.add('hidden');
     return;
   }
+  // Hide landing screen, show app
+  signinScreen?.classList.add('hidden');
+  mainWrap?.classList.remove('hidden');
   signinDiv?.classList.add('hidden');
   profileDiv?.classList.remove('hidden');
   const nameEl=document.getElementById('user-name');
@@ -1963,11 +2023,15 @@ function signOut(){
   setTimeout(()=>{
     if(window.google?.accounts?.id){
       google.accounts.id.renderButton(
+        document.getElementById('signin-screen-btn'),
+        {theme:'filled_blue',size:'large',text:'signin_with',shape:'rectangular',width:280}
+      );
+      google.accounts.id.renderButton(
         document.getElementById('google-signin-btn'),
         {theme:'outline',size:'medium',text:'signin_with',shape:'pill'}
       );
     }
-  },100);
+  },150);
 }
 
 window.onGoogleLibraryLoad=initGoogleSignIn;
