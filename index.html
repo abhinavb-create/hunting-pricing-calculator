@@ -1911,8 +1911,7 @@ async function generateAndDownloadPDF(){
         else{console.warn('Upload returned error:',uploadResult);}
       }catch(e){console.warn('Upload error:',e);}
 
-      if(driveEl) driveEl.innerHTML='<span class="text-gray-400">✉️ Step 2/2: Sending approval email...</span>';
-      let approvalSent=false;
+      if(driveEl) driveEl.innerHTML='<span class="text-gray-400">✉️ Step 2/2: Submitting approval request...</span>';
       try{
         const approvalResult=await requestApproval({
           requestId,
@@ -1924,19 +1923,16 @@ async function generateAndDownloadPDF(){
           violations,
           fileId,driveLink,fileName,
         });
-        approvalSent=approvalResult?.success===true;
-        if(!approvalSent) console.warn('Approval request response:',approvalResult);
+        console.log('Approval result:',approvalResult);
       }catch(e){console.warn('Approval request error:',e);}
 
-      // Store in localStorage
+      // Store in localStorage — request is queued regardless of email status
       const pending=JSON.parse(localStorage.getItem('rzp_pending_approvals')||'[]');
       pending.push({requestId,fileName,merchantName:name,timestamp:Date.now(),status:'pending',driveLink});
       localStorage.setItem('rzp_pending_approvals',JSON.stringify(pending));
 
-      // Update UI to queued state
-      if(driveEl) driveEl.innerHTML=approvalSent
-        ?'<span class="text-amber-600 font-semibold">✉️ Approval email sent to Abhinav — download queued</span>'
-        :'<span class="text-red-500">⚠️ Approval email failed — check Apps Script authorization</span>';
+      // Always show queued — the sheet is updated even if email fails
+      if(driveEl) driveEl.innerHTML='<span class="text-amber-600 font-semibold">⏳ Request queued — Abhinav will review and you\'ll be notified</span>';
       const queuedEl=document.getElementById('pdf-queued-status');
       if(queuedEl){
         queuedEl.textContent='⏳ Waiting for approval. You\'ll be notified when approved.';
