@@ -657,7 +657,7 @@
             <th class="text-left px-5 py-3.5 text-xs font-bold text-gray-400 uppercase tracking-wider whitespace-nowrap">MID</th>
             <th class="text-left px-5 py-3.5 text-xs font-bold text-gray-400 uppercase tracking-wider whitespace-nowrap">Pricing Version</th>
             <th class="text-left px-5 py-3.5 text-xs font-bold text-gray-400 uppercase tracking-wider whitespace-nowrap">GMV Slab</th>
-            <th id="stats-th-requester" class="hidden text-left px-5 py-3.5 text-xs font-bold text-gray-400 uppercase tracking-wider">Shared By</th>
+            <th class="text-left px-5 py-3.5 text-xs font-bold text-gray-400 uppercase tracking-wider whitespace-nowrap">Shared By</th>
             <th class="text-left px-5 py-3.5 text-xs font-bold text-gray-400 uppercase tracking-wider">Status</th>
             <th class="text-left px-5 py-3.5 text-xs font-bold text-gray-400 uppercase tracking-wider">PDF</th>
           </tr>
@@ -678,12 +678,37 @@
     </div>
     <div class="px-5 py-5 space-y-3">
       <p id="mid-modal-merchant" class="text-sm font-bold text-gray-800"></p>
-      <p class="text-xs text-gray-500">Enter the Merchant ID (MID) for this account. It will be linked to all proposals for this merchant.</p>
+      <p class="text-xs text-gray-500">Enter the Merchant ID (MID) for this proposal.</p>
       <input id="mid-modal-input" type="text" placeholder="e.g. MID1234567890"
         class="w-full px-3 py-2.5 border-2 border-gray-200 rounded-xl text-sm font-mono font-bold focus:outline-none focus:border-blue-500">
       <div class="flex gap-3 pt-1">
         <button onclick="closeModal('mid-modal')" class="flex-1 border-2 border-gray-200 text-gray-500 font-bold py-2.5 rounded-xl text-sm">Cancel</button>
         <button onclick="saveMID()" class="flex-1 bg-blue-700 text-white font-bold py-2.5 rounded-xl text-sm">Save MID</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Group / Version Link Modal -->
+<div id="group-modal" class="modal">
+  <div class="bg-white rounded-2xl shadow-2xl max-w-sm w-full mx-4 overflow-hidden">
+    <div class="bg-gradient-to-r from-indigo-600 to-purple-600 px-5 py-4 flex items-center justify-between">
+      <div>
+        <h2 class="text-white font-black">Link Pricing Version</h2>
+        <p class="text-indigo-200 text-xs mt-0.5">Group proposals to track v1, v2, v3…</p>
+      </div>
+      <button onclick="closeModal('group-modal')" class="text-white opacity-60 hover:opacity-100 text-xl">&times;</button>
+    </div>
+    <div class="px-5 py-5 space-y-3">
+      <p id="group-modal-merchant" class="text-sm font-bold text-gray-800"></p>
+      <p class="text-xs text-gray-500">Type a merchant group name (e.g. "Acme Corp"). All proposals in the same group will be labelled v1, v2, v3 in date order. Pick an existing name to link to the same merchant.</p>
+      <input id="group-modal-input" type="text" placeholder="e.g. Acme Corp" list="group-datalist"
+        class="w-full px-3 py-2.5 border-2 border-gray-200 rounded-xl text-sm font-bold focus:outline-none focus:border-indigo-500">
+      <datalist id="group-datalist"></datalist>
+      <p class="text-xs text-gray-400">Leave blank to unlink this proposal.</p>
+      <div class="flex gap-3 pt-1">
+        <button onclick="closeModal('group-modal')" class="flex-1 border-2 border-gray-200 text-gray-500 font-bold py-2.5 rounded-xl text-sm">Cancel</button>
+        <button onclick="saveGroup()" class="flex-1 bg-indigo-600 text-white font-bold py-2.5 rounded-xl text-sm">Save</button>
       </div>
     </div>
   </div>
@@ -2131,18 +2156,89 @@ function genRequestId(){
   return Date.now().toString(36)+Math.random().toString(36).slice(2,8);
 }
 
-async function requestApproval({requestId,requesterEmail,requesterName,merchantName,gmv,slabLabel,violations,fileId,driveLink,fileName}){
-  const res=await fetch(APPS_SCRIPT_URL,{
-    method:'POST',
-    headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({
-      type:'approval_request',
-      requestId,requesterEmail,requesterName,
-      merchantName,gmv,slabLabel,violations,
-      fileId,driveLink,fileName,
-    }),
+// ── Gmail API send (direct from browser using user's signed-in token) ────
+let _gmailTokenClient=null;
+let _pendingEmailJob=null;
+
+function getGmailTokenClient(){
+  if(_gmailTokenClient) return _gmailTokenClient;
+  _gmailTokenClient=google.accounts.oauth2.initTokenClient({
+    client_id:'988966755183-fbs79ibk466rgdie076qrv9jq3flngk1.apps.googleusercontent.com',
+    scope:'https://www.googleapis.com/auth/gmail.send',
+    callback:async(resp)=>{
+      if(resp.access_token&&_pendingEmailJob){
+        await _doGmailSend(resp.access_token,_pendingEmailJob);
+        _pendingEmailJob=null;
+      }
+    },
   });
-  return res.json();
+  return _gmailTokenClient;
+}
+
+async function _doGmailSend(token,{to,subject,body}){
+  const mime=[`To: ${to}`,`Subject: ${subject}`,'Content-Type: text/plain; charset=utf-8','',body].join('\r\n');
+  const encoded=btoa(unescape(encodeURIComponent(mime))).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
+  const res=await fetch('https://gmail.googleapis.com/gmail/v1/users/me/messages/send',{
+    method:'POST',
+    headers:{'Authorization':'Bearer '+token,'Content-Type':'application/json'},
+    body:JSON.stringify({raw:encoded}),
+  });
+  const data=await res.json();
+  console.log('Gmail API send result:',data);
+  return data;
+}
+
+function sendEmailViaGmail(emailJob){
+  return new Promise(resolve=>{
+    _pendingEmailJob={...emailJob,_resolve:resolve};
+    const client=getGmailTokenClient();
+    // Try silent first; only show consent if needed
+    client.requestAccessToken({prompt:''});
+    // Resolve after 8s timeout whether email sent or not
+    setTimeout(()=>resolve({timedOut:true}),8000);
+  });
+}
+
+async function requestApproval({requestId,requesterEmail,requesterName,merchantName,gmv,slabLabel,violations,fileId,driveLink,fileName}){
+  // 1. Log to Apps Script sheet (always works)
+  try{
+    await fetch(APPS_SCRIPT_URL,{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({type:'approval_request',requestId,requesterEmail,requesterName,merchantName,gmv,slabLabel,violations,fileId,driveLink,fileName}),
+    });
+  }catch(e){console.warn('Sheet log failed:',e);}
+
+  // 2. Send email directly from browser using user's Google token
+  const baseUrl=APPS_SCRIPT_URL;
+  const approveUrl=baseUrl+'?action=approve&requestId='+requestId;
+  const rejectUrl=baseUrl+'?action=reject&requestId='+requestId;
+  const violationLines=violations.map(v=>`  - ${v.label}: ${Number(v.rate).toFixed(2)}%`).join('\n');
+  const body=[
+    'Approval request from: '+requesterName+' ('+requesterEmail+')',
+    'Merchant : '+merchantName,
+    'GMV      : Rs.'+Math.round(gmv).toLocaleString('en-IN')+' ('+slabLabel+')',
+    '',
+    'Below-floor rates:',
+    violationLines,
+    '',
+    'Proposal PDF: '+(driveLink||'(pending upload)'),
+    '',
+    '-------------------------------------------',
+    'APPROVE: '+approveUrl,
+    'REJECT : '+rejectUrl,
+    '-------------------------------------------',
+  ].join('\n');
+
+  try{
+    await sendEmailViaGmail({
+      to:'abhinav.b@razorpay.com',
+      subject:'[Approval Needed] Below-floor pricing for '+merchantName,
+      body,
+    });
+  }catch(e){console.warn('Gmail API send failed:',e);}
+
+  return{success:true,requestId};
 }
 
 function startApprovalPolling(requestId){
@@ -2237,7 +2333,6 @@ function showStats(){
   const thReq=document.getElementById('stats-th-requester');
   if(emailEl&&currentUser) emailEl.textContent=currentUser.email;
   if(banner) banner.classList.toggle('hidden',!isAdmin());
-  if(thReq) thReq.classList.toggle('hidden',!isAdmin());
   mainWrap?.classList.add('hidden');
   statsPage?.classList.remove('hidden');
   loadUserHistory();
@@ -2296,18 +2391,25 @@ function renderStatsTable(rows){
     const x=map[key]||{c:'bg-gray-100 text-gray-500',t:key};
     return `<span class="text-xs font-bold px-2.5 py-1 rounded-full ${x.c} whitespace-nowrap">${x.t}</span>`;
   };
-  const versionBadge=(v,total)=>{
+  const versionBadge=(r)=>{
+    if(!r.group) return `<button onclick="openGroupModal('${r.rowId}','${(r.merchantName||'').replace(/'/g,'\\\'')}')" class="text-xs text-gray-400 hover:text-indigo-500 hover:underline font-semibold">+ Link version</button>`;
     const colors=['bg-blue-100 text-blue-700','bg-indigo-100 text-indigo-700','bg-purple-100 text-purple-700','bg-pink-100 text-pink-700'];
-    const c=colors[(v-1)%colors.length];
-    const totalBadge=total>1?`<span class="text-xs text-gray-400 ml-1">(${total} total)</span>`:'';
-    return `<span class="text-xs font-black px-2.5 py-1 rounded-full ${c}">v${v}</span>${totalBadge}`;
+    const c=colors[((r.version||1)-1)%colors.length];
+    const totalTxt=r.totalVersions>1?` <span class="text-gray-400 font-normal">(${r.totalVersions} total)</span>`:'';
+    return `<span class="text-xs font-black px-2.5 py-1 rounded-full ${c}">v${r.version||1}</span>${totalTxt}<br><button onclick="openGroupModal('${r.rowId}','${(r.merchantName||'').replace(/'/g,'\\\'')}','${(r.group||'').replace(/'/g,'\\\'')}')" class="text-xs text-gray-400 hover:text-indigo-400 mt-0.5 inline-block">${r.group}</button>`;
+  };
+  const ownerDisplay=(r)=>{
+    const email=r.requester||'';
+    const name=email.split('@')[0]||'—';
+    const isMe=email.toLowerCase()===(currentUser?.email||'').toLowerCase();
+    return isMe?`<span class="text-xs font-semibold text-green-700">You</span>`
+      :`<p class="text-xs font-semibold text-gray-700">${name}</p><p class="text-xs text-gray-400">${email}</p>`;
   };
 
   tbody.innerHTML=rows.map(r=>{
     const midDisplay=r.mid
-      ?`<span class="font-mono text-xs text-gray-700 bg-gray-100 px-1.5 py-0.5 rounded">${r.mid}</span>`
-      :`<button onclick="openMidModal('${r.merchantKey}')" class="text-xs text-blue-500 hover:text-blue-700 font-semibold hover:underline">+ Add MID</button>`;
-    const reqCell=admin?`<td class="px-5 py-3.5 whitespace-nowrap"><p class="text-xs font-semibold text-gray-700">${(r.requester||'').split('@')[0]||'—'}</p><p class="text-xs text-gray-400">${r.requester||''}</p></td>`:'';
+      ?`<span class="font-mono text-xs text-gray-700 bg-gray-100 px-1.5 py-0.5 rounded">${r.mid}</span> <button onclick="openMidModal('${r.rowId}')" class="text-xs text-gray-400 hover:text-blue-500 ml-1">✎</button>`
+      :`<button onclick="openMidModal('${r.rowId}')" class="text-xs text-blue-500 hover:text-blue-700 font-semibold hover:underline">+ Add MID</button>`;
     return `
     <tr class="border-b border-gray-50 hover:bg-slate-50/60 transition-colors">
       <td class="px-5 py-3.5 whitespace-nowrap">
@@ -2319,12 +2421,12 @@ function renderStatsTable(rows){
         <p class="text-xs text-gray-400 font-mono truncate max-w-xs">${r.fileName||''}</p>
       </td>
       <td class="px-5 py-3.5">${midDisplay}</td>
-      <td class="px-5 py-3.5 whitespace-nowrap">${versionBadge(r.version,r.totalVersions)}</td>
+      <td class="px-5 py-3.5">${versionBadge(r)}</td>
       <td class="px-5 py-3.5 whitespace-nowrap">
         <p class="text-sm text-gray-700">${r.gmvDisplay||'—'}</p>
         <p class="text-xs text-gray-400">${r.slabLabel||''}</p>
       </td>
-      ${reqCell}
+      <td class="px-5 py-3.5 whitespace-nowrap">${ownerDisplay(r)}</td>
       <td class="px-5 py-3.5">${statusChip(r.statusKey)}</td>
       <td class="px-5 py-3.5">
         ${r.driveLink?`<a href="${r.driveLink}" target="_blank" class="text-xs text-blue-500 hover:text-blue-700 font-semibold flex items-center gap-1 whitespace-nowrap">View PDF <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg></a>`:'<span class="text-xs text-gray-300">—</span>'}
@@ -2336,13 +2438,13 @@ function renderStatsTable(rows){
 }
 
 // MID editing
-function openMidModal(merchantKey){
-  midEditMerchantKey=merchantKey;
-  const display=merchantKey.split('||')[0];
+function openMidModal(rowId){
+  midEditMerchantKey=rowId;
+  const row=statsAllRows.find(r=>r.rowId===rowId);
   const el=document.getElementById('mid-modal-merchant');
-  if(el) el.textContent='Merchant: '+display;
+  if(el) el.textContent='Merchant: '+(row?.merchantName||rowId);
   const inp=document.getElementById('mid-modal-input');
-  if(inp) inp.value=statsMidMap[merchantKey]||'';
+  if(inp) inp.value=statsMidMap[rowId]||row?.mid||'';
   showModal('mid-modal');
 }
 function saveMID(){
@@ -2350,9 +2452,43 @@ function saveMID(){
   if(val) statsMidMap[midEditMerchantKey]=val;
   else delete statsMidMap[midEditMerchantKey];
   localStorage.setItem('rzp_mid_map',JSON.stringify(statsMidMap));
-  // Re-apply MID to rows and re-render
-  statsAllRows.forEach(r=>{if(r.merchantKey===midEditMerchantKey) r.mid=val||extractMID(r.fileName)||'';});
+  statsAllRows.forEach(r=>{if(r.rowId===midEditMerchantKey) r.mid=val;});
   closeModal('mid-modal');
+  filterStats();
+}
+
+// Group / version linking
+let _groupEditRowId='';
+function openGroupModal(rowId,merchantName,currentGroup){
+  _groupEditRowId=rowId;
+  const el=document.getElementById('group-modal-merchant');
+  if(el) el.textContent='Proposal: '+(merchantName||rowId);
+  const inp=document.getElementById('group-modal-input');
+  if(inp) inp.value=currentGroup||merchantName||'';
+  // Show existing groups as suggestions
+  const existingGroups=[...new Set(Object.values(statsGroupMap))].filter(Boolean);
+  const datalist=document.getElementById('group-datalist');
+  if(datalist) datalist.innerHTML=existingGroups.map(g=>`<option value="${g}">`).join('');
+  showModal('group-modal');
+}
+function saveGroup(){
+  const val=(document.getElementById('group-modal-input')?.value||'').trim();
+  if(val) statsGroupMap[_groupEditRowId]=val;
+  else delete statsGroupMap[_groupEditRowId];
+  localStorage.setItem('rzp_group_map',JSON.stringify(statsGroupMap));
+  // Re-assign versions
+  statsAllRows.forEach(r=>{if(r.rowId===_groupEditRowId) r.group=val||'';});
+  const groupedRows={};
+  statsAllRows.forEach(r=>{
+    const gKey=r.group?r.group.toLowerCase().trim():null;
+    if(gKey){if(!groupedRows[gKey]) groupedRows[gKey]=[];groupedRows[gKey].push(r);}
+  });
+  Object.values(groupedRows).forEach(arr=>{
+    const sorted=[...arr].sort((a,b)=>a.rawDate.localeCompare(b.rawDate));
+    sorted.forEach((r,i)=>{r.version=i+1;r.totalVersions=sorted.length;});
+  });
+  statsAllRows.forEach(r=>{if(!r.group||!r.group.trim()){r.version=1;r.totalVersions=1;}});
+  closeModal('group-modal');
   filterStats();
 }
 
@@ -2394,39 +2530,47 @@ async function loadUserHistory(){
   };
   const fmtGMV=(v)=>v?'Rs.'+Math.round(v).toLocaleString('en-IN'):'';
 
-  const dlRows=downloads.map(d=>{
+  const makeRow=(d,type)=>{
+    const isAp=type==='approval';
     const{date,time,raw}=fmtDate(d.timestamp);
-    const mid=extractMID(d.fileName);
-    const mKey=(d.merchantName||'unknown').toLowerCase().trim()+'||'+(d.userEmail||'');
-    return{type:'download',statusKey:'downloaded',date,time,rawDate:raw,merchantKey:mKey,
-      merchantName:d.merchantName||'',fileName:d.fileName||'',
-      mid:statsMidMap[mKey]||mid,gmvDisplay:'',slabLabel:'',
-      driveLink:d.driveLink||'',requester:d.userEmail||''};
-  });
+    const mid=extractMID(isAp?d.fileName:d.fileName);
+    const rowId=(isAp?'ap_':'dl_')+(d.requestId||d.fileId||raw);
+    const group=statsGroupMap[rowId]||'';           // manual group set by admin
+    return{
+      type, rowId,
+      statusKey:isAp?(d.status||'pending'):'downloaded',
+      date,time,rawDate:raw,
+      merchantName:isAp?(d.merchantName||''):(d.merchantName||''),
+      fileName:isAp?d.fileName:d.fileName,
+      mid:statsMidMap[rowId]||mid,
+      gmvDisplay:isAp?fmtGMV(d.gmv):'',
+      slabLabel:isAp?(d.slabLabel||''):'',
+      driveLink:isAp?(d.driveLink||''):(d.driveLink||''),
+      requester:isAp?(d.requesterEmail||''):(d.userEmail||''),
+      group,
+      version:null,totalVersions:null,   // filled below
+    };
+  };
 
-  const apRows=approvals.map(a=>{
-    const{date,time,raw}=fmtDate(a.timestamp);
-    const mid=extractMID(a.fileName);
-    const mKey=(a.merchantName||'unknown').toLowerCase().trim()+'||'+(a.requesterEmail||'');
-    return{type:'approval',statusKey:a.status||'pending',date,time,rawDate:raw,merchantKey:mKey,
-      merchantName:a.merchantName||'',fileName:a.fileName||'',
-      mid:statsMidMap[mKey]||mid,gmvDisplay:fmtGMV(a.gmv),slabLabel:a.slabLabel||'',
-      driveLink:a.driveLink||'',requester:a.requesterEmail||''};
-  });
-
-  // Merge & sort newest first
+  const dlRows=downloads.map(d=>makeRow(d,'download'));
+  const apRows=approvals.map(a=>makeRow(a,'approval'));
   const merged=[...dlRows,...apRows].sort((a,b)=>b.rawDate.localeCompare(a.rawDate));
 
-  // Assign version numbers per merchant+user key (ascending by date = v1,v2,v3…)
-  const vMap={};
-  const sorted=[...merged].sort((a,b)=>a.rawDate.localeCompare(b.rawDate));
-  sorted.forEach(r=>{
-    if(!vMap[r.merchantKey]) vMap[r.merchantKey]=0;
-    vMap[r.merchantKey]++;
-    r.version=vMap[r.merchantKey];
+  // Version assignment: based on manual group if set, otherwise per-rowId = always v1
+  // Rows with the same group label are assigned v1,v2,v3 in chronological order
+  const groupedRows={};
+  merged.forEach(r=>{
+    const gKey=r.group?r.group.toLowerCase().trim():null;
+    if(gKey){
+      if(!groupedRows[gKey]) groupedRows[gKey]=[];
+      groupedRows[gKey].push(r);
+    }
   });
-  // Total versions per key
-  merged.forEach(r=>r.totalVersions=vMap[r.merchantKey]||1);
+  Object.values(groupedRows).forEach(arr=>{
+    const byDate=[...arr].sort((a,b)=>a.rawDate.localeCompare(b.rawDate));
+    byDate.forEach((r,i)=>{r.version=i+1;r.totalVersions=byDate.length;});
+  });
+  merged.forEach(r=>{if(!r.version){r.version=1;r.totalVersions=r.group?undefined:1;}});
 
   statsAllRows=merged;
   if(loadingEl) loadingEl.classList.add('hidden');
@@ -2434,6 +2578,9 @@ async function loadUserHistory(){
 }
 
 function extractMID(fn){const m=(fn||'').match(/^.+?-([A-Z0-9]{10,})-Razorpay/i);return m?m[1]:'';}
+
+// Group map: {rowId: 'groupLabel'} — admin sets this to link proposals as v1/v2/v3
+let statsGroupMap=JSON.parse(localStorage.getItem('rzp_group_map')||'{}');
 
 
 // ================================================================
