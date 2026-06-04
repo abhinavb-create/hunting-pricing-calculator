@@ -2251,7 +2251,7 @@ async function uploadToDrive(arrayBuffer,fileName,violations,requestId,merchantN
   const base64=btoa(binary);
   const res=await fetch(APPS_SCRIPT_URL,{
     method:'POST',
-    headers:{'Content-Type':'application/json'},
+    headers:{'Content-Type':'text/plain'},
     body:JSON.stringify({
       type:'pdf_upload',
       pdf:base64,
@@ -2400,7 +2400,7 @@ async function runEmailTest(){
   const steps=[];
   // Step 1: Can we reach Apps Script at all?
   try{
-    const r=await fetch(APPS_SCRIPT_URL,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({type:'send_email',to:'abhinav.b@razorpay.com',subject:'[Test] Pricing Calculator email test',body:'This is a test email from the Hunting Pricing Calculator. If you received this, MailApp is working correctly.\n\nSent by: '+(currentUser?.email||'unknown')})});
+    const r=await fetch(APPS_SCRIPT_URL,{method:'POST',headers:{'Content-Type':'text/plain'},body:JSON.stringify({type:'send_email',to:'abhinav.b@razorpay.com',subject:'[Test] Pricing Calculator email test',body:'This is a test email from the Hunting Pricing Calculator. If you received this, MailApp is working correctly.\n\nSent by: '+(currentUser?.email||'unknown')})});
     if(!r.ok){steps.push('❌ HTTP '+r.status+' from Apps Script');}
     else{
       const d=await r.json();
@@ -2417,7 +2417,7 @@ async function sendEmailViaAppsScript(emailJob){
   try{
     const res=await fetch(APPS_SCRIPT_URL,{
       method:'POST',
-      headers:{'Content-Type':'application/json'},
+      headers:{'Content-Type':'text/plain'},
       body:JSON.stringify({type:'send_email',...emailJob}),
     });
     return await res.json();
@@ -2438,7 +2438,7 @@ async function requestApproval({requestId,requesterEmail,requesterName,merchantN
   try{
     const res=await fetch(APPS_SCRIPT_URL,{
       method:'POST',
-      headers:{'Content-Type':'application/json'},
+      headers:{'Content-Type':'text/plain'},
       body:JSON.stringify(payload),
     });
     if(!res.ok){ console.error('[Email] HTTP error:',res.status,res.statusText); return{success:false,error:'HTTP '+res.status}; }
@@ -2465,7 +2465,7 @@ async function pollApprovalStatus(requestId){
   try{
     const res=await fetch(APPS_SCRIPT_URL,{
       method:'POST',
-      headers:{'Content-Type':'application/json'},
+      headers:{'Content-Type':'text/plain'},
       body:JSON.stringify({type:'check_status',requestId}),
     });
     const data=await res.json();
@@ -2732,7 +2732,7 @@ async function loadUserHistory(){
   try{
     const res=await fetch(APPS_SCRIPT_URL,{
       method:'POST',
-      headers:{'Content-Type':'application/json'},
+      headers:{'Content-Type':'text/plain'},
       body:JSON.stringify({type:'get_history',email:currentUser?.email||'',isAdmin:admin}),
     });
     const data=await res.json();
