@@ -2296,6 +2296,14 @@ function startNewVersion(rowId, parentGroup, snapJSON){
   }, 100);
 }
 
+// Wrapper that reads snapshot from side-cache instead of inline onclick arg
+function startNewVersionFromCache(rowId, parentGroup){
+  const pg=parentGroup?decodeURIComponent(parentGroup):rowId;
+  const snap=window._snapCache?window._snapCache[rowId]:null;
+  const snapJSON=snap?JSON.stringify(snap):null;
+  startNewVersion(rowId, pg, snapJSON?encodeURIComponent(snapJSON):null);
+}
+
 // ================================================================
 // GOOGLE DRIVE UPLOAD — Drive API directly (no Apps Script)
 // ================================================================
@@ -2621,7 +2629,7 @@ async function sendEmailWithAttachment({to,cc,subject,htmlBody,attachment}){
   mimeLines.push('To: '+to);
   if(cc) mimeLines.push('Cc: '+cc);
   mimeLines.push('From: '+currentUser.email);
-  mimeLines.push('Subject: '+subject);
+  mimeLines.push('Subject: '+rfc2047Subject(subject));
   mimeLines.push('MIME-Version: 1.0');
   mimeLines.push('Content-Type: multipart/mixed; boundary="'+boundary+'"');
   mimeLines.push('');
@@ -2693,7 +2701,7 @@ async function sendFinalApprovalEmail(){
   const result=await sendEmailWithAttachment({
     to:'abhinav.b@razorpay.com',
     cc:'dsstartup-ops@razorpay.com',
-    subject:'[Final Pricing Approval] '+merchantName+' — '+requesterName+' ('+selectedVersions.length+' ver)',
+    subject:'[Final Pricing Approval] '+merchantName+' | '+requesterName+(teamGroup?' | '+teamGroup:''),
     htmlBody,
     attachment:_famAttachData||null,
   });
@@ -2881,6 +2889,11 @@ async function logApprovalToSheet({requestId,fileName,requesterEmail,merchantNam
   }catch(e){console.warn('[Sheets] Log failed:',e);}
 }
 
+// Encode email subject per RFC 2047 (handles non-ASCII / em-dashes / emoji)
+function rfc2047Subject(s){
+  return '=?UTF-8?B?'+btoa(unescape(encodeURIComponent(s)))+'?=';
+}
+
 // ── Send HTML email via Gmail API ──────────────────────────────────────
 async function sendEmailViaGmail({to,subject,htmlBody},forceConsent=false){
   const tok=await _getToken(forceConsent);
@@ -2888,7 +2901,7 @@ async function sendEmailViaGmail({to,subject,htmlBody},forceConsent=false){
   const mime=[
     'To: '+to,
     'From: '+currentUser.email,
-    'Subject: '+subject,
+    'Subject: '+rfc2047Subject(subject),
     'MIME-Version: 1.0',
     'Content-Type: text/html; charset=utf-8',
     '',
@@ -2966,7 +2979,7 @@ async function requestApproval({requestId,requesterEmail,requesterName,merchantN
   });
   const emailResult=await sendEmailViaGmail({
     to:'abhinav.b@razorpay.com',
-    subject:'[Approval Needed] '+merchantName+' — '+requesterName,
+    subject:'[Approval Needed] '+merchantName+' | '+requesterName+(currentUser?.teamGroup?' | '+currentUser.teamGroup:''),
     htmlBody,
   });
   console.log('[Gmail] Approval email result:',emailResult);
@@ -3137,9 +3150,13 @@ function renderStatsTable(rows){
     const x=map[key]||{c:'bg-gray-100 text-gray-500',t:key};
     return `<span class="text-xs font-bold px-2.5 py-1 rounded-full ${x.c} whitespace-nowrap">${x.t}</span>`;
   };
+  // Store snapshots in a side-map so onclick attrs stay small
+  if(!window._snapCache) window._snapCache={};
   const versionBadge=(r)=>{
-    const snapArg=r.snapshot?encodeURIComponent(JSON.stringify(r.snapshot)).replace(/'/g,'%27'):'';
-    const newVerBtn=(r.type==='downloaded'||r.statusKey==='downloaded')?`<button onclick="startNewVersion('${r.rowId}','${(r.group||r.rowId).replace(/'/g,'\\\'').replace(/\\/g,'\\\\')}','${snapArg}')" class="mt-1.5 flex items-center gap-1 text-xs font-semibold text-indigo-600 hover:text-indigo-800 hover:underline">＋ New version</button>`:'';
+    if(r.snapshot) window._snapCache[r.rowId]=r.snapshot;
+    const newVerBtn=(r.type==='downloaded'||r.statusKey==='downloaded')
+      ?`<button onclick="startNewVersionFromCache('${r.rowId}','${(r.group||r.rowId).replace(/'/g,'%27').replace(/\\/g,'%5C')}')" class="mt-1.5 flex items-center gap-1 text-xs font-semibold text-indigo-600 hover:text-indigo-800 hover:underline">＋ New version</button>`
+      :'';
     if(!r.group) return `<button onclick="openGroupModal('${r.rowId}','${(r.merchantName||'').replace(/'/g,'\\\'')}')" class="text-xs text-gray-400 hover:text-indigo-500 hover:underline font-semibold">+ Link</button>${newVerBtn}`;
     const colors=['bg-blue-100 text-blue-700','bg-indigo-100 text-indigo-700','bg-purple-100 text-purple-700','bg-pink-100 text-pink-700'];
     const c=colors[((r.version||1)-1)%colors.length];
