@@ -2004,10 +2004,20 @@ async function generateAndDownloadPDF(){
     }else{
       // ── NORMAL FLOW: download immediately ──
       doc.save(fileName);
-      uploadToDrive(pdfBuffer,fileName,[],null).then(result=>{
+      // Save to localStorage immediately so stats always show it
+      const dlRec={timestamp:Date.now(),userEmail:currentUser?.email||'',userName:currentUser?.name||'',merchantName:name||'',fileName,driveLink:'',statusKey:'downloaded'};
+      const localDls=JSON.parse(localStorage.getItem('rzp_downloads')||'[]');
+      localDls.unshift(dlRec);
+      localStorage.setItem('rzp_downloads',JSON.stringify(localDls.slice(0,200)));
+      uploadToDrive(pdfBuffer,fileName,[],null,name).then(result=>{
         if(driveEl){
           if(result.success) driveEl.innerHTML='✅ <span class="text-green-600 font-medium">Saved to Razorpay Drive</span>';
           else driveEl.innerHTML='<span class="text-amber-500">⚠️ Drive save failed — PDF downloaded locally</span>';
+        }
+        if(result.success&&result.driveLink){
+          const dls=JSON.parse(localStorage.getItem('rzp_downloads')||'[]');
+          const idx=dls.findIndex(d=>d.fileName===fileName&&d.driveLink==='');
+          if(idx>=0){dls[idx].driveLink=result.driveLink;localStorage.setItem('rzp_downloads',JSON.stringify(dls));}
         }
       }).catch(()=>{
         if(driveEl) driveEl.innerHTML='<span class="text-amber-500">⚠️ Drive save failed — PDF downloaded locally</span>';
@@ -2027,7 +2037,7 @@ async function generateAndDownloadPDF(){
 // ================================================================
 // GOOGLE DRIVE UPLOAD — via Apps Script (no user auth needed)
 // ================================================================
-async function uploadToDrive(arrayBuffer,fileName,violations,requestId){
+async function uploadToDrive(arrayBuffer,fileName,violations,requestId,merchantName){
   const bytes=new Uint8Array(arrayBuffer);
   let binary='';
   bytes.forEach(b=>binary+=String.fromCharCode(b));
@@ -2039,6 +2049,7 @@ async function uploadToDrive(arrayBuffer,fileName,violations,requestId){
       type:'pdf_upload',
       pdf:base64,
       filename:fileName,
+      merchantName:merchantName||'',
       userEmail:currentUser?.email||'',
       userName:currentUser?.name||'',
       hasViolations:violations&&violations.length>0,
@@ -2504,6 +2515,11 @@ async function loadUserHistory(){
   let approvals=[];
   const admin=isAdmin();
 
+  // Always load localStorage downloads as baseline
+  const localDls=JSON.parse(localStorage.getItem('rzp_downloads')||'[]');
+  // Filter to current user's records unless admin
+  downloads=admin?localDls:localDls.filter(d=>d.userEmail===(currentUser?.email||''));
+
   try{
     const res=await fetch(APPS_SCRIPT_URL,{
       method:'POST',
@@ -2511,7 +2527,15 @@ async function loadUserHistory(){
       body:JSON.stringify({type:'get_history',email:currentUser?.email||'',isAdmin:admin}),
     });
     const data=await res.json();
-    downloads=data.downloads||[];
+    // Merge: use server downloads if available, else keep localStorage ones
+    if(data.downloads&&data.downloads.length>0){
+      // Merge server records with localStorage, dedupe by fileName+userEmail
+      const serverDls=data.downloads;
+      const lsFileNames=new Set(localDls.map(d=>d.fileName+'|'+(d.userEmail||'')));
+      const serverOnly=serverDls.filter(d=>!lsFileNames.has((d.fileName||'')+'|'+(d.userEmail||'')));
+      downloads=[...localDls,...serverOnly];
+      if(!admin) downloads=downloads.filter(d=>d.userEmail===(currentUser?.email||''));
+    }
     approvals=data.approvals||[];
   }catch(e){
     approvals=JSON.parse(localStorage.getItem('rzp_pending_approvals')||'[]');
