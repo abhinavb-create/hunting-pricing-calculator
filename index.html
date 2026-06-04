@@ -2573,48 +2573,104 @@ function openFinalApprovalModal(rowId){
   showModal('final-approval-modal');
 }
 
+function _buildPricingTableHtml(snap,vLabel){
+  if(!snap||!snap.rates) return '<p style="font-size:12px;color:#9ca3af;margin:4px 0">No pricing data captured for this version.</p>';
+  const sc=snap.activeTab||'competition';
+  const pfx=sc==='competition'?'c':'mc';
+  const methodGroups={};
+  METHODS.forEach((m,i)=>{
+    const rate=parseFloat(snap.rates[sc]?.[i])||0;
+    const isFlat=snap.flatModes[sc]?.[i];
+    const fee=snap.flatFees[sc]?.[i];
+    const aov=(snap.flatAovs[sc]?.[i]||50000)/100;
+    let rateStr=isFlat&&fee!=null?`₹${fee} flat (AOV ₹${Math.round(aov)})`:`${rate.toFixed(2)}%`;
+    if(!methodGroups[m.group]) methodGroups[m.group]=[];
+    methodGroups[m.group].push({label:m.label,rateStr,rate,isFlat,fee});
+  });
+  const groupColors={'Cards':'#eff6ff','UPI':'#f0fdf4','Net Banking':'#faf5ff','Others':'#fff7ed'};
+  const groupHeaderColors={'Cards':'#1d4ed8','UPI':'#15803d','Net Banking':'#7e22ce','Others':'#c2410c'};
+  let html='';
+  Object.entries(methodGroups).forEach(([grp,rows])=>{
+    const bg=groupColors[grp]||'#f9fafb';
+    const hc=groupHeaderColors[grp]||'#374151';
+    html+=`<tr><td colspan="2" style="background:${bg};padding:6px 10px;font-size:10px;font-weight:800;color:${hc};text-transform:uppercase;letter-spacing:1px">${grp}</td></tr>`;
+    rows.forEach(r=>{
+      const isZero=r.rate===0&&!r.isFlat;
+      html+=`<tr style="border-bottom:1px solid #f3f4f6">
+        <td style="padding:7px 10px;font-size:12px;color:#374151;width:70%">${r.label}</td>
+        <td style="padding:7px 10px;font-size:12px;font-weight:700;color:${isZero?'#9ca3af':'#111827'};text-align:right;white-space:nowrap">${isZero?'—':r.rateStr}</td>
+      </tr>`;
+    });
+  });
+  // Settlement / extras
+  const settl=snap.settlementType||'T2';
+  const t1=parseFloat(snap.t1Rate)||0;
+  const t0=parseFloat(snap.t0Rate)||0;
+  const gmvCr=snap.gmvCredit==='custom'?snap.gmvCreditCustom:snap.gmvCredit;
+  html+=`<tr><td colspan="2" style="background:#f8fafc;padding:6px 10px;font-size:10px;font-weight:800;color:#64748b;text-transform:uppercase;letter-spacing:1px">Settlement &amp; Terms</td></tr>
+    <tr style="border-bottom:1px solid #f3f4f6"><td style="padding:7px 10px;font-size:12px;color:#374151">Settlement Cycle</td><td style="padding:7px 10px;font-size:12px;font-weight:700;color:#111827;text-align:right">${settl}</td></tr>
+    ${t1>0?`<tr style="border-bottom:1px solid #f3f4f6"><td style="padding:7px 10px;font-size:12px;color:#374151">T+1 Rate</td><td style="padding:7px 10px;font-size:12px;font-weight:700;color:#111827;text-align:right">${t1}%</td></tr>`:''}
+    ${t0>0?`<tr style="border-bottom:1px solid #f3f4f6"><td style="padding:7px 10px;font-size:12px;color:#374151">T+0 Rate</td><td style="padding:7px 10px;font-size:12px;font-weight:700;color:#111827;text-align:right">${t0}%</td></tr>`:''}
+    ${gmvCr&&gmvCr!=='none'?`<tr style="border-bottom:1px solid #f3f4f6"><td style="padding:7px 10px;font-size:12px;color:#374151">GMV Credit</td><td style="padding:7px 10px;font-size:12px;font-weight:700;color:#059669;text-align:right">${gmvCr}</td></tr>`:''}`;
+  return `<table width="100%" cellpadding="0" cellspacing="0" style="border:1px solid #e5e7eb;border-radius:10px;overflow:hidden">${html}</table>`;
+}
+
 function buildFinalApprovalEmailHtml({requesterName,requesterEmail,teamGroup,merchantName,versions,notes,approveUrl,rejectUrl}){
-  const verRows=versions.map((v,i)=>`
-    <tr style="border-bottom:1px solid #f3f4f6">
-      <td style="padding:10px 12px;font-weight:800;color:#4f46e5;white-space:nowrap">v${v.version||i+1}</td>
-      <td style="padding:10px 12px;font-size:13px;color:#374151">${v.date||''} ${v.time||''}</td>
-      <td style="padding:10px 12px;font-size:13px;color:#374151">${v.gmvDisplay||'—'} · ${v.slabLabel||''}</td>
-      <td style="padding:10px 12px">
-        ${v.driveLink?`<a href="${v.driveLink}" style="font-size:12px;color:#2563eb;font-weight:700;text-decoration:none">📄 View PDF</a>`:'<span style="font-size:12px;color:#9ca3af">No PDF</span>'}
-      </td>
-      <td style="padding:10px 12px">
-        <span style="font-size:11px;font-weight:700;padding:3px 10px;border-radius:99px;background:${{downloaded:'#dbeafe',pending:'#fef3c7',approved:'#d1fae5',rejected:'#fee2e2'}[v.statusKey]||'#f3f4f6'};color:${{downloaded:'#1d4ed8',pending:'#92400e',approved:'#065f46',rejected:'#991b1b'}[v.statusKey]||'#374151'}">${{downloaded:'Downloaded',pending:'Pending',approved:'Approved',rejected:'Rejected'}[v.statusKey]||v.statusKey}</span>
-      </td>
-    </tr>`).join('');
+  // Build per-version pricing sections
+  const verSections=versions.map((v,i)=>{
+    const snap=window._snapCache?.[v.rowId]||v.snapshot||null;
+    const statusBg={downloaded:'#dbeafe',pending:'#fef3c7',approved:'#d1fae5',rejected:'#fee2e2'}[v.statusKey]||'#f3f4f6';
+    const statusColor={downloaded:'#1d4ed8',pending:'#92400e',approved:'#065f46',rejected:'#991b1b'}[v.statusKey]||'#374151';
+    const statusLabel={downloaded:'Downloaded',pending:'Pending',approved:'Approved',rejected:'Rejected'}[v.statusKey]||v.statusKey;
+    return `
+    <tr><td style="padding:0 0 20px 0">
+      <table width="100%" cellpadding="0" cellspacing="0" style="border:2px solid #e5e7eb;border-radius:14px;overflow:hidden">
+        <tr style="background:#f8fafc">
+          <td style="padding:12px 16px">
+            <table width="100%" cellpadding="0" cellspacing="0"><tr>
+              <td><span style="font-size:13px;font-weight:900;color:#4f46e5;background:#ede9fe;padding:3px 10px;border-radius:99px">v${v.version||i+1}</span>
+                <span style="font-size:13px;font-weight:700;color:#111827;margin-left:10px">${v.merchantName||merchantName}</span></td>
+              <td align="right">
+                <span style="font-size:11px;font-weight:700;padding:3px 10px;border-radius:99px;background:${statusBg};color:${statusColor}">${statusLabel}</span>
+                ${v.driveLink?`<a href="${v.driveLink}" style="font-size:11px;color:#2563eb;font-weight:700;text-decoration:none;margin-left:8px">📄 PDF</a>`:''}
+              </td>
+            </tr></table>
+            <div style="font-size:11px;color:#9ca3af;margin-top:4px">${v.date||''} ${v.time||''} · GMV: ${v.gmvDisplay||'—'} · ${v.slabLabel||''}</div>
+          </td>
+        </tr>
+        <tr><td style="padding:12px 16px">
+          ${_buildPricingTableHtml(snap,'v'+(v.version||i+1))}
+        </td></tr>
+      </table>
+    </td></tr>`;
+  }).join('');
 
   return `<!DOCTYPE html><html><body style="margin:0;padding:0;background:#f3f4f6;font-family:Arial,sans-serif">
 <table width="100%" cellpadding="0" cellspacing="0"><tr><td align="center" style="padding:32px 16px">
-<table width="600" cellpadding="0" cellspacing="0" style="background:#fff;border-radius:20px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,0.08)">
+<table width="640" cellpadding="0" cellspacing="0" style="background:#fff;border-radius:20px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,0.08)">
   <tr><td style="background:linear-gradient(135deg,#059669 0%,#0d9488 100%);padding:28px 32px">
     <div style="font-size:11px;font-weight:700;letter-spacing:2px;color:#a7f3d0;text-transform:uppercase;margin-bottom:6px">Final Pricing Approval Request</div>
-    <div style="font-size:24px;font-weight:900;color:#fff">${merchantName}</div>
+    <div style="font-size:26px;font-weight:900;color:#fff">${merchantName}</div>
     <div style="font-size:13px;color:#d1fae5;margin-top:6px">Submitted by ${requesterName} · ${teamGroup||'Hunting Team'}</div>
   </td></tr>
   <tr><td style="padding:28px 32px">
-    <table width="100%" cellpadding="0" cellspacing="0" style="background:#f9fafb;border-radius:12px;overflow:hidden;margin-bottom:24px">
-      <tr style="background:#f3f4f6"><th style="padding:10px 12px;text-align:left;font-size:11px;font-weight:700;color:#6b7280;text-transform:uppercase">Ver</th><th style="padding:10px 12px;text-align:left;font-size:11px;font-weight:700;color:#6b7280;text-transform:uppercase">Date</th><th style="padding:10px 12px;text-align:left;font-size:11px;font-weight:700;color:#6b7280;text-transform:uppercase">GMV / Slab</th><th style="padding:10px 12px;text-align:left;font-size:11px;font-weight:700;color:#6b7280;text-transform:uppercase">PDF</th><th style="padding:10px 12px;text-align:left;font-size:11px;font-weight:700;color:#6b7280;text-transform:uppercase">Status</th></tr>
-      ${verRows}
-    </table>
+    <div style="font-size:13px;font-weight:800;color:#374151;text-transform:uppercase;letter-spacing:1px;margin-bottom:16px">Pricing Breakdown by Version</div>
+    <table width="100%" cellpadding="0" cellspacing="0">${verSections}</table>
     ${notes?`<div style="background:#fffbeb;border:1px solid #fde68a;border-radius:12px;padding:16px 20px;margin-bottom:24px">
       <div style="font-size:11px;font-weight:700;color:#92400e;text-transform:uppercase;letter-spacing:1px;margin-bottom:6px">Negotiation Notes</div>
       <p style="font-size:13px;color:#374151;margin:0;white-space:pre-line">${notes}</p>
     </div>`:''}
-    <div style="background:#ecfdf5;border:1px solid #6ee7b7;border-radius:12px;padding:16px 20px;margin-bottom:28px">
-      <div style="font-size:11px;font-weight:700;color:#065f46;text-transform:uppercase;letter-spacing:1px;margin-bottom:4px">Requester</div>
-      <p style="font-size:13px;color:#374151;margin:0">${requesterName} &lt;${requesterEmail}&gt;</p>
+    <div style="background:#ecfdf5;border:1px solid #6ee7b7;border-radius:12px;padding:14px 18px;margin-bottom:28px">
+      <div style="font-size:11px;font-weight:700;color:#065f46;text-transform:uppercase;letter-spacing:1px;margin-bottom:3px">Submitted by</div>
+      <p style="font-size:13px;color:#374151;margin:0;font-weight:600">${requesterName} &lt;${requesterEmail}&gt; · ${teamGroup||'Hunting Team'}</p>
     </div>
-    <div style="font-size:14px;font-weight:700;color:#374151;margin-bottom:16px;text-align:center">Please approve or reject the final pricing:</div>
+    <div style="font-size:14px;font-weight:700;color:#374151;margin-bottom:16px;text-align:center">Approve or reject the complete pricing package:</div>
     <table width="100%" cellpadding="0" cellspacing="0"><tr>
-      <td align="center" style="padding:0 8px"><a href="${approveUrl}" style="display:block;background:linear-gradient(135deg,#059669,#047857);color:#fff;text-decoration:none;font-size:15px;font-weight:900;padding:14px 0;border-radius:12px;text-align:center;letter-spacing:0.5px">✅ Approve Final Pricing</a></td>
-      <td align="center" style="padding:0 8px"><a href="${rejectUrl}" style="display:block;background:linear-gradient(135deg,#dc2626,#b91c1c);color:#fff;text-decoration:none;font-size:15px;font-weight:900;padding:14px 0;border-radius:12px;text-align:center;letter-spacing:0.5px">❌ Reject &amp; Request Revision</a></td>
+      <td align="center" style="padding:0 6px"><a href="${approveUrl}" style="display:block;background:linear-gradient(135deg,#059669,#047857);color:#fff;text-decoration:none;font-size:15px;font-weight:900;padding:14px 0;border-radius:12px;text-align:center">✅ Approve Final Pricing</a></td>
+      <td align="center" style="padding:0 6px"><a href="${rejectUrl}" style="display:block;background:linear-gradient(135deg,#dc2626,#b91c1c);color:#fff;text-decoration:none;font-size:15px;font-weight:900;padding:14px 0;border-radius:12px;text-align:center">❌ Reject &amp; Revise</a></td>
     </tr></table>
   </td></tr>
-  <tr><td style="background:#f9fafb;padding:16px 32px;text-align:center">
+  <tr><td style="background:#f9fafb;padding:14px 32px;text-align:center">
     <p style="font-size:11px;color:#9ca3af;margin:0">Razorpay Hunting Team · <a href="https://abhinavb-create.github.io/hunting-pricing-calculator/" style="color:#6366f1;text-decoration:none">Hunting Calculator</a></p>
   </td></tr>
 </table></td></tr></table></body></html>`;
