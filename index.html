@@ -2621,7 +2621,8 @@ async function approveUser(email){
   const btn=document.querySelector(`[data-approve-email="${email}"]`);
   if(btn){btn.textContent='Approving…';btn.disabled=true;}
   try{
-    const tok=await _getToken(false);
+    let tok=await _getToken(false);
+    if(!tok.success) tok=await _getToken(true);
     if(!tok.success) throw new Error('Auth failed');
     // Update sheet status to active
     const json=await _sheetGet(tok.token,'Users!A:F');
@@ -2959,7 +2960,8 @@ function buildFinalApprovalEmailHtml({requesterName,requesterEmail,teamGroup,mer
 }
 
 async function sendEmailWithAttachment({to,cc,subject,htmlBody,attachment}){
-  const tok=await _getToken(false);
+  let tok=await _getToken(false);
+  if(!tok.success) tok=await _getToken(true);
   if(!tok.success) return{success:false,error:tok.error};
 
   const boundary='rzp_mime_'+Date.now();
@@ -3002,7 +3004,8 @@ async function sendEmailWithAttachment({to,cc,subject,htmlBody,attachment}){
 }
 
 async function logFinalApprovalToSheet({requestId,merchantName,requesterEmail,versionIds,notes,teamGroup}){
-  const tok=await _getToken(false);
+  let tok=await _getToken(false);
+  if(!tok.success) tok=await _getToken(true);
   if(!tok.success) return;
   const row=[requestId,merchantName,requesterEmail,versionIds.join(', '),notes||'','pending','',teamGroup||'',new Date().toISOString()];
   await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/FinalApprovals!A:I:append?valueInputOption=RAW&insertDataOption=INSERT_ROWS`,{
@@ -3754,7 +3757,8 @@ async function loadUsersPanel(){
   const countEl=document.getElementById('stats-users-count');
   if(body) body.innerHTML='<p class="text-sm text-gray-400 text-center py-6">Loading…</p>';
   try{
-    const tokObj=await _getToken(false);
+    let tokObj=await _getToken(false);
+    if(!tokObj?.success) tokObj=await _getToken(true);
     if(!tokObj?.success){if(body) body.innerHTML='<p class="text-sm text-red-400 text-center py-6">Auth required.</p>';return;}
     const tokenStr=tokObj.token;
     await _ensureUsersSheet(tokenStr);
