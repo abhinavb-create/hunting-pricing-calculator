@@ -113,22 +113,46 @@
   </div>
 </div>
 
-<!-- ===== ACCESS REQUESTED SCREEN ===== -->
+<!-- ===== REQUEST ACCESS SCREEN (new users) ===== -->
+<div id="request-access-screen" class="fixed inset-0 z-50 hidden flex items-center justify-center p-4" style="background:linear-gradient(135deg,#0f1c4d 0%,#1f3fa3 50%,#7048e8 100%);">
+  <div class="w-full max-w-md">
+    <div class="bg-white rounded-3xl shadow-2xl overflow-hidden">
+      <div class="h-1.5 bg-gradient-to-r from-blue-500 via-indigo-500 to-purple-500"></div>
+      <div class="px-8 pt-8 pb-6 text-center">
+        <div class="w-14 h-14 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4 text-2xl">👋</div>
+        <h2 class="text-xl font-black text-gray-900">Welcome, <span id="ra-name"></span>!</h2>
+        <p class="text-sm text-gray-500 mt-1 mb-5">Select your team to request access</p>
+        <div class="space-y-2 mb-5 text-left">
+          <button onclick="submitAccessRequest('Startup Hunting')" class="w-full px-4 py-3 rounded-xl border-2 border-gray-200 hover:border-blue-500 hover:bg-blue-50 font-semibold text-gray-800 text-sm transition-all flex items-center gap-3">🚀 Startup Hunting</button>
+          <button onclick="submitAccessRequest('Shopify Hunting')" class="w-full px-4 py-3 rounded-xl border-2 border-gray-200 hover:border-green-500 hover:bg-green-50 font-semibold text-gray-800 text-sm transition-all flex items-center gap-3">🛍️ Shopify Hunting</button>
+          <button onclick="submitAccessRequest('Competition Hunting')" class="w-full px-4 py-3 rounded-xl border-2 border-gray-200 hover:border-orange-500 hover:bg-orange-50 font-semibold text-gray-800 text-sm transition-all flex items-center gap-3">⚔️ Competition / Retribution Hunting</button>
+          <button onclick="submitAccessRequest('MM Hunting')" class="w-full px-4 py-3 rounded-xl border-2 border-gray-200 hover:border-purple-500 hover:bg-purple-50 font-semibold text-gray-800 text-sm transition-all flex items-center gap-3">🏢 MM Hunting</button>
+        </div>
+        <p id="ra-status" class="text-xs text-gray-400 min-h-[16px]"></p>
+        <button onclick="signOut()" class="mt-3 text-xs text-gray-400 hover:text-gray-600 underline">Sign out</button>
+      </div>
+      <div class="bg-slate-50 border-t border-slate-100 px-8 py-3 text-center">
+        <p class="text-xs text-gray-400">🔒 For internal use only &nbsp;·&nbsp; Do not share with merchants</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== ACCESS PENDING SCREEN ===== -->
 <div id="access-requested-screen" class="fixed inset-0 z-50 hidden flex items-center justify-center p-4" style="background:linear-gradient(135deg,#0f1c4d 0%,#1f3fa3 50%,#7048e8 100%);">
   <div class="w-full max-w-md">
     <div class="bg-white rounded-3xl shadow-2xl overflow-hidden">
       <div class="h-1.5 bg-gradient-to-r from-blue-500 via-indigo-500 to-purple-500"></div>
       <div class="px-8 pt-8 pb-6 text-center">
-        <div class="w-16 h-16 bg-indigo-100 rounded-full flex items-center justify-center mx-auto mb-5 text-3xl">⏳</div>
-        <h2 class="text-xl font-black text-gray-900">Access Requested, <span id="ar-name"></span>!</h2>
-        <p class="text-sm text-gray-500 mt-2 mb-6" id="ar-message">Your request has been sent to the admin. You'll receive an email once approved.</p>
-        <div class="bg-slate-50 rounded-2xl px-5 py-4 mb-4 text-left space-y-2">
-          <div class="flex items-center gap-2.5 text-sm text-gray-600"><span class="w-5 h-5 rounded-full bg-green-100 text-green-600 flex items-center justify-center text-xs font-bold flex-shrink-0">1</span>Admin reviews your request</div>
-          <div class="flex items-center gap-2.5 text-sm text-gray-600"><span class="w-5 h-5 rounded-full bg-green-100 text-green-600 flex items-center justify-center text-xs font-bold flex-shrink-0">2</span>You get an approval email</div>
-          <div class="flex items-center gap-2.5 text-sm text-gray-600"><span class="w-5 h-5 rounded-full bg-green-100 text-green-600 flex items-center justify-center text-xs font-bold flex-shrink-0">3</span>Reload this page to get started</div>
+        <div class="w-14 h-14 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-4 text-2xl">⏳</div>
+        <h2 class="text-xl font-black text-gray-900">Request Pending, <span id="ar-name"></span></h2>
+        <p class="text-sm text-gray-500 mt-2 mb-5">Your request has been sent to Abhinav. You'll get an email when approved — just reload this page after that.</p>
+        <div class="bg-slate-50 rounded-xl px-4 py-3 mb-5 text-left text-xs text-gray-500 space-y-1">
+          <div>📧 &nbsp;<span id="ar-email" class="font-medium text-gray-700"></span></div>
+          <div>👥 &nbsp;<span id="ar-team" class="font-medium text-gray-700"></span></div>
         </div>
-        <button onclick="checkAccessStatus()" class="w-full py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl text-sm transition-colors">↻ Check Access Status</button>
-        <button onclick="signOut()" class="mt-2 text-xs text-gray-400 hover:text-gray-600 underline">Sign out</button>
+        <button onclick="checkAccessStatus()" class="w-full py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl text-sm transition-colors mb-2" id="ar-check-btn">↻ I got the email — check now</button>
+        <button onclick="signOut()" class="text-xs text-gray-400 hover:text-gray-600 underline">Sign out</button>
       </div>
       <div class="bg-slate-50 border-t border-slate-100 px-8 py-3 text-center">
         <p class="text-xs text-gray-400">🔒 For internal use only &nbsp;·&nbsp; Do not share with merchants</p>
@@ -2467,112 +2491,103 @@ function handleCredentialResponse(response){
     currentUser={email:payload.email,name:payload.name,picture:payload.picture,
       teamGroup:existing?.teamGroup||null,accessStatus:existing?.accessStatus||null};
     localStorage.setItem('rzp_user',JSON.stringify(currentUser));
-    if(currentUser.email.toLowerCase()===ADMIN_EMAIL.toLowerCase()){
-      updateUserUI(); logUserSignIn(); return;
-    }
-    if(!currentUser.teamGroup){
-      showModal('team-group-modal');
-    } else {
-      initUserAccess();
-    }
+    _routeUserAfterSignIn();
   }catch(e){console.error('GSI decode error:',e);}
 }
 
-function selectTeamGroup(group){
-  if(currentUser){currentUser.teamGroup=group;localStorage.setItem('rzp_user',JSON.stringify(currentUser));}
-  closeModal('team-group-modal');
-  if(currentUser?.email?.toLowerCase()===ADMIN_EMAIL.toLowerCase()){
-    updateUserUI(); logUserSignIn();
-  } else {
-    initUserAccess();
-  }
-}
-
-async function initUserAccess(){
+function _routeUserAfterSignIn(){
   if(!currentUser) return;
-  if(currentUser.email.toLowerCase()===ADMIN_EMAIL.toLowerCase()){
-    updateUserUI(); logUserSignIn(); return;
-  }
-  // Cached active status — grant access immediately, refresh LastSeen silently
-  if(currentUser.accessStatus==='active'){
-    updateUserUI();
-    _updateUserLastSeen().catch(()=>{});
-    return;
-  }
-  // Unknown/pending — must hit the sheet to verify
-  _showAccessChecking();
-  try{
-    const tok=await _getToken(true);
-    if(!tok.success) throw new Error('OAuth consent failed');
-    await _ensureUsersSheet(tok.token);
-    const json=await _sheetGet(tok.token,'Users!A:F');
-    const rows=json.values||[];
-    const idx=rows.findIndex((r,i)=>i>0&&r[0]===currentUser.email);
-    if(idx>0){
-      const status=(rows[idx][5]||'pending').trim();
-      if(status==='active'){
-        currentUser.accessStatus='active';
-        localStorage.setItem('rzp_user',JSON.stringify(currentUser));
-        // Update LastSeen (col E)
-        await _sheetPut(tok.token,`Users!E${idx+1}:E${idx+1}`,[[new Date().toISOString()]]).catch(()=>{});
-        updateUserUI();
-        logUserSignIn();
-      } else {
-        showAccessRequested('pending');
-      }
-    } else {
-      // First time — register in sheet
-      const now=new Date().toISOString();
-      await _sheetAppend(tok.token,'Users!A:F',[[
-        currentUser.email,currentUser.name||'',currentUser.teamGroup||'',now,now,'pending'
-      ]]);
-      await _emailAdminNewUser(tok.token);
-      showAccessRequested('registered');
-    }
-  }catch(e){
-    console.error('[initUserAccess]',e);
-    _showAccessCheckingError(e.message);
-  }
+  // Admin: straight in
+  if(currentUser.email.toLowerCase()===ADMIN_EMAIL.toLowerCase()){updateUserUI();logUserSignIn();return;}
+  // Previously approved: straight in
+  if(currentUser.accessStatus==='active'){updateUserUI();_updateUserLastSeen();return;}
+  // Already submitted a request: show pending screen
+  if(currentUser.accessStatus==='pending'){showAccessPending();return;}
+  // Brand new: show request-access screen
+  showRequestAccess();
 }
 
-function _showAccessChecking(){
-  document.getElementById('signin-screen')?.classList.remove('hidden');
-  document.getElementById('access-requested-screen')?.classList.add('hidden');
-  const btn=document.getElementById('signin-screen-btn');
-  if(btn) btn.innerHTML='<div class="flex items-center gap-2 text-gray-500 text-sm"><svg class="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path></svg>Checking access…</div>';
+function showRequestAccess(){
+  ['signin-screen','access-requested-screen','main-wrap'].forEach(id=>document.getElementById(id)?.classList.add('hidden'));
+  const screen=document.getElementById('request-access-screen');
+  if(!screen) return;
+  screen.classList.remove('hidden');
+  const nameEl=document.getElementById('ra-name');
+  if(nameEl) nameEl.textContent=currentUser?.name?.split(' ')[0]||currentUser?.email?.split('@')[0]||'';
+  document.getElementById('ra-status').textContent='';
 }
 
-function _showAccessCheckingError(msg){
-  const btn=document.getElementById('signin-screen-btn');
-  if(btn) btn.innerHTML=`<div class="text-center"><p class="text-red-500 text-xs mb-2">Error: ${msg}</p><button onclick="initUserAccess()" class="text-sm text-indigo-600 underline font-semibold">Retry</button></div>`;
-}
-
-function showAccessRequested(mode){
-  document.getElementById('signin-screen')?.classList.add('hidden');
-  document.getElementById('main-wrap')?.classList.add('hidden');
+function showAccessPending(){
+  ['signin-screen','request-access-screen','main-wrap'].forEach(id=>document.getElementById(id)?.classList.add('hidden'));
   const screen=document.getElementById('access-requested-screen');
   if(!screen) return;
   screen.classList.remove('hidden');
   const nameEl=document.getElementById('ar-name');
   if(nameEl) nameEl.textContent=currentUser?.name?.split(' ')[0]||'';
-  const msgEl=document.getElementById('ar-message');
-  if(msgEl){
-    msgEl.innerHTML=mode==='registered'
-      ?'Your access request has been submitted. Abhinav will review it and you\'ll receive an email once approved.'
-      :'Your request is still pending approval. You\'ll get an email when it\'s approved.';
+  const emailEl=document.getElementById('ar-email');
+  if(emailEl) emailEl.textContent=currentUser?.email||'';
+  const teamEl=document.getElementById('ar-team');
+  if(teamEl) teamEl.textContent=currentUser?.teamGroup||'—';
+}
+
+async function submitAccessRequest(team){
+  if(!currentUser) return;
+  // Disable all team buttons
+  document.querySelectorAll('#request-access-screen button[onclick^="submitAccessRequest"]').forEach(b=>{b.disabled=true;b.classList.add('opacity-50');});
+  const statusEl=document.getElementById('ra-status');
+  if(statusEl) statusEl.textContent='Sending request…';
+  try{
+    // Force OAuth consent — this is the one-time token acquisition that unlocks all future API calls
+    const tok=await _getToken(true);
+    if(!tok.success) throw new Error('Sign-in required');
+    // Save team group
+    currentUser.teamGroup=team;
+    currentUser.accessStatus='pending';
+    localStorage.setItem('rzp_user',JSON.stringify(currentUser));
+    // Write to Users sheet (fire-and-forget — admin uses this to show panel)
+    _ensureUsersSheet(tok.token).then(()=>{
+      const now=new Date().toISOString();
+      _sheetAppend(tok.token,'Users!A:F',[[currentUser.email,currentUser.name||'',team,now,now,'pending']]).catch(()=>{});
+    }).catch(()=>{});
+    // Email admin — primary notification
+    const subject=`[Pricing Calculator] Access Request: ${currentUser.name||currentUser.email} (${team})`;
+    const body=`<div style="font-family:Arial,sans-serif;max-width:500px;padding:20px">
+<h2 style="color:#1f3fa3;margin:0 0 16px">New Access Request 🔔</h2>
+<table style="border-collapse:collapse;width:100%">
+<tr><td style="padding:8px 12px;background:#f8f9fa;font-size:13px;color:#6b7280;width:100px">Name</td><td style="padding:8px 12px;font-size:14px;font-weight:600;color:#111">${currentUser.name||'—'}</td></tr>
+<tr><td style="padding:8px 12px;font-size:13px;color:#6b7280">Email</td><td style="padding:8px 12px;font-size:14px;color:#111">${currentUser.email}</td></tr>
+<tr><td style="padding:8px 12px;background:#f8f9fa;font-size:13px;color:#6b7280">Team</td><td style="padding:8px 12px;font-size:14px;font-weight:600;color:#111">${team}</td></tr>
+</table>
+<p style="margin:20px 0 8px;font-size:13px;color:#374151">Open the <strong>Platform Users</strong> panel in Stats to approve.</p>
+<p style="color:#9ca3af;font-size:11px">Hunting Pricing Calculator · Internal</p></div>`;
+    const mime=['To: '+ADMIN_EMAIL,'From: '+currentUser.email,'Subject: '+rfc2047Subject(subject),
+      'MIME-Version: 1.0','Content-Type: text/html; charset=utf-8','',body].join('\r\n');
+    const encoded=btoa(unescape(encodeURIComponent(mime))).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
+    const res=await fetch('https://gmail.googleapis.com/gmail/v1/users/me/messages/send',{
+      method:'POST',headers:{'Authorization':'Bearer '+tok.token,'Content-Type':'application/json'},
+      body:JSON.stringify({raw:encoded}),
+    });
+    if(!res.ok) throw new Error('Email failed: '+res.status);
+    showAccessPending();
+  }catch(e){
+    console.error('[submitAccessRequest]',e);
+    document.querySelectorAll('#request-access-screen button[onclick^="submitAccessRequest"]').forEach(b=>{b.disabled=false;b.classList.remove('opacity-50');});
+    if(statusEl) statusEl.innerHTML='<span class="text-red-500">Failed: '+e.message+'. Please try again.</span>';
   }
 }
 
+// Called when user clicks "I got the email — check now"
+// Does a single Sheets read (user-initiated, so OAuth popup is allowed if needed)
 async function checkAccessStatus(){
-  if(!currentUser) return;
-  const btn=document.querySelector('#access-requested-screen button');
+  const btn=document.getElementById('ar-check-btn');
   if(btn){btn.textContent='Checking…';btn.disabled=true;}
   try{
-    const tok=await _getToken(false);
-    if(!tok.success) throw new Error('Auth required');
+    let tok=await _getToken(false);
+    if(!tok.success) tok=await _getToken(true);
+    if(!tok.success) throw new Error('Sign-in required');
     const json=await _sheetGet(tok.token,'Users!A:F');
     const rows=json.values||[];
-    const idx=rows.findIndex((r,i)=>i>0&&r[0]===currentUser.email);
+    const idx=rows.findIndex((r,i)=>i>0&&r[0]===currentUser?.email);
     if(idx>0&&(rows[idx][5]||'').trim()==='active'){
       currentUser.accessStatus='active';
       localStorage.setItem('rzp_user',JSON.stringify(currentUser));
@@ -2580,12 +2595,12 @@ async function checkAccessStatus(){
       updateUserUI();
       logUserSignIn();
     } else {
-      if(btn){btn.textContent='↻ Check Access Status';btn.disabled=false;}
-      const msgEl=document.getElementById('ar-message');
-      if(msgEl) msgEl.innerHTML='Still pending. We\'ll email you when it\'s approved — no need to keep checking!';
+      if(btn){btn.textContent='↻ I got the email — check now';btn.disabled=false;}
+      const el=document.getElementById('ar-email');
+      if(el) el.closest('div.bg-slate-50').insertAdjacentHTML('afterend','<p class="text-xs text-amber-600 mt-2">Still pending — Abhinav hasn\'t approved yet. Try again after you get the email.</p>');
     }
   }catch(e){
-    if(btn){btn.textContent='↻ Check Access Status';btn.disabled=false;}
+    if(btn){btn.textContent='↻ I got the email — check now';btn.disabled=false;}
     console.warn('[checkAccessStatus]',e);
   }
 }
@@ -2597,27 +2612,8 @@ async function _updateUserLastSeen(){
     const json=await _sheetGet(tok.token,'Users!A:A');
     const rows=json.values||[];
     const idx=rows.findIndex((r,i)=>i>0&&r[0]===currentUser?.email);
-    if(idx>0) await _sheetPut(tok.token,`Users!E${idx+1}:E${idx+1}`,[[new Date().toISOString()]]);
-  }catch(e){console.warn('[updateLastSeen]',e.message);}
-}
-
-async function _emailAdminNewUser(tokenStr){
-  try{
-    const subject=`[Pricing Calculator] New Access Request: ${currentUser.name||currentUser.email}`;
-    const body=`<div style="font-family:Arial,sans-serif;max-width:480px">
-<h2 style="color:#1f3fa3">New Access Request</h2>
-<p><strong>${currentUser.name||currentUser.email}</strong> (${currentUser.email}) has requested access to the Hunting Pricing Calculator.</p>
-<p>Team: <strong>${currentUser.teamGroup||'Not set'}</strong></p>
-<p>Please approve their request in the <strong>Platform Users</strong> panel on the Stats page.</p>
-<p style="color:#888;font-size:12px">Hunting Pricing Calculator · Internal</p></div>`;
-    const mime=['To: '+ADMIN_EMAIL,'From: '+currentUser.email,'Subject: '+rfc2047Subject(subject),
-      'MIME-Version: 1.0','Content-Type: text/html; charset=utf-8','',body].join('\r\n');
-    const encoded=btoa(unescape(encodeURIComponent(mime))).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
-    await fetch('https://gmail.googleapis.com/gmail/v1/users/me/messages/send',{
-      method:'POST',headers:{'Authorization':'Bearer '+tokenStr,'Content-Type':'application/json'},
-      body:JSON.stringify({raw:encoded}),
-    });
-  }catch(e){console.warn('[emailAdmin]',e.message);}
+    if(idx>0) _sheetPut(tok.token,`Users!E${idx+1}:E${idx+1}`,[[new Date().toISOString()]]).catch(()=>{});
+  }catch(e){}
 }
 
 async function approveUser(email){
@@ -2627,21 +2623,22 @@ async function approveUser(email){
   try{
     const tok=await _getToken(false);
     if(!tok.success) throw new Error('Auth failed');
+    // Update sheet status to active
     const json=await _sheetGet(tok.token,'Users!A:F');
     const rows=json.values||[];
     const idx=rows.findIndex((r,i)=>i>0&&r[0]===email);
-    if(idx<0) throw new Error('User not found in sheet');
+    if(idx<0) throw new Error('User not found');
     await _sheetPut(tok.token,`Users!F${idx+1}:F${idx+1}`,[['active']]);
-    // Email the user
     const userName=rows[idx][1]||email;
-    const subject=`[Pricing Calculator] Your access has been approved!`;
-    const body=`<div style="font-family:Arial,sans-serif;max-width:480px">
-<h2 style="color:#1f3fa3">You're approved! 🎉</h2>
-<p>Hi ${userName.split(' ')[0]||'there'},</p>
-<p>Your access to the <strong>Hunting Pricing Calculator</strong> has been approved.</p>
-<p>You can now log in and start creating pricing proposals:</p>
-<p><a href="https://abhinavb-create.github.io/hunting-pricing-calculator/" style="background:#1f3fa3;color:white;padding:10px 20px;border-radius:6px;text-decoration:none;font-weight:bold">Open Calculator →</a></p>
-<p style="color:#888;font-size:12px;margin-top:24px">Hunting Pricing Calculator · Internal</p></div>`;
+    const team=rows[idx][2]||'';
+    // Email user
+    const subject=`[Pricing Calculator] You're approved! 🎉`;
+    const body=`<div style="font-family:Arial,sans-serif;max-width:500px;padding:20px">
+<h2 style="color:#1f3fa3;margin:0 0 12px">You're approved! 🎉</h2>
+<p style="font-size:14px;color:#374151">Hi ${userName.split(' ')[0]||'there'},</p>
+<p style="font-size:14px;color:#374151">Your access to the <strong>Hunting Pricing Calculator</strong> has been approved.</p>
+<p style="margin:20px 0"><a href="https://abhinavb-create.github.io/hunting-pricing-calculator/" style="background:#1f3fa3;color:white;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:bold;font-size:14px">Open Calculator → Click "I got the email — check now"</a></p>
+<p style="color:#9ca3af;font-size:11px">Hunting Pricing Calculator · Internal</p></div>`;
     const mime=['To: '+email,'From: '+currentUser.email,'Subject: '+rfc2047Subject(subject),
       'MIME-Version: 1.0','Content-Type: text/html; charset=utf-8','',body].join('\r\n');
     const encoded=btoa(unescape(encodeURIComponent(mime))).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
@@ -2652,7 +2649,7 @@ async function approveUser(email){
     loadUsersPanel();
   }catch(e){
     alert('Failed to approve: '+e.message);
-    if(btn){btn.textContent='Approve';btn.disabled=false;}
+    if(btn){btn.textContent='✓ Approve';btn.disabled=false;}
   }
 }
 
@@ -2734,12 +2731,8 @@ function initGoogleSignIn(){
       {theme:'outline',size:'medium',text:'signin_with',shape:'pill'}
     );
     google.accounts.id.prompt();
-  }else if(currentUser.email.toLowerCase()===ADMIN_EMAIL.toLowerCase()||currentUser.accessStatus==='active'){
-    updateUserUI();
   }else{
-    // Show signin screen with a Continue button — need user gesture before OAuth popup
-    const btn=document.getElementById('signin-screen-btn');
-    if(btn) btn.innerHTML=`<button onclick="initUserAccess()" class="w-full py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl text-sm transition-colors">Continue as ${currentUser.name?.split(' ')[0]||currentUser.email.split('@')[0]} →</button>`;
+    _routeUserAfterSignIn();
   }
 }
 
@@ -2754,6 +2747,7 @@ function updateUserUI(){
   if(!currentUser){
     signinScreen?.classList.remove('hidden');
     arScreen?.classList.add('hidden');
+    document.getElementById('request-access-screen')?.classList.add('hidden');
     mainWrap?.classList.add('hidden');
     statsPage?.classList.add('hidden');
     signinDiv?.classList.remove('hidden');
@@ -2762,6 +2756,7 @@ function updateUserUI(){
   }
   signinScreen?.classList.add('hidden');
   arScreen?.classList.add('hidden');
+  document.getElementById('request-access-screen')?.classList.add('hidden');
   statsPage?.classList.add('hidden');
   mainWrap?.classList.remove('hidden');
   signinDiv?.classList.add('hidden');
@@ -2782,6 +2777,7 @@ function signOut(){
   currentUser=null;
   localStorage.removeItem('rzp_user');
   document.getElementById('access-requested-screen')?.classList.add('hidden');
+  document.getElementById('request-access-screen')?.classList.add('hidden');
   stopApprovalPolling();
   if(window.google?.accounts?.id) google.accounts.id.disableAutoSelect();
   updateUserUI();
