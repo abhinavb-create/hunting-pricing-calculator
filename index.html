@@ -3204,7 +3204,7 @@ async function handleApproveUserUrl(params){
           <div style="font-size:12px;color:#6b7280">Team: <strong>${team}</strong></div>
         </div>
         <div id="au-status" style="font-size:13px;color:#6b7280;margin-bottom:16px">Sign in as <strong>abhinav.b@razorpay.com</strong> to approve.</div>
-        <button id="au-btn" onclick="auDoApprove('${email.replace(/'/g,'\\${"'"}+')}','${name.replace(/'/g,'\\${"'"}+')}','${team.replace(/'/g,'\\${"'"+'}')}');" style="width:100%;background:linear-gradient(135deg,#16a34a,#15803d);color:#fff;font-size:15px;font-weight:900;padding:14px 0;border-radius:12px;border:none;cursor:pointer">✓ Grant Access</button>
+        <button id="au-btn" data-email="${email}" data-name="${name}" data-team="${team}" onclick="auDoApprove(this.dataset.email,this.dataset.name,this.dataset.team)" style="width:100%;background:linear-gradient(135deg,#16a34a,#15803d);color:#fff;font-size:15px;font-weight:900;padding:14px 0;border-radius:12px;border:none;cursor:pointer">✓ Grant Access</button>
         <div id="au-back" style="display:none;margin-top:16px"><a href="https://abhinavb-create.github.io/hunting-pricing-calculator/" style="font-size:13px;color:#6366f1;font-weight:700;text-decoration:none">← Back to Calculator</a></div>
       </div>
     </div>
