@@ -48,17 +48,17 @@
       <h2 class="text-white font-black text-lg">Approval Required</h2>
     </div>
     <div class="px-6 py-5">
-      <p class="text-gray-700 text-sm leading-relaxed mb-4">The pricing results in an <strong class="text-red-600">Effective NR below ₹1,000/month</strong> — below Razorpay's minimum threshold.</p>
+      <p class="text-gray-700 text-sm leading-relaxed mb-4">The pricing results in an <strong class="text-red-600">Effective NR below ₹5 Lakh/month</strong> — below the recommended threshold.</p>
       <div class="bg-red-50 border border-red-200 rounded-xl px-4 py-3 mb-5">
-        <p class="text-xs text-red-600 font-bold uppercase tracking-wide mb-2">Requires sign-off from</p>
+        <p class="text-xs text-red-600 font-bold uppercase tracking-wide mb-2">Heads up — please loop in</p>
         <div class="flex items-center gap-3">
           <span class="bg-red-500 text-white text-xs font-black px-3 py-1 rounded-full">Abhinav</span>
           <span class="text-gray-400 text-xs">or</span>
-          <span class="bg-red-500 text-white text-xs font-black px-3 py-1 rounded-full">Raktim</span>
+          <span class="bg-red-500 text-white text-xs font-black px-3 py-1 rounded-full">Adnan</span>
         </div>
       </div>
-      <p class="text-xs text-gray-400 mb-5">Do not share this pricing with the merchant until approval is obtained.</p>
-      <button onclick="closeModal('approval-modal')" class="w-full bg-red-500 hover:bg-red-600 text-white font-bold py-2.5 rounded-xl text-sm">I Understand — Get Approval Before Sharing</button>
+      <p class="text-xs text-gray-400 mb-5">Review the pricing before sharing with the merchant. You can still download and proceed.</p>
+      <button onclick="closeModal('approval-modal')" class="w-full bg-red-500 hover:bg-red-600 text-white font-bold py-2.5 rounded-xl text-sm">I Understand — Continue Download</button>
     </div>
   </div>
 </div>
@@ -4265,6 +4265,7 @@ if(_initAction === 'activate-user'){
   handleApproveRejectUrl();
 } else {
   setTab('competition');
+  _loadCoverageState(); // sync coverage toggles from GitHub on startup
   if(currentUser) _routeUserAfterSignIn();
 }
 </script>
