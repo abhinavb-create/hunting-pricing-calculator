@@ -2593,16 +2593,32 @@ function _routeUserAfterSignIn(){
   if(!currentUser) return;
   // Admin: straight in
   if(currentUser.email.toLowerCase()===ADMIN_EMAIL.toLowerCase()||currentUser.email.toLowerCase()===CO_ADMIN_EMAIL.toLowerCase()){updateUserUI();return;}
-  // Previously approved: straight in
+  // Previously approved: verify not revoked, then let in
   if(currentUser.accessStatus==='active'){
-    // Update lastSeen in GitHub (background, silent)
-    _ghUpdate('data/users.json',arr=>{
-      const a=[...(arr||[])];
-      const idx=a.findIndex(x=>x.email===currentUser.email);
-      if(idx>=0){a[idx]={...a[idx],lastSeen:new Date().toISOString()};}
-      return a;
-    },'lastSeen: '+currentUser.email).catch(()=>{});
+    // Check GitHub for revocation (background) and update lastSeen
+    _ghRead('data/users.json').then(({data})=>{
+      const rec=(data||[]).find(u=>u.email===currentUser.email);
+      if(rec?.status==='revoked'){
+        currentUser.accessStatus='revoked';
+        localStorage.setItem('rzp_user',JSON.stringify(currentUser));
+        _routeUserAfterSignIn(); // re-route to revoked screen
+        return;
+      }
+      // Still active — update lastSeen
+      _ghUpdate('data/users.json',arr=>{
+        const a=[...(arr||[])];
+        const idx=a.findIndex(x=>x.email===currentUser.email);
+        if(idx>=0){a[idx]={...a[idx],lastSeen:new Date().toISOString()};}
+        return a;
+      },'lastSeen: '+currentUser.email).catch(()=>{});
+    }).catch(()=>{});
     updateUserUI();return;
+  }
+  // Access revoked
+  if(currentUser.accessStatus==='revoked'){
+    ['signin-screen','access-requested-screen','main-wrap','request-access-screen'].forEach(id=>document.getElementById(id)?.classList.add('hidden'));
+    document.body.innerHTML=`<div style="min-height:100vh;display:flex;align-items:center;justify-content:center;background:#f3f4f6;font-family:Arial,sans-serif"><div style="background:#fff;border-radius:20px;padding:40px;max-width:420px;text-align:center;box-shadow:0 4px 24px rgba(0,0,0,0.08)"><div style="font-size:48px;margin-bottom:16px">🚫</div><h2 style="color:#dc2626;font-size:20px;font-weight:900;margin:0 0 8px">Access Revoked</h2><p style="color:#6b7280;font-size:14px">Your access to the Hunting Pricing Calculator has been revoked. Please contact Abhinav or Adnan to restore access.</p></div></div>`;
+    return;
   }
   // Already submitted a request: show pending screen
   if(currentUser.accessStatus==='pending'){showAccessPending();return;}
@@ -2739,6 +2755,25 @@ async function approveUser(email){
   }catch(e){
     alert('Failed to approve: '+e.message);
     if(btn){btn.textContent='✓ Approve';btn.disabled=false;}
+  }
+}
+
+async function revokeUser(email){
+  if(!isAdmin()) return;
+  if(!confirm(`Revoke access for ${email}?\n\nThey will no longer be able to use the calculator.`)) return;
+  const btn=document.querySelector(`[data-revoke-email="${email}"]`);
+  if(btn){btn.textContent='Revoking…';btn.disabled=true;}
+  try{
+    await _ghUpdate('data/users.json',arr=>{
+      const a=[...(arr||[])];
+      const idx=a.findIndex(x=>x.email===email);
+      if(idx>=0) a[idx]={...a[idx],status:'revoked'};
+      return a;
+    },'revoke user: '+email);
+    loadTeamPage();
+  }catch(e){
+    alert('Failed to revoke: '+e.message);
+    if(btn){btn.textContent='✕ Revoke';btn.disabled=false;}
   }
 }
 
@@ -4154,14 +4189,18 @@ async function loadTeamPage(){
       const statusKey=u.status||'pending';
       const statusHtml=statusKey==='active'
         ?'<span class="text-xs font-bold px-2 py-0.5 rounded-full bg-green-100 text-green-700">✓ Active</span>'
-        :'<span class="text-xs font-bold px-2 py-0.5 rounded-full bg-amber-100 text-amber-700">⏳ Pending</span>';
+        :statusKey==='revoked'
+          ?'<span class="text-xs font-bold px-2 py-0.5 rounded-full bg-red-100 text-red-600">✕ Revoked</span>'
+          :'<span class="text-xs font-bold px-2 py-0.5 rounded-full bg-amber-100 text-amber-700">⏳ Pending</span>';
       const onlineDot=online
         ?'<span class="inline-block w-2 h-2 rounded-full bg-green-400 mr-1.5"></span><span class="text-green-600 text-xs font-semibold">Online</span>'
         :'<span class="inline-block w-2 h-2 rounded-full bg-gray-300 mr-1.5"></span><span class="text-gray-400 text-xs">'+fmtAgo(u.lastSeen)+'</span>';
       const avatarCls=avatarColors[idx%avatarColors.length];
-      const approveBtn=statusKey!=='active'
-        ?`<button data-approve-email="${u.email}" onclick="approveUser('${u.email}')" class="text-xs font-bold px-3 py-1 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors">✓ Approve</button>`
-        :'<span class="text-xs text-gray-300">—</span>';
+      const accessBtn=statusKey==='active'
+        ?`<button data-revoke-email="${u.email}" onclick="revokeUser('${u.email}')" class="text-xs font-bold px-3 py-1 bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 rounded-lg transition-colors">✕ Revoke</button>`
+        :statusKey==='revoked'
+          ?'<span class="text-xs font-bold px-2 py-0.5 rounded-full bg-red-100 text-red-500">Revoked</span>'
+          :`<button data-approve-email="${u.email}" onclick="approveUser('${u.email}')" class="text-xs font-bold px-3 py-1 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors">✓ Approve</button>`;
       return `<tr class="border-b border-gray-50 hover:bg-gray-50/50 transition-colors">
         <td class="px-4 py-3">
           <div class="flex items-center gap-3">
@@ -4173,7 +4212,7 @@ async function loadTeamPage(){
         <td class="px-4 py-3">${statusHtml}</td>
         <td class="px-4 py-3"><div class="flex items-center">${onlineDot}</div></td>
         <td class="px-4 py-3 text-xs text-gray-500">${fmtDate(u.registeredAt)}</td>
-        <td class="px-4 py-3">${approveBtn}</td>
+        <td class="px-4 py-3">${accessBtn}</td>
       </tr>`;
     }).join('');
     if(!users.length) html='<tr><td colspan="6" class="text-center py-10 text-gray-400 text-sm">No users yet.</td></tr>';
