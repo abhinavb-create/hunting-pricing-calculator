@@ -660,6 +660,16 @@
         <option value="Competition Hunting">⚔️ Competition</option>
         <option value="MM Hunting">🏢 MM</option>
       </select>
+      <select id="stats-sort" onchange="filterStats()"
+        class="px-3 py-2.5 border-2 border-gray-200 rounded-xl text-sm text-gray-700 focus:outline-none focus:border-blue-500 bg-white">
+        <option value="date-desc">⬇ Newest first</option>
+        <option value="date-asc">⬆ Oldest first</option>
+        <option value="merchant-asc">🔤 Merchant A→Z</option>
+        <option value="merchant-desc">🔤 Merchant Z→A</option>
+        <option value="gmv-desc">💰 GMV High→Low</option>
+        <option value="gmv-asc">💰 GMV Low→High</option>
+        <option value="status">📋 By Status</option>
+      </select>
       <button onclick="clearStatsFilters()" class="text-xs text-gray-400 hover:text-red-500 font-semibold px-2 py-1.5 rounded-lg hover:bg-red-50">✕ Clear</button>
     </div>
   </div>
@@ -3172,7 +3182,7 @@ function closeStats(){
 }
 
 function clearStatsFilters(){
-  ['stats-search','stats-filter-status','stats-filter-type','stats-filter-date','stats-filter-team'].forEach(id=>{
+  ['stats-search','stats-filter-status','stats-filter-type','stats-filter-date','stats-filter-team','stats-sort'].forEach(id=>{
     const el=document.getElementById(id);
     if(el) el.value='';
   });
@@ -3185,7 +3195,8 @@ function filterStats(){
   const typeF=document.getElementById('stats-filter-type')?.value||'';
   const dateF=document.getElementById('stats-filter-date')?.value||'';
   const teamF=document.getElementById('stats-filter-team')?.value||'';
-  const filtered=statsAllRows.filter(r=>{
+  const sortF=document.getElementById('stats-sort')?.value||'date-desc';
+  let filtered=statsAllRows.filter(r=>{
     if(q){
       const hay=(r.merchantName+' '+(r.mid||'')+' '+(r.requester||'')+' '+r.slabLabel+' '+(r.teamGroup||'')).toLowerCase();
       if(!hay.includes(q)) return false;
@@ -3195,6 +3206,19 @@ function filterStats(){
     if(dateF && (!r.rawDate||r.rawDate.slice(0,10)!==dateF)) return false;
     if(teamF && r.teamGroup!==teamF) return false;
     return true;
+  });
+  const gmvVal=(r)=>parseFloat((r.gmvDisplay||'0').replace(/[^0-9.]/g,''))||0;
+  const statusOrder={approved:0,downloaded:1,pending:2,rejected:3};
+  filtered.sort((a,b)=>{
+    switch(sortF){
+      case 'date-asc':  return (a.rawDate||'').localeCompare(b.rawDate||'');
+      case 'merchant-asc': return (a.merchantName||'').localeCompare(b.merchantName||'');
+      case 'merchant-desc': return (b.merchantName||'').localeCompare(a.merchantName||'');
+      case 'gmv-desc': return gmvVal(b)-gmvVal(a);
+      case 'gmv-asc':  return gmvVal(a)-gmvVal(b);
+      case 'status': return (statusOrder[a.statusKey]??9)-(statusOrder[b.statusKey]??9);
+      default: return (b.rawDate||'').localeCompare(a.rawDate||''); // date-desc
+    }
   });
   renderStatsTable(filtered);
 }
@@ -3430,8 +3454,9 @@ async function loadUserHistory(){
   document.getElementById('stats-rejected-count').textContent=approvals.filter(a=>a.status==='rejected').length;
 
   const fmtDate=(ts)=>{
-    if(!ts) return{date:'—',time:'',raw:''};
+    if(!ts||ts<1000000000000) return{date:'—',time:'',raw:''};
     const d=new Date(ts);
+    if(isNaN(d.getTime())) return{date:'—',time:'',raw:''};
     return{date:d.toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'}),time:d.toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'}),raw:d.toISOString()};
   };
   const fmtGMV=(v)=>v?'Rs.'+Math.round(v).toLocaleString('en-IN'):'';
