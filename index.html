@@ -2124,7 +2124,8 @@ async function generateAndDownloadPDF(){
       // Store in localStorage — request is queued regardless of email status
       const pending=JSON.parse(localStorage.getItem('rzp_pending_approvals')||'[]');
       const apRowId='ap_'+requestId;
-      pending.push({requestId,fileName,merchantName:name,timestamp:Date.now(),status:'pending',driveLink,rowId:apRowId,teamGroup:currentUser?.teamGroup||''});
+      const apSnap=snapshotCalculatorState();
+      pending.push({requestId,fileName,merchantName:name,timestamp:Date.now(),status:'pending',driveLink,rowId:apRowId,teamGroup:currentUser?.teamGroup||'',snapshot:apSnap});
       localStorage.setItem('rzp_pending_approvals',JSON.stringify(pending));
       // Auto-link version group if this was triggered as a new version
       if(_newVersionParentGroup){
@@ -2880,16 +2881,40 @@ async function handleApproveRejectUrl(){
     </div>
   </div>`;
 
-  // Confirm handler — gets OAuth token (forces sign-in if needed), verifies admin via userinfo
+  // Auto-check if already actioned (no sign-in needed yet)
+  setTimeout(async()=>{
+    try{
+      const tok=await _getToken();
+      if(!tok?.success) return;
+      const sheetName=isFinal?'FinalApprovals':'Approvals';
+      const statusCol=isFinal?'F':'E';
+      const readRes=await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${sheetName}!A:${statusCol}`,{headers:{Authorization:'Bearer '+tok.token}});
+      const readData=await readRes.json();
+      const rows=readData.values||[];
+      const colIdx=isFinal?5:4;
+      const found=rows.find((r,i)=>i>0&&r[0]===requestId);
+      if(found&&(found[colIdx]==='approved'||found[colIdx]==='rejected')){
+        const statusEl=document.getElementById('ar-status');
+        const btn=document.getElementById('ar-confirm-btn');
+        const backEl=document.getElementById('ar-back');
+        if(statusEl) statusEl.innerHTML=`<span style="color:${found[colIdx]==='approved'?'#059669':'#dc2626'};font-weight:700">This request was already <strong>${found[colIdx]}</strong>. No further action needed.</span>`;
+        if(btn) btn.style.display='none';
+        if(backEl) backEl.style.display='block';
+      }
+    }catch(e){/* silent */}
+  },500);
+
+  // Confirm handler — gets OAuth token (silent first, prompt only if needed), verifies admin via userinfo
   window.arDoConfirm=async function(){
     const statusEl=document.getElementById('ar-status');
     const btn=document.getElementById('ar-confirm-btn');
     btn.disabled=true;
-    btn.textContent='⏳ Signing in...';
-    statusEl.innerHTML='<span style="color:#6b7280">⏳ Opening Google sign-in…</span>';
+    btn.textContent='⏳ Getting token...';
+    statusEl.innerHTML='<span style="color:#6b7280">⏳ Authenticating…</span>';
 
-    // Force consent so user explicitly signs in with their account
-    const tok=await _getToken(true);
+    // Try silent token first (works if already signed in); only prompt if needed
+    let tok=await _getToken();
+    if(!tok?.success) tok=await _getToken(true);
     if(!tok.success){
       statusEl.innerHTML='<span style="color:#dc2626">❌ Sign-in cancelled or failed.</span>';
       btn.disabled=false;btn.textContent=isApproveAction?'✅ Confirm Approval':'❌ Confirm Rejection';
@@ -3572,7 +3597,7 @@ async function loadUserHistory(){
       requester:isAp?(d.requesterEmail||''):(d.userEmail||''),
       teamGroup:d.teamGroup||'',
       group,
-      snapshot:(!isAp&&d.snapshot)?d.snapshot:null,
+      snapshot:d.snapshot||(isAp?(()=>{const ls=JSON.parse(localStorage.getItem('rzp_pending_approvals')||'[]');return ls.find(l=>l.requestId===d.requestId)?.snapshot||null;})():null),
       version:null,totalVersions:null,   // filled below
     };
   };
