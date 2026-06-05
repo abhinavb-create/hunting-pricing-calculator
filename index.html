@@ -63,6 +63,30 @@
   </div>
 </div>
 
+<!-- ===== NR WARNING MODAL ===== -->
+<div id="nr-warn-modal" class="modal">
+  <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full mx-4 overflow-hidden">
+    <div class="bg-red-500 px-6 py-4">
+      <h2 id="nr-modal-title" class="text-white font-black text-lg">⚠️ NR Warning</h2>
+    </div>
+    <div class="px-6 py-5">
+      <p id="nr-modal-body" class="text-gray-700 text-sm leading-relaxed mb-4"></p>
+      <div class="bg-red-50 border border-red-200 rounded-xl px-4 py-3 mb-5">
+        <p class="text-xs text-red-600 font-bold uppercase tracking-wide mb-2">Loop in</p>
+        <div class="flex items-center gap-3">
+          <span class="bg-red-500 text-white text-xs font-black px-3 py-1 rounded-full">Abhinav</span>
+          <span class="text-gray-400 text-xs">or</span>
+          <span class="bg-red-500 text-white text-xs font-black px-3 py-1 rounded-full">Adnan</span>
+        </div>
+      </div>
+      <div class="flex gap-3">
+        <button id="nr-modal-btn" class="flex-1 bg-red-500 hover:bg-red-600 text-white font-bold py-2.5 rounded-xl text-sm">Go Back</button>
+        <button id="nr-modal-proceed" class="hidden flex-1 bg-gray-700 hover:bg-gray-800 text-white font-bold py-2.5 rounded-xl text-sm">Continue Anyway</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- ===== LOCK MODAL ===== -->
 <div id="lock-modal" class="modal">
   <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full mx-4 overflow-hidden">
@@ -1774,9 +1798,12 @@ function downloadPDF(){
   } else if(approvalSection){
     approvalSection.classList.add('hidden');
   }
-  // If there's an active pending approval for this session, restore queued state
+  // If there's an active pending approval, show option to start fresh or check status
   if(pendingApprovalId&&queuedEl){
-    queuedEl.textContent='⏳ Approval request in progress — checking status...';
+    queuedEl.innerHTML=`<div class="flex items-center justify-between gap-3">
+      <span>⏳ A previous proposal is awaiting approval.</span>
+      <button onclick="pendingApprovalId=null;pendingPDFBuffer=null;pendingFileName=null;document.getElementById('pdf-queued-status').classList.add('hidden');const b=document.getElementById('pdf-generate-btn');if(b){b.textContent='Generate & Download PDF';b.disabled=false;b.className='flex-1 bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-bold py-2.5 rounded-xl text-sm shadow-lg hover:from-blue-700 hover:to-indigo-700 transition-all';}" class="shrink-0 text-xs font-bold px-3 py-1 bg-white border border-amber-300 text-amber-700 rounded-lg hover:bg-amber-50">New Pricing ↺</button>
+    </div>`;
     queuedEl.className='bg-amber-50 border border-amber-300 rounded-lg px-3 py-2 text-xs text-amber-800 font-semibold';
     queuedEl.classList.remove('hidden');
     resetPdfBtn();
@@ -1820,16 +1847,30 @@ async function generateAndDownloadPDF(){
 
     const includeSavings=document.getElementById('pdf-include-savings')?.checked||false;
 
-    // NR gate: show warning if effective NR < 5 lakh or negative, before proceeding
+    // NR gate
     const _pgNR=computePGNR(tab,gmv);
-    if(_pgNR<500000){
-      await new Promise(res=>{
-        showModal('approval-modal');
-        const _btn=document.querySelector('#approval-modal button');
-        if(_btn){const _prev=_btn.onclick;_btn.onclick=()=>{closeModal('approval-modal');_btn.onclick=_prev;res(true);};}
-        else res(true);
+    if(_pgNR<0){
+      // Negative NR — hard block, cannot proceed
+      document.getElementById('nr-modal-title').textContent='❌ Negative NR — Cannot Download';
+      document.getElementById('nr-modal-body').textContent='This pricing results in negative net revenue for Razorpay. You cannot download or share this proposal. Please revise the rates.';
+      document.getElementById('nr-modal-btn').textContent='Go Back & Fix Rates';
+      document.getElementById('nr-modal-btn').onclick=()=>closeModal('nr-warn-modal');
+      document.getElementById('nr-modal-proceed').classList.add('hidden');
+      showModal('nr-warn-modal');
+      return; // hard block
+    } else if(_pgNR<500000){
+      // Low NR — soft warning, user can still proceed
+      const _proceed=await new Promise(res=>{
+        document.getElementById('nr-modal-title').textContent='⚠️ Low NR — Below ₹5 Lakh/month';
+        document.getElementById('nr-modal-body').textContent='This pricing results in an Effective NR below ₹5 Lakh/month. Please loop in Abhinav or Adnan before sharing with the merchant.';
+        document.getElementById('nr-modal-btn').textContent='Cancel';
+        document.getElementById('nr-modal-btn').onclick=()=>{closeModal('nr-warn-modal');res(false);};
+        const proceedBtn=document.getElementById('nr-modal-proceed');
+        proceedBtn.classList.remove('hidden');
+        proceedBtn.onclick=()=>{closeModal('nr-warn-modal');res(true);};
+        showModal('nr-warn-modal');
       });
-      // Continue download regardless — it's just a warning
+      if(!_proceed) return;
     }
 
     const {jsPDF}=window.jspdf;
