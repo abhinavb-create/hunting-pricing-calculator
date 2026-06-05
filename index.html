@@ -113,6 +113,30 @@
   </div>
 </div>
 
+<!-- ===== ACCESS REQUESTED SCREEN ===== -->
+<div id="access-requested-screen" class="fixed inset-0 z-50 hidden flex items-center justify-center p-4" style="background:linear-gradient(135deg,#0f1c4d 0%,#1f3fa3 50%,#7048e8 100%);">
+  <div class="w-full max-w-md">
+    <div class="bg-white rounded-3xl shadow-2xl overflow-hidden">
+      <div class="h-1.5 bg-gradient-to-r from-blue-500 via-indigo-500 to-purple-500"></div>
+      <div class="px-8 pt-8 pb-6 text-center">
+        <div class="w-16 h-16 bg-indigo-100 rounded-full flex items-center justify-center mx-auto mb-5 text-3xl">⏳</div>
+        <h2 class="text-xl font-black text-gray-900">Access Requested, <span id="ar-name"></span>!</h2>
+        <p class="text-sm text-gray-500 mt-2 mb-6" id="ar-message">Your request has been sent to the admin. You'll receive an email once approved.</p>
+        <div class="bg-slate-50 rounded-2xl px-5 py-4 mb-4 text-left space-y-2">
+          <div class="flex items-center gap-2.5 text-sm text-gray-600"><span class="w-5 h-5 rounded-full bg-green-100 text-green-600 flex items-center justify-center text-xs font-bold flex-shrink-0">1</span>Admin reviews your request</div>
+          <div class="flex items-center gap-2.5 text-sm text-gray-600"><span class="w-5 h-5 rounded-full bg-green-100 text-green-600 flex items-center justify-center text-xs font-bold flex-shrink-0">2</span>You get an approval email</div>
+          <div class="flex items-center gap-2.5 text-sm text-gray-600"><span class="w-5 h-5 rounded-full bg-green-100 text-green-600 flex items-center justify-center text-xs font-bold flex-shrink-0">3</span>Reload this page to get started</div>
+        </div>
+        <button onclick="checkAccessStatus()" class="w-full py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl text-sm transition-colors">↻ Check Access Status</button>
+        <button onclick="signOut()" class="mt-2 text-xs text-gray-400 hover:text-gray-600 underline">Sign out</button>
+      </div>
+      <div class="bg-slate-50 border-t border-slate-100 px-8 py-3 text-center">
+        <p class="text-xs text-gray-400">🔒 For internal use only &nbsp;·&nbsp; Do not share with merchants</p>
+      </div>
+    </div>
+  </div>
+</div>
+
 <div class="max-w-6xl mx-auto hidden" id="main-wrap">
 
   <!-- Header -->
@@ -2440,14 +2464,16 @@ function handleCredentialResponse(response){
   try{
     const payload=decodeJWT(response.credential);
     const existing=JSON.parse(localStorage.getItem('rzp_user')||'null');
-    currentUser={email:payload.email,name:payload.name,picture:payload.picture,teamGroup:existing?.teamGroup||null};
+    currentUser={email:payload.email,name:payload.name,picture:payload.picture,
+      teamGroup:existing?.teamGroup||null,accessStatus:existing?.accessStatus||null};
     localStorage.setItem('rzp_user',JSON.stringify(currentUser));
-    // Show team picker if group not yet set (skip for admin)
-    if(!currentUser.teamGroup && currentUser.email.toLowerCase()!==ADMIN_EMAIL.toLowerCase()){
+    if(currentUser.email.toLowerCase()===ADMIN_EMAIL.toLowerCase()){
+      updateUserUI(); logUserSignIn(); return;
+    }
+    if(!currentUser.teamGroup){
       showModal('team-group-modal');
     } else {
-      updateUserUI();
-      logUserSignIn();
+      initUserAccess();
     }
   }catch(e){console.error('GSI decode error:',e);}
 }
@@ -2455,8 +2481,179 @@ function handleCredentialResponse(response){
 function selectTeamGroup(group){
   if(currentUser){currentUser.teamGroup=group;localStorage.setItem('rzp_user',JSON.stringify(currentUser));}
   closeModal('team-group-modal');
-  updateUserUI();
-  logUserSignIn();
+  if(currentUser?.email?.toLowerCase()===ADMIN_EMAIL.toLowerCase()){
+    updateUserUI(); logUserSignIn();
+  } else {
+    initUserAccess();
+  }
+}
+
+async function initUserAccess(){
+  if(!currentUser) return;
+  if(currentUser.email.toLowerCase()===ADMIN_EMAIL.toLowerCase()){
+    updateUserUI(); logUserSignIn(); return;
+  }
+  // Cached active status — grant access immediately, refresh LastSeen silently
+  if(currentUser.accessStatus==='active'){
+    updateUserUI();
+    _updateUserLastSeen().catch(()=>{});
+    return;
+  }
+  // Unknown/pending — must hit the sheet to verify
+  _showAccessChecking();
+  try{
+    const tok=await _getToken(true);
+    if(!tok.success) throw new Error('OAuth consent failed');
+    await _ensureUsersSheet(tok.token);
+    const json=await _sheetGet(tok.token,'Users!A:F');
+    const rows=json.values||[];
+    const idx=rows.findIndex((r,i)=>i>0&&r[0]===currentUser.email);
+    if(idx>0){
+      const status=(rows[idx][5]||'pending').trim();
+      if(status==='active'){
+        currentUser.accessStatus='active';
+        localStorage.setItem('rzp_user',JSON.stringify(currentUser));
+        // Update LastSeen (col E)
+        await _sheetPut(tok.token,`Users!E${idx+1}:E${idx+1}`,[[new Date().toISOString()]]).catch(()=>{});
+        updateUserUI();
+        logUserSignIn();
+      } else {
+        showAccessRequested('pending');
+      }
+    } else {
+      // First time — register in sheet
+      const now=new Date().toISOString();
+      await _sheetAppend(tok.token,'Users!A:F',[[
+        currentUser.email,currentUser.name||'',currentUser.teamGroup||'',now,now,'pending'
+      ]]);
+      await _emailAdminNewUser(tok.token);
+      showAccessRequested('registered');
+    }
+  }catch(e){
+    console.error('[initUserAccess]',e);
+    _showAccessCheckingError(e.message);
+  }
+}
+
+function _showAccessChecking(){
+  document.getElementById('signin-screen')?.classList.remove('hidden');
+  document.getElementById('access-requested-screen')?.classList.add('hidden');
+  const btn=document.getElementById('signin-screen-btn');
+  if(btn) btn.innerHTML='<div class="flex items-center gap-2 text-gray-500 text-sm"><svg class="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path></svg>Checking access…</div>';
+}
+
+function _showAccessCheckingError(msg){
+  const btn=document.getElementById('signin-screen-btn');
+  if(btn) btn.innerHTML=`<div class="text-center"><p class="text-red-500 text-xs mb-2">Error: ${msg}</p><button onclick="initUserAccess()" class="text-sm text-indigo-600 underline font-semibold">Retry</button></div>`;
+}
+
+function showAccessRequested(mode){
+  document.getElementById('signin-screen')?.classList.add('hidden');
+  document.getElementById('main-wrap')?.classList.add('hidden');
+  const screen=document.getElementById('access-requested-screen');
+  if(!screen) return;
+  screen.classList.remove('hidden');
+  const nameEl=document.getElementById('ar-name');
+  if(nameEl) nameEl.textContent=currentUser?.name?.split(' ')[0]||'';
+  const msgEl=document.getElementById('ar-message');
+  if(msgEl){
+    msgEl.innerHTML=mode==='registered'
+      ?'Your access request has been submitted. Abhinav will review it and you\'ll receive an email once approved.'
+      :'Your request is still pending approval. You\'ll get an email when it\'s approved.';
+  }
+}
+
+async function checkAccessStatus(){
+  if(!currentUser) return;
+  const btn=document.querySelector('#access-requested-screen button');
+  if(btn){btn.textContent='Checking…';btn.disabled=true;}
+  try{
+    const tok=await _getToken(false);
+    if(!tok.success) throw new Error('Auth required');
+    const json=await _sheetGet(tok.token,'Users!A:F');
+    const rows=json.values||[];
+    const idx=rows.findIndex((r,i)=>i>0&&r[0]===currentUser.email);
+    if(idx>0&&(rows[idx][5]||'').trim()==='active'){
+      currentUser.accessStatus='active';
+      localStorage.setItem('rzp_user',JSON.stringify(currentUser));
+      document.getElementById('access-requested-screen')?.classList.add('hidden');
+      updateUserUI();
+      logUserSignIn();
+    } else {
+      if(btn){btn.textContent='↻ Check Access Status';btn.disabled=false;}
+      const msgEl=document.getElementById('ar-message');
+      if(msgEl) msgEl.innerHTML='Still pending. We\'ll email you when it\'s approved — no need to keep checking!';
+    }
+  }catch(e){
+    if(btn){btn.textContent='↻ Check Access Status';btn.disabled=false;}
+    console.warn('[checkAccessStatus]',e);
+  }
+}
+
+async function _updateUserLastSeen(){
+  try{
+    const tok=await _getToken(false);
+    if(!tok.success) return;
+    const json=await _sheetGet(tok.token,'Users!A:A');
+    const rows=json.values||[];
+    const idx=rows.findIndex((r,i)=>i>0&&r[0]===currentUser?.email);
+    if(idx>0) await _sheetPut(tok.token,`Users!E${idx+1}:E${idx+1}`,[[new Date().toISOString()]]);
+  }catch(e){console.warn('[updateLastSeen]',e.message);}
+}
+
+async function _emailAdminNewUser(tokenStr){
+  try{
+    const subject=`[Pricing Calculator] New Access Request: ${currentUser.name||currentUser.email}`;
+    const body=`<div style="font-family:Arial,sans-serif;max-width:480px">
+<h2 style="color:#1f3fa3">New Access Request</h2>
+<p><strong>${currentUser.name||currentUser.email}</strong> (${currentUser.email}) has requested access to the Hunting Pricing Calculator.</p>
+<p>Team: <strong>${currentUser.teamGroup||'Not set'}</strong></p>
+<p>Please approve their request in the <strong>Platform Users</strong> panel on the Stats page.</p>
+<p style="color:#888;font-size:12px">Hunting Pricing Calculator · Internal</p></div>`;
+    const mime=['To: '+ADMIN_EMAIL,'From: '+currentUser.email,'Subject: '+rfc2047Subject(subject),
+      'MIME-Version: 1.0','Content-Type: text/html; charset=utf-8','',body].join('\r\n');
+    const encoded=btoa(unescape(encodeURIComponent(mime))).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
+    await fetch('https://gmail.googleapis.com/gmail/v1/users/me/messages/send',{
+      method:'POST',headers:{'Authorization':'Bearer '+tokenStr,'Content-Type':'application/json'},
+      body:JSON.stringify({raw:encoded}),
+    });
+  }catch(e){console.warn('[emailAdmin]',e.message);}
+}
+
+async function approveUser(email){
+  if(!isAdmin()) return;
+  const btn=document.querySelector(`[data-approve-email="${email}"]`);
+  if(btn){btn.textContent='Approving…';btn.disabled=true;}
+  try{
+    const tok=await _getToken(false);
+    if(!tok.success) throw new Error('Auth failed');
+    const json=await _sheetGet(tok.token,'Users!A:F');
+    const rows=json.values||[];
+    const idx=rows.findIndex((r,i)=>i>0&&r[0]===email);
+    if(idx<0) throw new Error('User not found in sheet');
+    await _sheetPut(tok.token,`Users!F${idx+1}:F${idx+1}`,[['active']]);
+    // Email the user
+    const userName=rows[idx][1]||email;
+    const subject=`[Pricing Calculator] Your access has been approved!`;
+    const body=`<div style="font-family:Arial,sans-serif;max-width:480px">
+<h2 style="color:#1f3fa3">You're approved! 🎉</h2>
+<p>Hi ${userName.split(' ')[0]||'there'},</p>
+<p>Your access to the <strong>Hunting Pricing Calculator</strong> has been approved.</p>
+<p>You can now log in and start creating pricing proposals:</p>
+<p><a href="https://abhinavb-create.github.io/hunting-pricing-calculator/" style="background:#1f3fa3;color:white;padding:10px 20px;border-radius:6px;text-decoration:none;font-weight:bold">Open Calculator →</a></p>
+<p style="color:#888;font-size:12px;margin-top:24px">Hunting Pricing Calculator · Internal</p></div>`;
+    const mime=['To: '+email,'From: '+currentUser.email,'Subject: '+rfc2047Subject(subject),
+      'MIME-Version: 1.0','Content-Type: text/html; charset=utf-8','',body].join('\r\n');
+    const encoded=btoa(unescape(encodeURIComponent(mime))).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
+    await fetch('https://gmail.googleapis.com/gmail/v1/users/me/messages/send',{
+      method:'POST',headers:{'Authorization':'Bearer '+tok.token,'Content-Type':'application/json'},
+      body:JSON.stringify({raw:encoded}),
+    });
+    loadUsersPanel();
+  }catch(e){
+    alert('Failed to approve: '+e.message);
+    if(btn){btn.textContent='Approve';btn.disabled=false;}
+  }
 }
 
 function logUserSignIn(){
@@ -2506,10 +2703,10 @@ async function _flushSignInQueue(tokenStr){
       try{
         const rowIdx=sheetEmails.findIndex((e,i)=>i>0&&e===entry.email);
         if(rowIdx>0){
-          await _sheetPut(tokenStr,`Users!C${rowIdx+1}:D${rowIdx+1}`,[[entry.teamGroup,entry.lastSeen]]);
-        } else {
-          await _sheetAppend(tokenStr,'Users!A:E',[[entry.email,entry.name,entry.teamGroup,entry.lastSeen,entry.lastSeen]]);
+          // Only update LastSeen (col E) and TeamGroup (col C) for existing registered users
+          await _sheetPut(tokenStr,`Users!C${rowIdx+1}:E${rowIdx+1}`,[[entry.teamGroup,entry.registeredAt||'',entry.lastSeen]]);
         }
+        // Do NOT auto-create rows — registration flow handles that explicitly
       }catch(e){console.warn('_flushSignInQueue entry failed:',e.message);remaining.push(entry);}
     }
     localStorage.setItem('rzp_signin_queue',JSON.stringify(remaining));
@@ -2528,24 +2725,26 @@ function initGoogleSignIn(){
     hosted_domain:'razorpay.com',
   });
   if(!currentUser){
-    // Render on landing screen (large, prominent)
     google.accounts.id.renderButton(
       document.getElementById('signin-screen-btn'),
       {theme:'filled_blue',size:'large',text:'signin_with',shape:'rectangular',width:280}
     );
-    // Also render in header (small pill)
     google.accounts.id.renderButton(
       document.getElementById('google-signin-btn'),
       {theme:'outline',size:'medium',text:'signin_with',shape:'pill'}
     );
     google.accounts.id.prompt();
-  }else{
+  }else if(currentUser.email.toLowerCase()===ADMIN_EMAIL.toLowerCase()||currentUser.accessStatus==='active'){
     updateUserUI();
+  }else{
+    // Re-verify access on every load for non-approved users
+    initUserAccess();
   }
 }
 
 function updateUserUI(){
   const signinScreen=document.getElementById('signin-screen');
+  const arScreen=document.getElementById('access-requested-screen');
   const mainWrap=document.getElementById('main-wrap');
   const statsPage=document.getElementById('stats-page');
   const signinDiv=document.getElementById('google-signin-btn');
@@ -2553,6 +2752,7 @@ function updateUserUI(){
 
   if(!currentUser){
     signinScreen?.classList.remove('hidden');
+    arScreen?.classList.add('hidden');
     mainWrap?.classList.add('hidden');
     statsPage?.classList.add('hidden');
     signinDiv?.classList.remove('hidden');
@@ -2560,6 +2760,7 @@ function updateUserUI(){
     return;
   }
   signinScreen?.classList.add('hidden');
+  arScreen?.classList.add('hidden');
   statsPage?.classList.add('hidden');
   mainWrap?.classList.remove('hidden');
   signinDiv?.classList.add('hidden');
@@ -2579,6 +2780,7 @@ function updateUserUI(){
 function signOut(){
   currentUser=null;
   localStorage.removeItem('rzp_user');
+  document.getElementById('access-requested-screen')?.classList.add('hidden');
   stopApprovalPolling();
   if(window.google?.accounts?.id) google.accounts.id.disableAutoSelect();
   updateUserUI();
@@ -3546,7 +3748,7 @@ async function _ensureUsersSheet(tokenStr){
       body:JSON.stringify({requests:[{addSheet:{properties:{title:'Users'}}}]}),
     });
     if(!cr.ok) throw new Error('Cannot create Users sheet: '+cr.status+' '+(await cr.text()));
-    await _sheetPut(tokenStr,'Users!A1:E1',[['Email','Name','TeamGroup','LastSeen','FirstSeen']]);
+    await _sheetPut(tokenStr,'Users!A1:F1',[['Email','Name','TeamGroup','RegisteredAt','LastSeen','Status']]);
   }
 }
 
@@ -3555,30 +3757,43 @@ async function loadUsersPanel(){
   const countEl=document.getElementById('stats-users-count');
   if(body) body.innerHTML='<p class="text-sm text-gray-400 text-center py-6">Loading…</p>';
   try{
-    const tokObj=await _getToken();
+    const tokObj=await _getToken(false);
     if(!tokObj?.success){if(body) body.innerHTML='<p class="text-sm text-red-400 text-center py-6">Auth required.</p>';return;}
     const tokenStr=tokObj.token;
     await _ensureUsersSheet(tokenStr);
-    await _flushSignInQueue(tokenStr); // write any queued sign-ins before reading
-    const res=await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/Users!A:E`,{headers:{Authorization:'Bearer '+tokenStr}});
-    const json=await res.json();
+    await _flushSignInQueue(tokenStr);
+    const json=await _sheetGet(tokenStr,'Users!A:F');
     const rows=(json.values||[]).slice(1).filter(r=>r[0]);
-    if(countEl) countEl.textContent=rows.length;
-    if(!rows.length){if(body) body.innerHTML='<p class="text-sm text-gray-400 text-center py-6">No users yet.</p>';return;}
-    const fmtDt=s=>{if(!s)return'—';try{const d=new Date(s);return d.toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'})+' '+d.toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'});}catch{return s;}};
-    const trs=rows.map(r=>`<tr class="border-b border-gray-50 hover:bg-gray-50">
-      <td class="px-4 py-2.5"><div class="font-semibold text-gray-800 text-sm">${r[1]||'—'}</div><div class="text-xs text-gray-400">${r[0]}</div></td>
-      <td class="px-4 py-2.5 text-xs text-gray-500">${r[2]||'—'}</td>
-      <td class="px-4 py-2.5 text-xs text-gray-500">${fmtDt(r[4])}</td>
-      <td class="px-4 py-2.5 text-xs text-gray-500">${fmtDt(r[3])}</td>
-    </tr>`).join('');
-    if(body) body.innerHTML=`<table class="w-full"><thead><tr class="text-left">
-      <th class="px-4 py-2 text-xs font-bold text-gray-400 uppercase tracking-wide">User</th>
-      <th class="px-4 py-2 text-xs font-bold text-gray-400 uppercase tracking-wide">Team</th>
-      <th class="px-4 py-2 text-xs font-bold text-gray-400 uppercase tracking-wide">First Seen</th>
-      <th class="px-4 py-2 text-xs font-bold text-gray-400 uppercase tracking-wide">Last Seen</th>
-    </tr></thead><tbody>${trs}</tbody></table>`;
-  }catch(e){if(body) body.innerHTML='<p class="text-sm text-red-400 text-center py-6">Failed to load users.</p>';console.error(e);}
+    const pending=rows.filter(r=>(r[5]||'pending').trim()==='pending');
+    const active=rows.filter(r=>(r[5]||'pending').trim()==='active');
+    if(countEl) countEl.textContent=active.length+(pending.length?` (+${pending.length} pending)`:'');
+    const fmtDt=s=>{if(!s)return'—';try{const d=new Date(s);return d.toLocaleDateString('en-IN',{day:'2-digit',month:'short'})+' '+d.toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'});}catch{return s;}};
+    let html='';
+    if(pending.length){
+      html+=`<div class="px-4 pt-3 pb-1 text-xs font-bold text-amber-600 uppercase tracking-wide bg-amber-50 border-b border-amber-100">⏳ Pending Approval (${pending.length})</div>`;
+      html+=`<table class="w-full mb-2"><tbody>`;
+      html+=pending.map(r=>`<tr class="border-b border-amber-50 bg-amber-50/40 hover:bg-amber-50">
+        <td class="px-4 py-2.5"><div class="font-semibold text-gray-800 text-sm">${r[1]||'—'}</div><div class="text-xs text-gray-400">${r[0]}</div></td>
+        <td class="px-4 py-2.5 text-xs text-gray-500">${r[2]||'—'}</td>
+        <td class="px-4 py-2.5 text-xs text-gray-400">${fmtDt(r[3])}</td>
+        <td class="px-4 py-2.5"><button data-approve-email="${r[0]}" onclick="approveUser('${r[0]}')" class="text-xs font-bold px-3 py-1.5 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors">✓ Approve</button></td>
+      </tr>`).join('');
+      html+=`</tbody></table>`;
+    }
+    if(active.length){
+      html+=`<div class="px-4 pt-3 pb-1 text-xs font-bold text-green-700 uppercase tracking-wide bg-green-50 border-b border-green-100">✅ Active Users (${active.length})</div>`;
+      html+=`<table class="w-full"><thead><tr class="text-left"><th class="px-4 py-2 text-xs font-bold text-gray-400 uppercase tracking-wide">User</th><th class="px-4 py-2 text-xs font-bold text-gray-400 uppercase tracking-wide">Team</th><th class="px-4 py-2 text-xs font-bold text-gray-400 uppercase tracking-wide">Joined</th><th class="px-4 py-2 text-xs font-bold text-gray-400 uppercase tracking-wide">Last Seen</th></tr></thead><tbody>`;
+      html+=active.map(r=>`<tr class="border-b border-gray-50 hover:bg-gray-50">
+        <td class="px-4 py-2.5"><div class="font-semibold text-gray-800 text-sm">${r[1]||'—'}</div><div class="text-xs text-gray-400">${r[0]}</div></td>
+        <td class="px-4 py-2.5 text-xs text-gray-500">${r[2]||'—'}</td>
+        <td class="px-4 py-2.5 text-xs text-gray-500">${fmtDt(r[3])}</td>
+        <td class="px-4 py-2.5 text-xs text-gray-500">${fmtDt(r[4])}</td>
+      </tr>`).join('');
+      html+=`</tbody></table>`;
+    }
+    if(!rows.length) html='<p class="text-sm text-gray-400 text-center py-6">No users yet.</p>';
+    if(body) body.innerHTML=html;
+  }catch(e){if(body) body.innerHTML='<p class="text-sm text-red-400 text-center py-6">Failed to load users: '+e.message+'</p>';console.error(e);}
 }
 
 async function loadUserHistory(){
