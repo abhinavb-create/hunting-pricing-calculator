@@ -3304,7 +3304,7 @@ function renderStatsTable(rows){
   const versionBadge=(r)=>{
     if(r.snapshot) window._snapCache[r.rowId]=r.snapshot;
     // Show "+ New version" for any row that has a snapshot OR is a download/approved
-    const canNewVer=r.snapshot||(r.type==='downloaded')||r.statusKey==='downloaded'||r.statusKey==='approved';
+    const canNewVer=r.snapshot||(r.type==='downloaded')||r.statusKey==='downloaded'||r.statusKey==='approved'||r.statusKey==='rejected';
     const newVerBtn=canNewVer
       ?`<button onclick="startNewVersionFromCache('${r.rowId}','${(r.group||r.rowId).replace(/'/g,'%27').replace(/\\/g,'%5C')}')" class="mt-1.5 flex items-center gap-1 text-xs font-semibold text-indigo-600 hover:text-indigo-800 hover:underline">＋ New version</button>`
       :'';
@@ -3545,12 +3545,14 @@ async function loadUserHistory(){
   };
   const fmtGMV=(v)=>v?'Rs.'+Math.round(v).toLocaleString('en-IN'):'';
 
+  const MAX_TS=4102444800000; // year 2100 — anything above is corrupt
+  const safeTs=(v)=>(v&&v>1577836800000&&v<MAX_TS)?v:0;
   const makeRow=(d,type)=>{
     const isAp=type==='approval';
-    // Resolve timestamp: use explicit field, or decode from requestId (base36), or now
-    let ts=d.timestamp||0;
-    if(!ts&&d.requestId){const b=parseInt((d.requestId||'').substring(0,8),36);if(b>1577836800000)ts=b;}
-    if(!ts&&d.fileId){const b=parseInt((d.fileId||'').substring(0,8),36);if(b>1577836800000)ts=b;}
+    // Resolve timestamp: use explicit field, or resolvedAt (for approvals), or base36 requestId, never fileId
+    let ts=safeTs(d.timestamp);
+    if(!ts&&d.resolvedAt){const p=new Date(d.resolvedAt).getTime();if(safeTs(p))ts=p;}
+    if(!ts&&d.requestId){const b=parseInt((d.requestId||'').substring(0,8),36);ts=safeTs(b);}
     if(!ts) ts=Date.now();
     const{date,time,raw}=fmtDate(ts);
     const mid=extractMID(isAp?d.fileName:d.fileName);
