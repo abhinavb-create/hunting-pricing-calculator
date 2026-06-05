@@ -944,6 +944,15 @@ const FLOOR_RATES = {
 };
 function getSlabIndex(gmv){const idx=FLOOR_RATES.slabs.findIndex(s=>gmv<=s.max);return idx<0?3:idx;}
 function getFloor(methodId,gmv){return (FLOOR_RATES.floors[methodId]||[])[getSlabIndex(gmv)]||0;}
+function computePGNR(tab,gmv){
+  let total=0;
+  METHODS.forEach((m,i)=>{
+    const pfx=tab==='competition'?'c':'mc';
+    const spl=+(document.getElementById(`${pfx}-spl-${i}`)?.value)||0;
+    total+=methodNR(tab,i,gmv*spl/100);
+  });
+  return total;
+}
 function getFloorViolations(tab,gmv){
   const pfx=tab==='competition'?'c':'mc';
   const v=[];
@@ -2149,6 +2158,7 @@ async function generateAndDownloadPDF(){
 
       if(driveEl) driveEl.innerHTML='<span class="text-gray-400">✉️ Step 2/2: Submitting approval request...</span>';
       try{
+        const effectiveNR=computePGNR(tab,gmv);
         const approvalResult=await requestApproval({
           requestId,
           requesterEmail,
@@ -2157,6 +2167,7 @@ async function generateAndDownloadPDF(){
           gmv,
           slabLabel:FLOOR_RATES.slabs[getSlabIndex(gmv)].label,
           violations,
+          effectiveNR,
           fileId,driveLink,fileName,
         });
         if(driveEl){
@@ -2815,7 +2826,7 @@ function _buildPricingTableHtml(snap,vLabel){
   return `<table width="100%" cellpadding="0" cellspacing="0" style="border:1px solid #e5e7eb;border-radius:10px;overflow:hidden">${html}</table>`;
 }
 
-function buildFinalApprovalEmailHtml({requesterName,requesterEmail,teamGroup,merchantName,versions,notes,approveUrl,rejectUrl}){
+function buildFinalApprovalEmailHtml({requesterName,requesterEmail,teamGroup,merchantName,versions,notes}){
   // Build per-version pricing sections
   const verSections=versions.map((v,i)=>{
     const snap=window._snapCache?.[v.rowId]||v.snapshot||null;
@@ -2864,11 +2875,9 @@ function buildFinalApprovalEmailHtml({requesterName,requesterEmail,teamGroup,mer
       <div style="font-size:11px;font-weight:700;color:#065f46;text-transform:uppercase;letter-spacing:1px;margin-bottom:3px">Submitted by</div>
       <p style="font-size:13px;color:#374151;margin:0;font-weight:600">${requesterName} &lt;${requesterEmail}&gt; · ${teamGroup||'Hunting Team'}</p>
     </div>
-    <div style="font-size:14px;font-weight:700;color:#374151;margin-bottom:16px;text-align:center">Approve or reject the complete pricing package:</div>
-    <table width="100%" cellpadding="0" cellspacing="0"><tr>
-      <td align="center" style="padding:0 6px"><a href="${approveUrl}" style="display:block;background:linear-gradient(135deg,#059669,#047857);color:#fff;text-decoration:none;font-size:15px;font-weight:900;padding:14px 0;border-radius:12px;text-align:center">✅ Approve Final Pricing</a></td>
-      <td align="center" style="padding:0 6px"><a href="${rejectUrl}" style="display:block;background:linear-gradient(135deg,#dc2626,#b91c1c);color:#fff;text-decoration:none;font-size:15px;font-weight:900;padding:14px 0;border-radius:12px;text-align:center">❌ Reject &amp; Revise</a></td>
-    </tr></table>
+    <div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:10px;padding:14px 18px;text-align:center">
+      <p style="font-size:13px;color:#1d4ed8;font-weight:600;margin:0">📋 This is a pricing revamp submission for your records. No approval action required.</p>
+    </div>
   </td></tr>
   <tr><td style="background:#f9fafb;padding:14px 32px;text-align:center">
     <p style="font-size:11px;color:#9ca3af;margin:0">Razorpay Hunting Team · <a href="https://abhinavb-create.github.io/hunting-pricing-calculator/" style="color:#6366f1;text-decoration:none">Hunting Calculator</a></p>
@@ -2961,7 +2970,7 @@ async function sendFinalApprovalEmail(){
   const approveUrl=base+'?action=final-approve&requestId='+requestId+'&merchant='+encodeURIComponent(merchantName);
   const rejectUrl=base+'?action=final-reject&requestId='+requestId+'&merchant='+encodeURIComponent(merchantName);
 
-  const htmlBody=buildFinalApprovalEmailHtml({requesterName,requesterEmail,teamGroup,merchantName,versions:selectedVersions,notes,approveUrl,rejectUrl});
+  const htmlBody=buildFinalApprovalEmailHtml({requesterName,requesterEmail,teamGroup,merchantName,versions:selectedVersions,notes});
 
   await logFinalApprovalToSheet({requestId,merchantName,requesterEmail,versionIds,notes,teamGroup});
 
@@ -3336,10 +3345,15 @@ async function sendEmailViaGmail({to,subject,htmlBody},forceConsent=false){
   }catch(e){return{success:false,error:e.message};}
 }
 
-function buildApprovalEmailHtml({requesterName,requesterEmail,teamGroup,merchantName,gmv,slabLabel,violations,driveLink,approveUrl,rejectUrl}){
+function buildApprovalEmailHtml({requesterName,requesterEmail,teamGroup,merchantName,gmv,slabLabel,violations,effectiveNR,driveLink,approveUrl,rejectUrl}){
+  const fmtRs=v=>v==null?'—':'₹'+Math.round(v).toLocaleString('en-IN');
+  const nrColor=(effectiveNR==null||isNaN(effectiveNR))?'#374151':effectiveNR<0?'#dc2626':effectiveNR<5000?'#d97706':'#059669';
   const violRows=(violations||[]).map(v=>`
-    <tr><td style="padding:8px 12px;border-bottom:1px solid #f0f0f0;font-size:13px;color:#374151">${v.label}</td>
-    <td style="padding:8px 12px;border-bottom:1px solid #f0f0f0;font-size:13px;font-weight:700;color:#dc2626;text-align:right">${Number(v.rate).toFixed(2)}%</td></tr>`).join('');
+    <tr>
+      <td style="padding:8px 12px;border-bottom:1px solid #f0f0f0;font-size:13px;color:#374151">${v.label}</td>
+      <td style="padding:8px 12px;border-bottom:1px solid #f0f0f0;font-size:13px;color:#6b7280;text-align:center">${Number(v.floor).toFixed(2)}%</td>
+      <td style="padding:8px 12px;border-bottom:1px solid #f0f0f0;font-size:13px;font-weight:700;color:#dc2626;text-align:right">${Number(v.rate).toFixed(2)}%</td>
+    </tr>`).join('');
   return `<!DOCTYPE html><html><body style="margin:0;padding:0;background:#f3f4f6;font-family:Arial,sans-serif">
   <div style="max-width:580px;margin:32px auto;background:#fff;border-radius:16px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,0.08)">
     <div style="background:linear-gradient(135deg,#1f3fa3,#4f46e5);padding:28px 32px">
@@ -3353,10 +3367,15 @@ function buildApprovalEmailHtml({requesterName,requesterEmail,teamGroup,merchant
         <tr><td style="padding:6px 0;font-size:12px;color:#6b7280">Team</td><td style="padding:6px 0;font-size:13px;font-weight:600;color:#111827">${teamGroup||'Not set'}</td></tr>
         <tr><td style="padding:6px 0;font-size:12px;color:#6b7280">Merchant</td><td style="padding:6px 0;font-size:13px;font-weight:700;color:#111827">${merchantName}</td></tr>
         <tr><td style="padding:6px 0;font-size:12px;color:#6b7280">GMV</td><td style="padding:6px 0;font-size:13px;font-weight:600;color:#111827">₹${Math.round(gmv||0).toLocaleString('en-IN')} <span style="color:#6b7280;font-weight:400">(${slabLabel})</span></td></tr>
+        <tr><td style="padding:6px 0;font-size:12px;color:#6b7280">Effective NR</td><td style="padding:6px 0;font-size:15px;font-weight:900;color:${nrColor}">${fmtRs(effectiveNR)}<span style="font-size:11px;font-weight:400;color:#6b7280"> / month</span></td></tr>
       </table>
       <div style="font-size:12px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px">Below-Floor Rates</div>
       <table style="width:100%;border-collapse:collapse;border:1px solid #e5e7eb;border-radius:8px;overflow:hidden;margin-bottom:24px">
-        <tr style="background:#f9fafb"><th style="padding:8px 12px;font-size:11px;color:#6b7280;text-align:left;font-weight:600">Payment Method</th><th style="padding:8px 12px;font-size:11px;color:#6b7280;text-align:right;font-weight:600">Rate Offered</th></tr>
+        <tr style="background:#f9fafb">
+          <th style="padding:8px 12px;font-size:11px;color:#6b7280;text-align:left;font-weight:600">Payment Method</th>
+          <th style="padding:8px 12px;font-size:11px;color:#6b7280;text-align:center;font-weight:600">Floor Rate</th>
+          <th style="padding:8px 12px;font-size:11px;color:#6b7280;text-align:right;font-weight:600">Offered Rate</th>
+        </tr>
         ${violRows}
       </table>
       ${driveLink?`<div style="margin-bottom:24px"><a href="${driveLink}" style="font-size:13px;color:#4f46e5;text-decoration:none;font-weight:600">📄 View Proposal PDF →</a></div>`:''}
@@ -3379,7 +3398,7 @@ async function runEmailTest(){
   alert('Email Test:\n\n'+(result.success?'✅ Sent! Check your inbox.':'❌ Failed: '+result.error));
 }
 
-async function requestApproval({requestId,requesterEmail,requesterName,merchantName,gmv,slabLabel,violations,fileId,driveLink,fileName}){
+async function requestApproval({requestId,requesterEmail,requesterName,merchantName,gmv,slabLabel,violations,effectiveNR,fileId,driveLink,fileName}){
   const teamGroup=currentUser?.teamGroup||'';
   const base='https://abhinavb-create.github.io/hunting-pricing-calculator/';
   const approveUrl=base+'?action=approve&requestId='+requestId+'&merchant='+encodeURIComponent(merchantName);
@@ -3390,7 +3409,7 @@ async function requestApproval({requestId,requesterEmail,requesterName,merchantN
 
   // 2. Send beautiful HTML approval email via Gmail API
   const htmlBody=buildApprovalEmailHtml({
-    requesterName,requesterEmail,teamGroup,merchantName,gmv,slabLabel,violations,driveLink,approveUrl,rejectUrl,
+    requesterName,requesterEmail,teamGroup,merchantName,gmv,slabLabel,violations,effectiveNR,driveLink,approveUrl,rejectUrl,
   });
   const emailResult=await sendEmailViaGmail({
     to:'abhinav.b@razorpay.com',
