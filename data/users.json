@@ -6,5 +6,13 @@
     "registeredAt": "2026-06-05T10:04:23.751Z",
     "lastSeen": "2026-06-05T10:04:38.791Z",
     "status": "active"
+  },
+  {
+    "email": "adnan.noorie@razorpay.com",
+    "name": "Adnan Noorie",
+    "teamGroup": "Startup Hunting",
+    "registeredAt": "2026-06-05T10:51:35.110Z",
+    "lastSeen": "2026-06-05T10:51:35.110Z",
+    "status": "pending"
   }
 ]
