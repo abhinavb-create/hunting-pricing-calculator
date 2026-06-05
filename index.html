@@ -2737,8 +2737,9 @@ function initGoogleSignIn(){
   }else if(currentUser.email.toLowerCase()===ADMIN_EMAIL.toLowerCase()||currentUser.accessStatus==='active'){
     updateUserUI();
   }else{
-    // Re-verify access on every load for non-approved users
-    initUserAccess();
+    // Show signin screen with a Continue button — need user gesture before OAuth popup
+    const btn=document.getElementById('signin-screen-btn');
+    if(btn) btn.innerHTML=`<button onclick="initUserAccess()" class="w-full py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl text-sm transition-colors">Continue as ${currentUser.name?.split(' ')[0]||currentUser.email.split('@')[0]} →</button>`;
   }
 }
 
