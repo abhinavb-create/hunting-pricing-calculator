@@ -4201,19 +4201,59 @@ async function loadTeamPage(){
   const tbody=document.getElementById('team-tbody');
   const loadingEl=document.getElementById('team-loading');
   if(loadingEl) loadingEl.classList.remove('hidden');
-  if(tbody) tbody.innerHTML='';
+  if(tbody) tbody.innerHTML='<tr><td colspan="7" class="text-center py-8 text-gray-400 text-sm">Loading…</td></tr>';
   try{
-    const{data}=await _ghRead('data/users.json');
-    const users=(data||[]).filter(u=>u.email&&u.email.toLowerCase()!==ADMIN_EMAIL.toLowerCase()&&u.email.toLowerCase()!==CO_ADMIN_EMAIL.toLowerCase());
+    // Pull users.json + approvals.json in parallel
+    const [{data:usersData},{data:approvalsData}]=await Promise.all([
+      _ghRead('data/users.json'),
+      _ghRead('data/approvals.json'),
+    ]);
+    const SKIP=[ADMIN_EMAIL.toLowerCase(),CO_ADMIN_EMAIL.toLowerCase()];
+    // Build canonical user map from users.json
+    const userMap=new Map();
+    (usersData||[]).forEach(u=>{
+      if(!u.email||SKIP.includes(u.email.toLowerCase())) return;
+      userMap.set(u.email.toLowerCase(),{...u});
+    });
+    // Enrich with anyone who appeared in approvals (existing users before GitHub migration)
+    (approvalsData||[]).forEach(a=>{
+      const e=(a.requesterEmail||'').toLowerCase();
+      if(!e||SKIP.includes(e)) return;
+      if(!userMap.has(e)){
+        // They used the calculator but aren't in users.json — show as active (they had access)
+        userMap.set(e,{email:a.requesterEmail||e,name:e.split('@')[0],teamGroup:a.teamGroup||'',registeredAt:null,lastSeen:null,status:'active'});
+      } else {
+        // Enrich teamGroup if missing
+        const u=userMap.get(e);
+        if(!u.teamGroup&&a.teamGroup) u.teamGroup=a.teamGroup;
+      }
+    });
+    // Sort: active first, then pending, then revoked; within each group newest first
+    const statusOrder={active:0,pending:1,revoked:2};
+    const users=[...userMap.values()].sort((a,b)=>{
+      const so=(statusOrder[a.status||'pending']||1)-(statusOrder[b.status||'pending']||1);
+      if(so!==0) return so;
+      return new Date(b.lastSeen||b.registeredAt||0).getTime()-new Date(a.lastSeen||a.registeredAt||0).getTime();
+    });
+    // Summary counts
+    const active=users.filter(u=>u.status==='active');
+    const pending=users.filter(u=>!u.status||u.status==='pending');
+    const revoked=users.filter(u=>u.status==='revoked');
     const now=Date.now();
     const ONLINE_MS=15*60*1000;
     const isOnline=u=>u.lastSeen&&(now-new Date(u.lastSeen).getTime())<ONLINE_MS;
-    const online=users.filter(isOnline);
-    const offline=users.filter(u=>!isOnline(u));
+    const onlineUsers=users.filter(isOnline);
     const onlineEl=document.getElementById('team-online-count');
     const offlineEl=document.getElementById('team-offline-count');
-    if(onlineEl) onlineEl.textContent=`🟢 Online (${online.length})`;
-    if(offlineEl) offlineEl.textContent=`⚫ Offline (${offline.length})`;
+    if(onlineEl) onlineEl.textContent=`🟢 Online (${onlineUsers.length})`;
+    if(offlineEl) offlineEl.textContent=`⚫ Offline (${users.length-onlineUsers.length})`;
+    // Status summary bar
+    const summaryEl=document.getElementById('team-summary');
+    if(summaryEl) summaryEl.innerHTML=`
+      <span class="text-xs font-semibold px-3 py-1.5 rounded-full bg-green-100 text-green-700">✓ Active: ${active.length}</span>
+      <span class="text-xs font-semibold px-3 py-1.5 rounded-full bg-amber-100 text-amber-700">⏳ Pending: ${pending.length}</span>
+      ${revoked.length?`<span class="text-xs font-semibold px-3 py-1.5 rounded-full bg-red-100 text-red-600">✕ Revoked: ${revoked.length}</span>`:''}
+      <span class="text-xs text-gray-400 ml-1">(${users.length} total)</span>`;
     const fmtAgo=s=>{
       if(!s) return '—';
       const diff=Date.now()-new Date(s).getTime();
@@ -4234,32 +4274,41 @@ async function loadTeamPage(){
           ?'<span class="text-xs font-bold px-2 py-0.5 rounded-full bg-red-100 text-red-600">✕ Revoked</span>'
           :'<span class="text-xs font-bold px-2 py-0.5 rounded-full bg-amber-100 text-amber-700">⏳ Pending</span>';
       const onlineDot=online
-        ?'<span class="inline-block w-2 h-2 rounded-full bg-green-400 mr-1.5"></span><span class="text-green-600 text-xs font-semibold">Online</span>'
-        :'<span class="inline-block w-2 h-2 rounded-full bg-gray-300 mr-1.5"></span><span class="text-gray-400 text-xs">'+fmtAgo(u.lastSeen)+'</span>';
+        ?'<span class="inline-block w-2 h-2 rounded-full bg-green-400 mr-1.5 align-middle"></span><span class="text-green-600 text-xs font-semibold">Online</span>'
+        :`<span class="inline-block w-2 h-2 rounded-full bg-gray-300 mr-1.5 align-middle"></span><span class="text-gray-400 text-xs">${fmtAgo(u.lastSeen)}</span>`;
       const avatarCls=avatarColors[idx%avatarColors.length];
       const accessBtn=statusKey==='active'
         ?`<button data-revoke-email="${u.email}" onclick="revokeUser('${u.email}')" class="text-xs font-bold px-3 py-1 bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 rounded-lg transition-colors">✕ Revoke</button>`
         :statusKey==='revoked'
-          ?'<span class="text-xs font-bold px-2 py-0.5 rounded-full bg-red-100 text-red-500">Revoked</span>'
+          ?`<button data-approve-email="${u.email}" onclick="approveUser('${u.email}')" class="text-xs font-bold px-3 py-1 bg-indigo-50 hover:bg-indigo-100 text-indigo-600 border border-indigo-200 rounded-lg transition-colors">↺ Restore</button>`
           :`<button data-approve-email="${u.email}" onclick="approveUser('${u.email}')" class="text-xs font-bold px-3 py-1 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors">✓ Approve</button>`;
+      // Count proposals
+      const proposalCount=(approvalsData||[]).filter(a=>(a.requesterEmail||'').toLowerCase()===u.email.toLowerCase()).length;
       return `<tr class="border-b border-gray-50 hover:bg-gray-50/50 transition-colors">
         <td class="px-4 py-3">
           <div class="flex items-center gap-3">
-            <div class="w-8 h-8 rounded-full ${avatarCls} flex items-center justify-center text-xs font-bold flex-shrink-0">${initials(u.name)}</div>
-            <div><div class="font-semibold text-gray-800 text-sm">${u.name||'—'}</div><div class="text-xs text-gray-400">${u.email}</div></div>
+            <div class="w-8 h-8 rounded-full ${avatarCls} flex items-center justify-center text-xs font-bold flex-shrink-0 relative">
+              ${initials(u.name)}
+              ${online?'<span class="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 bg-green-400 border-2 border-white rounded-full"></span>':''}
+            </div>
+            <div>
+              <div class="font-semibold text-gray-800 text-sm">${u.name||u.email.split('@')[0]}</div>
+              <div class="text-xs text-gray-400">${u.email}</div>
+            </div>
           </div>
         </td>
         <td class="px-4 py-3"><span class="text-xs font-semibold px-2 py-1 rounded-full bg-indigo-50 text-indigo-600">${u.teamGroup||'—'}</span></td>
         <td class="px-4 py-3">${statusHtml}</td>
         <td class="px-4 py-3"><div class="flex items-center">${onlineDot}</div></td>
         <td class="px-4 py-3 text-xs text-gray-500">${fmtDate(u.registeredAt)}</td>
+        <td class="px-4 py-3 text-center"><span class="text-xs font-bold text-gray-600">${proposalCount||'—'}</span></td>
         <td class="px-4 py-3">${accessBtn}</td>
       </tr>`;
     }).join('');
-    if(!users.length) html='<tr><td colspan="6" class="text-center py-10 text-gray-400 text-sm">No users yet.</td></tr>';
+    if(!users.length) html='<tr><td colspan="7" class="text-center py-10 text-gray-400 text-sm">No users yet.</td></tr>';
     if(tbody) tbody.innerHTML=html;
   }catch(e){
-    if(tbody) tbody.innerHTML=`<tr><td colspan="6" class="text-center py-8 text-red-400 text-sm">Failed to load: ${e.message}</td></tr>`;
+    if(tbody) tbody.innerHTML=`<tr><td colspan="7" class="text-center py-8 text-red-400 text-sm">Failed to load: ${e.message}</td></tr>`;
   }finally{
     if(loadingEl) loadingEl.classList.add('hidden');
   }
