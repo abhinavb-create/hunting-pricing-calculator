@@ -2459,31 +2459,46 @@ function selectTeamGroup(group){
   logUserSignIn();
 }
 
-async function logUserSignIn(){
+function logUserSignIn(){
+  // Queue the sign-in — don't request a token here (called from GSI callback where popup is blocked).
+  // _flushSignInQueue will write to the sheet on the next successful token acquisition.
   if(!currentUser?.email) return;
+  const q=JSON.parse(localStorage.getItem('rzp_signin_queue')||'[]');
+  const idx=q.findIndex(r=>r.email===currentUser.email);
+  const entry={email:currentUser.email,name:currentUser.name||'',teamGroup:currentUser.teamGroup||'',lastSeen:new Date().toISOString()};
+  if(idx>=0) q[idx]=entry; else q.push(entry);
+  localStorage.setItem('rzp_signin_queue',JSON.stringify(q));
+  // Also try immediately if a token is already cached
+  if(_gToken&&Date.now()<_gTokenExpiry) _flushSignInQueue(_gToken);
+}
+
+async function _flushSignInQueue(tokenStr){
+  const q=JSON.parse(localStorage.getItem('rzp_signin_queue')||'[]');
+  if(!q.length) return;
   try{
-    const tokObj=await _getToken();
-    if(!tokObj?.success) return;
-    const t=tokObj.token;
-    await _ensureUsersSheet(t);
-    const checkRes=await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/Users!A:B`,{headers:{Authorization:'Bearer '+t}});
-    const checkJson=await checkRes.json();
-    const rows=checkJson.values||[];
-    const now=new Date().toISOString();
-    const existing=rows.findIndex(r=>r[0]===currentUser.email);
-    if(existing>0){
-      const rowNum=existing+1;
-      await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/Users!D${rowNum}?valueInputOption=RAW`,{
-        method:'PUT',headers:{Authorization:'Bearer '+t,'Content-Type':'application/json'},
-        body:JSON.stringify({values:[[now]]})
-      });
-    } else {
-      await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/Users!A1:append?valueInputOption=RAW&insertDataOption=INSERT_ROWS`,{
-        method:'POST',headers:{Authorization:'Bearer '+t,'Content-Type':'application/json'},
-        body:JSON.stringify({values:[[currentUser.email,currentUser.name||'',currentUser.teamGroup||'',now,now]]})
-      });
+    await _ensureUsersSheet(tokenStr);
+    const res=await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/Users!A:A`,{headers:{Authorization:'Bearer '+tokenStr}});
+    const json=await res.json();
+    const sheetEmails=(json.values||[]).map(r=>r[0]||'');
+    const remaining=[];
+    for(const entry of q){
+      try{
+        const rowIdx=sheetEmails.findIndex((e,i)=>i>0&&e===entry.email);
+        if(rowIdx>0){
+          await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/Users!C${rowIdx+1}:D${rowIdx+1}?valueInputOption=RAW`,{
+            method:'PUT',headers:{Authorization:'Bearer '+tokenStr,'Content-Type':'application/json'},
+            body:JSON.stringify({values:[[entry.teamGroup,entry.lastSeen]]})
+          });
+        } else {
+          await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/Users!A1:append?valueInputOption=RAW&insertDataOption=INSERT_ROWS`,{
+            method:'POST',headers:{Authorization:'Bearer '+tokenStr,'Content-Type':'application/json'},
+            body:JSON.stringify({values:[[entry.email,entry.name,entry.teamGroup,entry.lastSeen,entry.lastSeen]]})
+          });
+        }
+      }catch(e){remaining.push(entry);}
     }
-  }catch(e){console.warn('logUserSignIn failed',e);}
+    localStorage.setItem('rzp_signin_queue',JSON.stringify(remaining));
+  }catch(e){console.warn('_flushSignInQueue failed',e);}
 }
 
 function initGoogleSignIn(){
@@ -3033,6 +3048,8 @@ function _initTokenClient(){
       _gToken=resp.access_token;
       _gTokenExpiry=Date.now()+(Number(resp.expires_in||3600)-60)*1000;
       if(_gTokenResolve){_gTokenResolve({success:true,token:resp.access_token});_gTokenResolve=null;}
+      // Flush any queued sign-in log (written during GSI callback where popup is blocked)
+      _flushSignInQueue(resp.access_token);
     },
   });
 }
