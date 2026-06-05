@@ -127,6 +127,9 @@
           <button onclick="submitAccessRequest('Shopify Hunting')" class="w-full px-4 py-3 rounded-xl border-2 border-gray-200 hover:border-green-500 hover:bg-green-50 font-semibold text-gray-800 text-sm transition-all flex items-center gap-3">🛍️ Shopify Hunting</button>
           <button onclick="submitAccessRequest('Competition Hunting')" class="w-full px-4 py-3 rounded-xl border-2 border-gray-200 hover:border-orange-500 hover:bg-orange-50 font-semibold text-gray-800 text-sm transition-all flex items-center gap-3">⚔️ Competition / Retribution Hunting</button>
           <button onclick="submitAccessRequest('MM Hunting')" class="w-full px-4 py-3 rounded-xl border-2 border-gray-200 hover:border-purple-500 hover:bg-purple-50 font-semibold text-gray-800 text-sm transition-all flex items-center gap-3">🏢 MM Hunting</button>
+          <button onclick="submitAccessRequest('EB Farming')" class="w-full px-4 py-3 rounded-xl border-2 border-gray-200 hover:border-teal-500 hover:bg-teal-50 font-semibold text-gray-800 text-sm transition-all flex items-center gap-3">🌱 EB Farming</button>
+          <button onclick="submitAccessRequest('EB Hunting')" class="w-full px-4 py-3 rounded-xl border-2 border-gray-200 hover:border-cyan-500 hover:bg-cyan-50 font-semibold text-gray-800 text-sm transition-all flex items-center gap-3">🎯 EB Hunting</button>
+          <button onclick="submitAccessRequest('EB <> Pricing')" class="w-full px-4 py-3 rounded-xl border-2 border-gray-200 hover:border-rose-500 hover:bg-rose-50 font-semibold text-gray-800 text-sm transition-all flex items-center gap-3">💹 EB &lt;&gt; Pricing</button>
         </div>
         <p id="ra-status" class="text-xs text-gray-400 min-h-[16px]"></p>
         <button onclick="signOut()" class="mt-3 text-xs text-gray-400 hover:text-gray-600 underline">Sign out</button>
@@ -717,6 +720,9 @@
         <option value="Shopify Hunting">🛍️ Shopify</option>
         <option value="Competition Hunting">⚔️ Competition</option>
         <option value="MM Hunting">🏢 MM</option>
+        <option value="EB Farming">🌱 EB Farming</option>
+        <option value="EB Hunting">🎯 EB Hunting</option>
+        <option value="EB <> Pricing">💹 EB Pricing</option>
       </select>
       <select id="stats-sort" onchange="filterStats()"
         class="px-3 py-2.5 border-2 border-gray-200 rounded-xl text-sm text-gray-700 focus:outline-none focus:border-blue-500 bg-white">
@@ -783,6 +789,31 @@
       </button>
     </div>
   </div>
+  <!-- Coverage toggles -->
+    <div id="coverage-card" class="hidden mb-5 bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+      <div class="text-xs font-bold text-gray-400 uppercase tracking-wide mb-3">📡 Coverage — who handles approvals?</div>
+      <div class="grid grid-cols-2 gap-4">
+        <div class="flex items-center justify-between p-3 bg-gray-50 rounded-xl">
+          <div>
+            <div class="text-sm font-bold text-gray-800">Abhinav B</div>
+            <div class="text-xs text-gray-400">Hunting teams</div>
+          </div>
+          <button id="toggle-abhinav" onclick="toggleCoverage('abhinav')" class="relative inline-flex h-6 w-11 items-center rounded-full bg-green-500 transition-colors focus:outline-none">
+            <span id="toggle-abhinav-thumb" class="inline-block h-4 w-4 translate-x-6 transform rounded-full bg-white shadow transition-transform"></span>
+          </button>
+        </div>
+        <div class="flex items-center justify-between p-3 bg-gray-50 rounded-xl">
+          <div>
+            <div class="text-sm font-bold text-gray-800">Adnan N</div>
+            <div class="text-xs text-gray-400">EB teams</div>
+          </div>
+          <button id="toggle-adnan" onclick="toggleCoverage('adnan')" class="relative inline-flex h-6 w-11 items-center rounded-full bg-green-500 transition-colors focus:outline-none">
+            <span id="toggle-adnan-thumb" class="inline-block h-4 w-4 translate-x-6 transform rounded-full bg-white shadow transition-transform"></span>
+          </button>
+        </div>
+      </div>
+      <p class="text-xs text-gray-400 mt-3">Toggle OFF when someone is unavailable — their approvals auto-route to the other person.</p>
+    </div>
   <!-- Summary chips -->
   <div class="flex gap-3 mb-5">
     <span id="team-online-count" class="text-sm font-bold px-4 py-2 rounded-full bg-green-50 border border-green-200 text-green-700">🟢 Online (0)</span>
@@ -853,6 +884,15 @@
         </button>
         <button onclick="selectTeamGroup('MM Hunting')" class="team-group-btn w-full text-left px-4 py-3.5 rounded-xl border-2 border-gray-200 hover:border-purple-500 hover:bg-purple-50 font-semibold text-gray-800 text-sm transition-all flex items-center gap-3">
           <span class="text-xl">🏢</span><span>MM Hunting</span>
+        </button>
+        <button onclick="selectTeamGroup('EB Farming')" class="team-group-btn w-full text-left px-4 py-3.5 rounded-xl border-2 border-gray-200 hover:border-teal-500 hover:bg-teal-50 font-semibold text-gray-800 text-sm transition-all flex items-center gap-3">
+          <span class="text-xl">🌱</span><span>EB Farming</span>
+        </button>
+        <button onclick="selectTeamGroup('EB Hunting')" class="team-group-btn w-full text-left px-4 py-3.5 rounded-xl border-2 border-gray-200 hover:border-cyan-500 hover:bg-cyan-50 font-semibold text-gray-800 text-sm transition-all flex items-center gap-3">
+          <span class="text-xl">🎯</span><span>EB Hunting</span>
+        </button>
+        <button onclick="selectTeamGroup('EB &lt;&gt; Pricing')" class="team-group-btn w-full text-left px-4 py-3.5 rounded-xl border-2 border-gray-200 hover:border-rose-500 hover:bg-rose-50 font-semibold text-gray-800 text-sm transition-all flex items-center gap-3">
+          <span class="text-xl">💹</span><span>EB &lt;&gt; Pricing</span>
         </button>
       </div>
       <p class="text-xs text-gray-400 pt-1">You can change this later from your profile.</p>
@@ -1519,7 +1559,7 @@ function updateOutputs(){
   else if(mTotalNR<1000){mcBox.className='mt-3 rounded-xl p-4 nr-amber';mcWarn.classList.remove('hidden');}
   else{mcBox.className='mt-3 rounded-xl p-4 nr-ok';mcWarn.classList.add('hidden');}
   const mcNewState=mTotalNR<1000?'warn':'ok';
-  if(mcNewState==='warn'&&prevNRState['magic-checkout']==='ok')showModal('approval-modal');
+  // NR warning shown only on PDF download, not during calculation
   prevNRState['magic-checkout']=mcNewState;
 
   // Competition impact
@@ -1660,7 +1700,7 @@ function setNRBox(sc,nr){
   else if(nr<1000){box.className='mt-3 rounded-xl p-4 flex items-center justify-between nr-amber';warn.classList.remove('hidden');}
   else{box.className='mt-3 rounded-xl p-4 flex items-center justify-between nr-ok';warn.classList.add('hidden');}
   const newState=nr<1000?'warn':'ok';
-  if(newState==='warn'&&prevNRState[sc]==='ok')showModal('approval-modal');
+  // NR warning shown only on PDF download, not during calculation
   prevNRState[sc]=newState;
 }
 
@@ -1779,6 +1819,18 @@ async function generateAndDownloadPDF(){
     const today=new Date().toLocaleDateString('en-IN',{day:'2-digit',month:'long',year:'numeric'});
 
     const includeSavings=document.getElementById('pdf-include-savings')?.checked||false;
+
+    // NR gate: show warning if effective NR < 5 lakh or negative, before proceeding
+    const _pgNR=computePGNR(tab,gmv);
+    if(_pgNR<500000){
+      await new Promise(res=>{
+        showModal('approval-modal');
+        const _btn=document.querySelector('#approval-modal button');
+        if(_btn){const _prev=_btn.onclick;_btn.onclick=()=>{closeModal('approval-modal');_btn.onclick=_prev;res(true);};}
+        else res(true);
+      });
+      // Continue download regardless — it's just a warning
+    }
 
     const {jsPDF}=window.jspdf;
     const doc=new jsPDF({orientation:'p',unit:'mm',format:'a4'});
@@ -2540,7 +2592,7 @@ function handleCredentialResponse(response){
 function _routeUserAfterSignIn(){
   if(!currentUser) return;
   // Admin: straight in
-  if(currentUser.email.toLowerCase()===ADMIN_EMAIL.toLowerCase()){updateUserUI();return;}
+  if(currentUser.email.toLowerCase()===ADMIN_EMAIL.toLowerCase()||currentUser.email.toLowerCase()===CO_ADMIN_EMAIL.toLowerCase()){updateUserUI();return;}
   // Previously approved: straight in
   if(currentUser.accessStatus==='active'){
     // Update lastSeen in GitHub (background, silent)
@@ -2758,7 +2810,7 @@ function updateUserUI(){
     else teamBadge.classList.add('hidden');
   }
   const teamBtn=document.getElementById('team-btn');
-  if(teamBtn) teamBtn.classList.toggle('hidden',!isAdmin());
+  if(teamBtn) teamBtn.classList.toggle('hidden',!isAdminOrCoAdmin());
   setTimeout(_buildNotifications,500);
 }
 
@@ -3034,8 +3086,9 @@ async function sendFinalApprovalEmail(){
 
   await logFinalApprovalToSheet({requestId,merchantName,requesterEmail,versionIds,notes,teamGroup});
 
+  const finalApproverEmail=getApproverEmail(teamGroup);
   const result=await sendEmailWithAttachment({
-    to:'abhinav.b@razorpay.com',
+    to:finalApproverEmail,
     cc:'dsstartup-ops@razorpay.com',
     subject:'[Final Pricing Approval] '+merchantName+' | '+requesterName+(teamGroup?' | '+teamGroup:''),
     htmlBody,
@@ -3148,8 +3201,8 @@ async function handleApproveRejectUrl(){
       return;
     }
 
-    if(email!==ADMIN_EMAIL.toLowerCase()){
-      statusEl.innerHTML='<span style="color:#dc2626">❌ Only '+ADMIN_EMAIL+' can approve/reject. You are signed in as: '+email+'</span>';
+    if(email!==ADMIN_EMAIL.toLowerCase()&&email!==CO_ADMIN_EMAIL.toLowerCase()){
+      statusEl.innerHTML='<span style="color:#dc2626">❌ Only '+ADMIN_EMAIL+' or '+CO_ADMIN_EMAIL+' can approve/reject. You are signed in as: '+email+'</span>';
       btn.disabled=false;btn.textContent=isApproveAction?'✅ Confirm Approval':'❌ Confirm Rejection';
       return;
     }
@@ -3471,8 +3524,9 @@ async function requestApproval({requestId,requesterEmail,requesterName,merchantN
   const htmlBody=buildApprovalEmailHtml({
     requesterName,requesterEmail,teamGroup,merchantName,gmv,slabLabel,violations,effectiveNR,driveLink,approveUrl,rejectUrl,
   });
+  const approverEmail=getApproverEmail(teamGroup);
   const emailResult=await sendEmailViaGmail({
-    to:'abhinav.b@razorpay.com',
+    to:approverEmail,
     subject:'[Approval Needed] '+merchantName+' | '+requesterName+(currentUser?.teamGroup?' | '+currentUser.teamGroup:''),
     htmlBody,
   });
@@ -3550,6 +3604,26 @@ function resetPdfBtn(){
 // STATS FULL PAGE
 // ================================================================
 const ADMIN_EMAIL='abhinav.b@razorpay.com';
+const CO_ADMIN_EMAIL='adnan.noorie@razorpay.com';
+const EB_TEAMS=['EB Farming','EB Hunting','EB <> Pricing'];
+
+function isCoAdmin(){return currentUser?.email?.toLowerCase()===CO_ADMIN_EMAIL.toLowerCase();}
+function isAdminOrCoAdmin(){return isAdmin()||isCoAdmin();}
+
+// Returns which email should receive pricing/approval emails for a given team
+// Reads coverage toggles from localStorage (set by admins via Team page)
+function getApproverEmail(teamGroup){
+  const ebTeam=EB_TEAMS.includes(teamGroup);
+  const abhinavAvail=localStorage.getItem('rzp_abhinav_avail')!=='false';
+  const adnanAvail=localStorage.getItem('rzp_adnan_avail')!=='false';
+  if(ebTeam){
+    // EB teams normally go to Adnan; fallback to Abhinav if Adnan unavailable
+    return(adnanAvail?CO_ADMIN_EMAIL:ADMIN_EMAIL);
+  } else {
+    // Hunting teams normally go to Abhinav; fallback to Adnan if Abhinav unavailable
+    return(abhinavAvail?ADMIN_EMAIL:CO_ADMIN_EMAIL);
+  }
+}
 // ── GitHub-as-database helpers ─────────────────────────────────────────────
 const GH_API='https://api.github.com/repos/abhinavb-create/hunting-pricing-calculator/contents/';
 const GH_TOKEN=['ghp','fJwf7O9esDGmjmUvnLVLAb6BJaiyS82bX0tP'].join('_');
@@ -3588,7 +3662,8 @@ function showStats(){
   mainWrap?.classList.add('hidden');
   statsPage?.classList.remove('hidden');
   loadUserHistory();
-  if(!isAdmin()) _syncPendingApprovals();
+  if(isAdminOrCoAdmin()) loadUsersPanel();
+  else _syncPendingApprovals();
 }
 
 function closeStats(){
@@ -3654,7 +3729,7 @@ function renderStatsTable(rows){
   emptyEl?.classList.add('hidden');
   tableEl?.classList.remove('hidden');
 
-  const admin=isAdmin();
+  const admin=isAdminOrCoAdmin();
   const statusChip=(key)=>{
     const map={downloaded:{c:'bg-blue-100 text-blue-700',t:'📥 Downloaded'},pending:{c:'bg-amber-100 text-amber-700',t:'⏳ Pending'},approved:{c:'bg-green-100 text-green-700',t:'✅ Approved'},rejected:{c:'bg-red-100 text-red-700',t:'❌ Rejected'}};
     const x=map[key]||{c:'bg-gray-100 text-gray-500',t:key};
@@ -3839,7 +3914,7 @@ async function loadUsersPanel(){
   if(body) body.innerHTML='<p class="text-sm text-gray-400 text-center py-6">Loading…</p>';
   try{
     const{data}=await _ghRead('data/users.json');
-    const allUsers=(data||[]).filter(u=>u.email&&u.email.toLowerCase()!==ADMIN_EMAIL.toLowerCase());
+    const allUsers=(data||[]).filter(u=>u.email&&u.email.toLowerCase()!==ADMIN_EMAIL.toLowerCase()&&u.email.toLowerCase()!==CO_ADMIN_EMAIL.toLowerCase());
     const pending=allUsers.filter(u=>(u.status||'pending')==='pending');
     const active=allUsers.filter(u=>u.status==='active');
     if(countEl) countEl.textContent=active.length+(pending.length?` (+${pending.length} pending)`:'');
@@ -3881,7 +3956,7 @@ async function loadUserHistory(){
 
   let downloads=[];
   let approvals=[];
-  const admin=isAdmin();
+  const admin=isAdminOrCoAdmin();
 
   // Load from localStorage — always available for all users
   const localDls=JSON.parse(localStorage.getItem('rzp_downloads')||'[]');
@@ -4002,11 +4077,48 @@ function showTeamPage(){
   document.getElementById('main-wrap')?.classList.add('hidden');
   document.getElementById('stats-page')?.classList.add('hidden');
   document.getElementById('team-page')?.classList.remove('hidden');
+  const covCard=document.getElementById('coverage-card');
+  if(covCard) covCard.classList.toggle('hidden',!isAdminOrCoAdmin());
+  _refreshCoverageToggles();
   loadTeamPage();
 }
 function closeTeamPage(){
   document.getElementById('team-page')?.classList.add('hidden');
   document.getElementById('main-wrap')?.classList.remove('hidden');
+}
+
+function _refreshCoverageToggles(){
+  const abhinavAvail=localStorage.getItem('rzp_abhinav_avail')!=='false';
+  const adnanAvail=localStorage.getItem('rzp_adnan_avail')!=='false';
+  const applyToggle=(btnId,thumbId,on)=>{
+    const btn=document.getElementById(btnId);
+    const thumb=document.getElementById(thumbId);
+    if(!btn||!thumb) return;
+    btn.className=`relative inline-flex h-6 w-11 items-center rounded-full ${on?'bg-green-500':'bg-gray-300'} transition-colors focus:outline-none`;
+    thumb.className=`inline-block h-4 w-4 ${on?'translate-x-6':'translate-x-1'} transform rounded-full bg-white shadow transition-transform`;
+  };
+  applyToggle('toggle-abhinav','toggle-abhinav-thumb',abhinavAvail);
+  applyToggle('toggle-adnan','toggle-adnan-thumb',adnanAvail);
+}
+
+async function toggleCoverage(person){
+  const key=person==='abhinav'?'rzp_abhinav_avail':'rzp_adnan_avail';
+  const current=localStorage.getItem(key)!=='false';
+  localStorage.setItem(key,String(!current));
+  // Persist to GitHub so both admins see same state
+  _ghUpdate('data/coverage.json',d=>({...(d||{}), [key]:!current }),`coverage toggle: ${person} ${!current?'on':'off'}`).catch(()=>{});
+  _refreshCoverageToggles();
+}
+
+// Load coverage state from GitHub on startup
+async function _loadCoverageState(){
+  try{
+    const{data}=await _ghRead('data/coverage.json');
+    if(!data) return;
+    ['rzp_abhinav_avail','rzp_adnan_avail'].forEach(k=>{
+      if(k in data) localStorage.setItem(k,String(data[k]));
+    });
+  }catch(e){}
 }
 
 async function loadTeamPage(){
@@ -4016,7 +4128,7 @@ async function loadTeamPage(){
   if(tbody) tbody.innerHTML='';
   try{
     const{data}=await _ghRead('data/users.json');
-    const users=(data||[]).filter(u=>u.email&&u.email.toLowerCase()!==ADMIN_EMAIL.toLowerCase());
+    const users=(data||[]).filter(u=>u.email&&u.email.toLowerCase()!==ADMIN_EMAIL.toLowerCase()&&u.email.toLowerCase()!==CO_ADMIN_EMAIL.toLowerCase());
     const now=Date.now();
     const ONLINE_MS=15*60*1000;
     const isOnline=u=>u.lastSeen&&(now-new Date(u.lastSeen).getTime())<ONLINE_MS;
