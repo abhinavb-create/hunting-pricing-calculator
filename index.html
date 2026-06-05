@@ -3278,6 +3278,7 @@ function showStats(){
   if(usersPanel) usersPanel.classList.toggle('hidden',!isAdmin());
   mainWrap?.classList.add('hidden');
   statsPage?.classList.remove('hidden');
+  logUserSignIn(); // ensure current user is always queued (no-op if already done)
   loadUserHistory();
   if(isAdmin()) loadUsersPanel();
 }
@@ -3497,6 +3498,7 @@ async function loadUsersPanel(){
     if(!tokObj?.success){if(body) body.innerHTML='<p class="text-sm text-red-400 text-center py-6">Auth required.</p>';return;}
     const tokenStr=tokObj.token;
     await _ensureUsersSheet(tokenStr);
+    await _flushSignInQueue(tokenStr); // write any queued sign-ins before reading
     const res=await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/Users!A:E`,{headers:{Authorization:'Bearer '+tokenStr}});
     const json=await res.json();
     const rows=(json.values||[]).slice(1).filter(r=>r[0]);
