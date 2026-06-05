@@ -757,8 +757,6 @@
             <th class="text-left px-5 py-3.5 text-xs font-bold text-gray-400 uppercase tracking-wider whitespace-nowrap">GMV Slab</th>
             <th class="text-left px-5 py-3.5 text-xs font-bold text-gray-400 uppercase tracking-wider whitespace-nowrap">Team</th>
             <th class="text-left px-5 py-3.5 text-xs font-bold text-gray-400 uppercase tracking-wider whitespace-nowrap">Shared By</th>
-            <th class="text-left px-5 py-3.5 text-xs font-bold text-gray-400 uppercase tracking-wider">Status</th>
-            <th class="text-left px-5 py-3.5 text-xs font-bold text-gray-400 uppercase tracking-wider">PDF</th>
           </tr>
         </thead>
         <tbody id="stats-tbody"></tbody>
@@ -3665,7 +3663,7 @@ function renderStatsTable(rows){
       ?`<button onclick="startNewVersionFromCache('${newVerRowId}','${newVerGroup}')" class="mt-2 flex items-center gap-1 text-xs font-semibold text-indigo-600 hover:text-indigo-800 hover:underline">＋ New version</button>`
       :'';
     const linkVerBtn=!hasGroup
-      ?`<button onclick="openGroupModal('${r.rowId}','${(r.merchantName||'').replace(/'/g,"\\'")}')"] class="text-xs text-indigo-400 hover:text-indigo-600 hover:underline font-bold">+ Link versions</button>`
+      ?`<button onclick="openGroupModal('${r.rowId}','${(r.merchantName||'').replace(/'/g,"\\'")}')" class="text-xs text-indigo-400 hover:text-indigo-600 hover:underline font-bold">+ Link versions</button>`
       :'';
 
     const vChips=versions.map((v,i)=>{
@@ -3888,7 +3886,23 @@ async function loadUserHistory(){
           })(),
         }));
         const localAps=JSON.parse(localStorage.getItem('rzp_pending_approvals')||'[]');
-        // Merge localOnly approvals
+        const localApMap=new Map(localAps.map(a=>[a.requestId,a]));
+        // Enrich sheet rows with localStorage data for fields that were missing when sheet was written
+        approvals=approvals.map(row=>{
+          const loc=localApMap.get(row.requestId);
+          if(!loc) return row;
+          return{
+            ...row,
+            requesterEmail:row.requesterEmail||loc.requesterEmail||loc.userEmail||'',
+            teamGroup:row.teamGroup||loc.teamGroup||'',
+            gmv:row.gmv||loc.gmv||0,
+            slabLabel:row.slabLabel||loc.slabLabel||'',
+            driveLink:row.driveLink||loc.driveLink||'',
+            merchantName:row.merchantName||loc.merchantName||'',
+            snapshot:row.snapshot||loc.snapshot||null,
+          };
+        });
+        // Add localStorage-only records (sheet write failed entirely)
         const sheetApIds=new Set(approvals.map(a=>a.requestId));
         const localOnly=localAps.filter(a=>!sheetApIds.has(a.requestId));
         approvals=[...approvals,...localOnly];
