@@ -2159,6 +2159,7 @@ async function generateAndDownloadPDF(){
       if(driveEl) driveEl.innerHTML='<span class="text-gray-400">✉️ Step 2/2: Submitting approval request...</span>';
       try{
         const effectiveNR=computePGNR(tab,gmv);
+        const versionGroup=_newVersionParentGroup||null; // capture BEFORE requestApproval clears it
         const approvalResult=await requestApproval({
           requestId,
           requesterEmail,
@@ -2168,6 +2169,7 @@ async function generateAndDownloadPDF(){
           slabLabel:FLOOR_RATES.slabs[getSlabIndex(gmv)].label,
           violations,
           effectiveNR,
+          versionGroup,
           fileId,driveLink,fileName,
         });
         if(driveEl){
@@ -3299,10 +3301,10 @@ async function _syncPendingApprovals(){
 }
 
 // ── Write approval row directly to Google Sheet ────────────────────────
-async function logApprovalToSheet({requestId,fileName,requesterEmail,merchantName,gmv,slabLabel,driveLink,violations,teamGroup}){
+async function logApprovalToSheet({requestId,fileName,requesterEmail,merchantName,gmv,slabLabel,driveLink,violations,teamGroup,versionGroup}){
   try{
     const violText=(violations||[]).map(v=>v.label+': '+Number(v.rate).toFixed(2)+'%').join('; ');
-    const record={requestId,fileName,requesterEmail,merchantName,status:'pending',resolvedAt:'',gmv:gmv||0,slabLabel:slabLabel||'',driveLink:driveLink||'',violations:violText,teamGroup:teamGroup||'',timestamp:Date.now()};
+    const record={requestId,fileName,requesterEmail,merchantName,status:'pending',resolvedAt:'',gmv:gmv||0,slabLabel:slabLabel||'',driveLink:driveLink||'',violations:violText,teamGroup:teamGroup||'',versionGroup:versionGroup||null,timestamp:Date.now()};
     await _ghUpdate('data/approvals.json',arr=>{
       const a=[...(arr||[])];
       const idx=a.findIndex(x=>x.requestId===requestId);
@@ -3398,14 +3400,14 @@ async function runEmailTest(){
   alert('Email Test:\n\n'+(result.success?'✅ Sent! Check your inbox.':'❌ Failed: '+result.error));
 }
 
-async function requestApproval({requestId,requesterEmail,requesterName,merchantName,gmv,slabLabel,violations,effectiveNR,fileId,driveLink,fileName}){
+async function requestApproval({requestId,requesterEmail,requesterName,merchantName,gmv,slabLabel,violations,effectiveNR,versionGroup,fileId,driveLink,fileName}){
   const teamGroup=currentUser?.teamGroup||'';
   const base='https://abhinavb-create.github.io/hunting-pricing-calculator/';
   const approveUrl=base+'?action=approve&requestId='+requestId+'&merchant='+encodeURIComponent(merchantName);
   const rejectUrl=base+'?action=reject&requestId='+requestId+'&merchant='+encodeURIComponent(merchantName);
 
-  // 1. Log approval row directly to Google Sheet via Sheets API
-  await logApprovalToSheet({requestId,fileName,requesterEmail,merchantName,gmv,slabLabel,driveLink,violations,teamGroup});
+  // 1. Log to GitHub (includes versionGroup for cross-browser versioning)
+  await logApprovalToSheet({requestId,fileName,requesterEmail,merchantName,gmv,slabLabel,driveLink,violations,teamGroup,versionGroup});
 
   // 2. Send beautiful HTML approval email via Gmail API
   const htmlBody=buildApprovalEmailHtml({
@@ -3884,7 +3886,8 @@ async function loadUserHistory(){
     const mid=extractMID(isAp?d.fileName:d.fileName);
     // Prefer stored rowId (from new-version flow) to ensure group-map links persist
     const rowId=d.rowId||((isAp?'ap_':'dl_')+(d.requestId||d.fileId||raw));
-    const group=statsGroupMap[rowId]||'';           // manual group set by admin
+    // group: prefer manual admin map → versionGroup stored in GitHub record → rowId (standalone)
+    const group=statsGroupMap[rowId]||(d.versionGroup||'');
     return{
       type, rowId,
       statusKey:isAp?(d.status||'pending'):'downloaded',
@@ -3907,8 +3910,14 @@ async function loadUserHistory(){
   const apRows=approvals.map(a=>makeRow(a,'approval'));
   const merged=[...dlRows,...apRows].sort((a,b)=>b.rawDate.localeCompare(a.rawDate));
 
-  // Version assignment: based on manual group if set, otherwise per-rowId = always v1
-  // Rows with the same group label are assigned v1,v2,v3 in chronological order
+  // Version assignment: manual group, or versionGroup linking parent↔child
+  // Step 0: for any row whose rowId is referenced as another row's versionGroup, give it the same group key
+  const allVersionGroups=new Set(merged.map(r=>r.group).filter(Boolean));
+  merged.forEach(r=>{
+    if(!r.group && allVersionGroups.has(r.rowId)){
+      r.group=r.rowId; // parent row gets its own rowId as group key
+    }
+  });
   const groupedRows={};
   merged.forEach(r=>{
     const gKey=r.group?r.group.toLowerCase().trim():null;
