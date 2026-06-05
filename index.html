@@ -2536,14 +2536,14 @@ async function submitAccessRequest(team){
   document.querySelectorAll('#request-access-screen button[onclick^="submitAccessRequest"]').forEach(b=>{b.disabled=true;b.classList.add('opacity-50');});
   const statusEl=document.getElementById('ra-status');
   if(statusEl) statusEl.textContent='Sending request…';
+  // Save team + pending status BEFORE OAuth — so refresh always shows pending screen
+  currentUser.teamGroup=team;
+  currentUser.accessStatus='pending';
+  localStorage.setItem('rzp_user',JSON.stringify(currentUser));
   try{
     // Force OAuth consent — this is the one-time token acquisition that unlocks all future API calls
     const tok=await _getToken(true);
     if(!tok.success) throw new Error('Sign-in required');
-    // Save team group
-    currentUser.teamGroup=team;
-    currentUser.accessStatus='pending';
-    localStorage.setItem('rzp_user',JSON.stringify(currentUser));
     // Write to Users sheet (fire-and-forget — admin uses this to show panel)
     _ensureUsersSheet(tok.token).then(()=>{
       const now=new Date().toISOString();
@@ -3760,7 +3760,7 @@ async function loadUsersPanel(){
     await _ensureUsersSheet(tokenStr);
     await _flushSignInQueue(tokenStr);
     const json=await _sheetGet(tokenStr,'Users!A:F');
-    const rows=(json.values||[]).slice(1).filter(r=>r[0]);
+    const rows=(json.values||[]).slice(1).filter(r=>r[0]&&r[0].toLowerCase()!==ADMIN_EMAIL.toLowerCase());
     const pending=rows.filter(r=>(r[5]||'pending').trim()==='pending');
     const active=rows.filter(r=>(r[5]||'pending').trim()==='active');
     if(countEl) countEl.textContent=active.length+(pending.length?` (+${pending.length} pending)`:'');
