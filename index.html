@@ -151,6 +151,7 @@
           <div>📧 &nbsp;<span id="ar-email" class="font-medium text-gray-700"></span></div>
           <div>👥 &nbsp;<span id="ar-team" class="font-medium text-gray-700"></span></div>
         </div>
+        <div id="ar-message" class="text-xs text-indigo-700 bg-indigo-50 border border-indigo-200 rounded-xl px-4 py-3 mb-3 hidden text-left leading-relaxed"></div>
         <button onclick="checkAccessStatus()" class="w-full py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl text-sm transition-colors mb-2" id="ar-check-btn">↻ I got the email — check now</button>
         <button onclick="signOut()" class="text-xs text-gray-400 hover:text-gray-600 underline">Sign out</button>
       </div>
@@ -2453,24 +2454,26 @@ async function uploadToDrive(arrayBuffer,fileName,violations,requestId,merchantN
 }
 
 async function logDownloadToSheet({fileName,merchantName,fileId,driveLink,hasViolations,requestId}){
-  const tok=await _getToken(false);
-  if(!tok.success) return;
-  const row=[
-    new Date().toISOString(),
-    currentUser?.email||'',
-    merchantName||'',
-    fileName||'',
-    fileId||'',
-    driveLink||'',
-    hasViolations?'YES':'NO',
-    requestId||'',
-    currentUser?.teamGroup||'',
-  ];
-  await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/Downloads!A:I:append?valueInputOption=RAW&insertDataOption=INSERT_ROWS`,{
-    method:'POST',
-    headers:{'Authorization':'Bearer '+tok.token,'Content-Type':'application/json'},
-    body:JSON.stringify({values:[row]}),
-  }).catch(e=>console.warn('[Sheets] Download log failed:',e));
+  try{
+    const tok=await _getToken(false);
+    if(!tok.success) return;
+    const row=[
+      new Date().toISOString(),
+      currentUser?.email||'',
+      merchantName||'',
+      fileName||'',
+      fileId||'',
+      driveLink||'',
+      hasViolations?'YES':'NO',
+      requestId||'',
+      currentUser?.teamGroup||'',
+    ];
+    await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/Downloads!A:I:append?valueInputOption=RAW&insertDataOption=INSERT_ROWS`,{
+      method:'POST',
+      headers:{'Authorization':'Bearer '+tok.token,'Content-Type':'application/json'},
+      body:JSON.stringify({values:[row]}),
+    }).catch(e=>console.warn('[Sheets] Download log failed:',e));
+  }catch(e){console.warn('Sheet write failed silently',e);}
 }
 
 // ================================================================
@@ -2498,9 +2501,9 @@ function handleCredentialResponse(response){
 function _routeUserAfterSignIn(){
   if(!currentUser) return;
   // Admin: straight in
-  if(currentUser.email.toLowerCase()===ADMIN_EMAIL.toLowerCase()){updateUserUI();logUserSignIn();return;}
+  if(currentUser.email.toLowerCase()===ADMIN_EMAIL.toLowerCase()){updateUserUI();return;}
   // Previously approved: straight in
-  if(currentUser.accessStatus==='active'){updateUserUI();_updateUserLastSeen();return;}
+  if(currentUser.accessStatus==='active'){updateUserUI();return;}
   // Already submitted a request: show pending screen
   if(currentUser.accessStatus==='pending'){showAccessPending();return;}
   // Brand new: show request-access screen
@@ -2577,44 +2580,14 @@ async function submitAccessRequest(team){
 }
 
 // Called when user clicks "I got the email — check now"
-// Does a single Sheets read (user-initiated, so OAuth popup is allowed if needed)
+// Non-admin: just tell them to click the link in the email
 async function checkAccessStatus(){
-  const btn=document.getElementById('ar-check-btn');
-  if(btn){btn.textContent='Checking…';btn.disabled=true;}
-  try{
-    let tok=await _getToken(false);
-    if(!tok.success) tok=await _getToken(true);
-    if(!tok.success) throw new Error('Sign-in required');
-    const json=await _sheetGet(tok.token,'Users!A:F');
-    const rows=json.values||[];
-    const idx=rows.findIndex((r,i)=>i>0&&r[0]===currentUser?.email);
-    if(idx>0&&(rows[idx][5]||'').trim()==='active'){
-      currentUser.accessStatus='active';
-      localStorage.setItem('rzp_user',JSON.stringify(currentUser));
-      document.getElementById('access-requested-screen')?.classList.add('hidden');
-      updateUserUI();
-      logUserSignIn();
-    } else {
-      if(btn){btn.textContent='↻ I got the email — check now';btn.disabled=false;}
-      const el=document.getElementById('ar-email');
-      if(el) el.closest('div.bg-slate-50').insertAdjacentHTML('afterend','<p class="text-xs text-amber-600 mt-2">Still pending — Abhinav hasn\'t approved yet. Try again after you get the email.</p>');
-    }
-  }catch(e){
-    if(btn){btn.textContent='↻ I got the email — check now';btn.disabled=false;}
-    console.warn('[checkAccessStatus]',e);
-  }
+  const msgEl = document.getElementById('ar-message');
+  if(msgEl){ msgEl.innerHTML = 'Please open the approval email from Abhinav and click the <strong>activation link</strong> inside it. Your access will be granted automatically when you click it.'; msgEl.classList.remove('hidden'); }
+  const btn = document.getElementById('ar-check-btn');
+  if(btn) btn.style.display = 'none';
 }
 
-async function _updateUserLastSeen(){
-  try{
-    const tok=await _getToken(false);
-    if(!tok.success) return;
-    const json=await _sheetGet(tok.token,'Users!A:A');
-    const rows=json.values||[];
-    const idx=rows.findIndex((r,i)=>i>0&&r[0]===currentUser?.email);
-    if(idx>0) _sheetPut(tok.token,`Users!E${idx+1}:E${idx+1}`,[[new Date().toISOString()]]).catch(()=>{});
-  }catch(e){}
-}
 
 async function approveUser(email){
   if(!isAdmin()) return;
@@ -2654,18 +2627,7 @@ async function approveUser(email){
   }
 }
 
-function logUserSignIn(){
-  // Queue the sign-in — don't request a token here (called from GSI callback where popup is blocked).
-  // _flushSignInQueue will write to the sheet on the next successful token acquisition.
-  if(!currentUser?.email) return;
-  const q=JSON.parse(localStorage.getItem('rzp_signin_queue')||'[]');
-  const idx=q.findIndex(r=>r.email===currentUser.email);
-  const entry={email:currentUser.email,name:currentUser.name||'',teamGroup:currentUser.teamGroup||'',lastSeen:new Date().toISOString()};
-  if(idx>=0) q[idx]=entry; else q.push(entry);
-  localStorage.setItem('rzp_signin_queue',JSON.stringify(q));
-  // Also try immediately if a token is already cached
-  if(_gToken&&Date.now()<_gTokenExpiry) _flushSignInQueue(_gToken);
-}
+// logUserSignIn removed — non-admin users no longer write to Sheets
 
 async function _sheetGet(tokenStr,range){
   const r=await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${encodeURIComponent(range)}`,{headers:{Authorization:'Bearer '+tokenStr}});
@@ -2689,27 +2651,7 @@ async function _sheetAppend(tokenStr,range,values){
   return r.json();
 }
 
-async function _flushSignInQueue(tokenStr){
-  const q=JSON.parse(localStorage.getItem('rzp_signin_queue')||'[]');
-  if(!q.length) return;
-  try{
-    await _ensureUsersSheet(tokenStr);
-    const json=await _sheetGet(tokenStr,'Users!A:A');
-    const sheetEmails=(json.values||[]).map(r=>r[0]||'');
-    const remaining=[];
-    for(const entry of q){
-      try{
-        const rowIdx=sheetEmails.findIndex((e,i)=>i>0&&e===entry.email);
-        if(rowIdx>0){
-          // Only update LastSeen (col E) and TeamGroup (col C) for existing registered users
-          await _sheetPut(tokenStr,`Users!C${rowIdx+1}:E${rowIdx+1}`,[[entry.teamGroup,entry.registeredAt||'',entry.lastSeen]]);
-        }
-        // Do NOT auto-create rows — registration flow handles that explicitly
-      }catch(e){console.warn('_flushSignInQueue entry failed:',e.message);remaining.push(entry);}
-    }
-    localStorage.setItem('rzp_signin_queue',JSON.stringify(remaining));
-  }catch(e){console.warn('_flushSignInQueue failed:',e.message);}
-}
+// _flushSignInQueue removed — no longer needed
 
 function initGoogleSignIn(){
   // Set logo on sign-in screen
@@ -3004,14 +2946,16 @@ async function sendEmailWithAttachment({to,cc,subject,htmlBody,attachment}){
 }
 
 async function logFinalApprovalToSheet({requestId,merchantName,requesterEmail,versionIds,notes,teamGroup}){
-  let tok=await _getToken(false);
-  if(!tok.success) tok=await _getToken(true);
-  if(!tok.success) return;
-  const row=[requestId,merchantName,requesterEmail,versionIds.join(', '),notes||'','pending','',teamGroup||'',new Date().toISOString()];
-  await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/FinalApprovals!A:I:append?valueInputOption=RAW&insertDataOption=INSERT_ROWS`,{
-    method:'POST',headers:{'Authorization':'Bearer '+tok.token,'Content-Type':'application/json'},
-    body:JSON.stringify({values:[row]}),
-  });
+  try{
+    let tok=await _getToken(false);
+    if(!tok.success) tok=await _getToken(true);
+    if(!tok.success) return;
+    const row=[requestId,merchantName,requesterEmail,versionIds.join(', '),notes||'','pending','',teamGroup||'',new Date().toISOString()];
+    await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/FinalApprovals!A:I:append?valueInputOption=RAW&insertDataOption=INSERT_ROWS`,{
+      method:'POST',headers:{'Authorization':'Bearer '+tok.token,'Content-Type':'application/json'},
+      body:JSON.stringify({values:[row]}),
+    });
+  }catch(e){console.warn('Sheet write failed silently',e);}
 }
 
 async function sendFinalApprovalEmail(){
@@ -3211,6 +3155,7 @@ async function handleApproveRejectUrl(){
       // Notify requester
       if(requesterEmail){
         const isAppr=isApproveAction;
+        const resultUrl='https://abhinavb-create.github.io/hunting-pricing-calculator/?action=set-approval-status&requestId='+requestId+'&status='+(isAppr?'approved':'rejected');
         const notifyHtml=`<div style="font-family:Arial;padding:32px;background:#f3f4f6"><div style="background:#fff;max-width:480px;margin:auto;border-radius:16px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,0.08)">
           <div style="background:${isAppr?'linear-gradient(135deg,#059669,#0d9488)':'linear-gradient(135deg,#dc2626,#b91c1c)'};padding:24px 28px">
             <div style="font-size:20px;font-weight:800;color:#fff">${isAppr?'✅':'❌'} ${isFinal?'Final Pricing':'Proposal'} ${isAppr?'Approved':'Rejected'}</div>
@@ -3218,7 +3163,8 @@ async function handleApproveRejectUrl(){
           <div style="padding:24px 28px">
             <p style="font-size:14px;color:#374151">The ${isFinal?'final pricing package':'pricing proposal'} for <strong>${merchantName}</strong> has been <strong>${resolvedStatus}</strong> by Abhinav.</p>
             ${isAppr?`<p style="font-size:13px;color:#059669;font-weight:600">${isFinal?'Pricing is finalised. Proceed with merchant onboarding.':'You can now share the PDF with the merchant.'}</p>`:'<p style="font-size:13px;color:#dc2626;font-weight:600">Please revise and resubmit.</p>'}
-            <a href="https://abhinavb-create.github.io/hunting-pricing-calculator/" style="display:inline-block;margin-top:16px;background:#1f3fa3;color:#fff;text-decoration:none;font-size:13px;font-weight:700;padding:10px 24px;border-radius:8px">Open Calculator →</a>
+            <p style="margin:20px 0;text-align:center"><a href="${resultUrl}" style="display:inline-block;background:${isAppr?'#16a34a':'#dc2626'};color:#fff;text-decoration:none;font-size:14px;font-weight:900;padding:12px 28px;border-radius:10px">View Status in Calculator →</a></p>
+            <a href="https://abhinavb-create.github.io/hunting-pricing-calculator/" style="display:inline-block;margin-top:8px;background:#1f3fa3;color:#fff;text-decoration:none;font-size:13px;font-weight:700;padding:10px 24px;border-radius:8px">Open Calculator →</a>
           </div>
         </div></div>`;
         const subjPrefix=isFinal?'[Final Pricing]':'[Pricing]';
@@ -3284,9 +3230,10 @@ async function handleApproveUserUrl(params){
       } else {
         await _sheetAppend(tok.token,'Users!A:F',[[userEmail,userName,userTeam,now,now,'active']]);
       }
-      // Email user
+      // Email user — include activation link so no Sheet read needed on user side
+      const activationUrl='https://abhinavb-create.github.io/hunting-pricing-calculator/?action=activate-user&email='+encodeURIComponent(userEmail);
       const subject=`[Pricing Calculator] You're approved! 🎉`;
-      const body=`<div style="font-family:Arial,sans-serif;max-width:480px;padding:24px"><h2 style="color:#1f3fa3">You're approved! 🎉</h2><p>Hi ${userName.split(' ')[0]||'there'},</p><p>Your access to the <strong>Hunting Pricing Calculator</strong> has been approved.</p><p style="margin:20px 0"><a href="https://abhinavb-create.github.io/hunting-pricing-calculator/" style="background:#1f3fa3;color:white;padding:12px 22px;border-radius:8px;text-decoration:none;font-weight:bold">Open Calculator →</a></p><p style="font-size:12px;color:#9ca3af">When you open the app, click "I got the email — check now" to activate your account.</p></div>`;
+      const body=`<div style="font-family:Arial,sans-serif;max-width:480px;padding:24px"><h2 style="color:#1f3fa3">You're approved! 🎉</h2><p>Hi ${userName.split(' ')[0]||'there'},</p><p>Your access to the <strong>Hunting Pricing Calculator</strong> has been approved.</p><p style="margin:20px 0;text-align:center"><a href="${activationUrl}" style="display:inline-block;background:#16a34a;color:white;padding:14px 28px;border-radius:10px;text-decoration:none;font-weight:900;font-size:15px">✅ Activate My Access →</a></p><p style="font-size:12px;color:#6b7280">Click the button above to activate your account and open the calculator. The link is unique to your email.</p><p style="font-size:11px;color:#9ca3af">Hunting Pricing Calculator · Internal</p></div>`;
       const mime=['To: '+userEmail,'From: '+currentUser.email,'Subject: '+rfc2047Subject(subject),'MIME-Version: 1.0','Content-Type: text/html; charset=utf-8','',body].join('\r\n');
       const encoded=btoa(unescape(encodeURIComponent(mime))).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
       await fetch('https://gmail.googleapis.com/gmail/v1/users/me/messages/send',{method:'POST',headers:{'Authorization':'Bearer '+tok.token,'Content-Type':'application/json'},body:JSON.stringify({raw:encoded})});
@@ -3298,6 +3245,30 @@ async function handleApproveUserUrl(params){
       if(btn){btn.disabled=false;btn.textContent='✓ Grant Access';}
     }
   };
+}
+
+// ================================================================
+// URL-PARAM STATUS HANDLERS (no sign-in needed)
+// ================================================================
+function handleActivateUserUrl(params){
+  const email = decodeURIComponent(params.get('email')||'');
+  const stored = JSON.parse(localStorage.getItem('rzp_user')||'null');
+  if(stored && stored.email === email){
+    stored.accessStatus = 'active';
+    localStorage.setItem('rzp_user', JSON.stringify(stored));
+  }
+  document.body.innerHTML = `<div style="min-height:100vh;display:flex;align-items:center;justify-content:center;background:#f3f4f6;font-family:Arial,sans-serif"><div style="background:#fff;border-radius:20px;overflow:hidden;max-width:420px;width:90%;text-align:center;box-shadow:0 8px 40px rgba(0,0,0,0.12)"><div style="background:linear-gradient(135deg,#16a34a,#15803d);padding:32px"><div style="font-size:44px;margin-bottom:8px">🎉</div><div style="font-size:20px;font-weight:900;color:#fff">Access Activated!</div></div><div style="padding:28px 32px"><p style="color:#374151;font-size:14px">Your access to the Hunting Pricing Calculator has been activated. You can now sign in and start using the tool.</p><a href="https://abhinavb-create.github.io/hunting-pricing-calculator/" style="display:block;margin-top:20px;background:#1f3fa3;color:white;padding:12px 0;border-radius:10px;text-decoration:none;font-weight:700;font-size:14px">Open Calculator →</a></div></div></div>`;
+}
+
+function handleSetApprovalStatusUrl(params){
+  const requestId = params.get('requestId');
+  const status = params.get('status');
+  if(!requestId || !status) return;
+  const pending = JSON.parse(localStorage.getItem('rzp_pending_approvals')||'[]');
+  const rec = pending.find(p => p.requestId === requestId);
+  if(rec){ rec.status = status; localStorage.setItem('rzp_pending_approvals', JSON.stringify(pending)); }
+  const isApproved = status === 'approved';
+  document.body.innerHTML = `<div style="min-height:100vh;display:flex;align-items:center;justify-content:center;background:#f3f4f6;font-family:Arial,sans-serif"><div style="background:#fff;border-radius:20px;overflow:hidden;max-width:420px;width:90%;text-align:center;box-shadow:0 8px 40px rgba(0,0,0,0.12)"><div style="background:${isApproved?'linear-gradient(135deg,#16a34a,#15803d)':'linear-gradient(135deg,#dc2626,#b91c1c)'};padding:32px"><div style="font-size:44px;margin-bottom:8px">${isApproved?'✅':'❌'}</div><div style="font-size:20px;font-weight:900;color:#fff">Proposal ${isApproved?'Approved':'Rejected'}</div></div><div style="padding:28px 32px"><p style="color:#374151;font-size:14px">${isApproved?'Your pricing proposal has been approved!':'Your pricing proposal was rejected. Please revise and resubmit.'}</p><a href="https://abhinavb-create.github.io/hunting-pricing-calculator/" style="display:block;margin-top:20px;background:#1f3fa3;color:white;padding:12px 0;border-radius:10px;text-decoration:none;font-weight:700;font-size:14px">Open Calculator →</a></div></div></div>`;
 }
 
 // ================================================================
@@ -3330,8 +3301,6 @@ function _initTokenClient(){
       _gToken=resp.access_token;
       _gTokenExpiry=Date.now()+(Number(resp.expires_in||3600)-60)*1000;
       if(_gTokenResolve){_gTokenResolve({success:true,token:resp.access_token});_gTokenResolve=null;}
-      // Flush any queued sign-in log (written during GSI callback where popup is blocked)
-      _flushSignInQueue(resp.access_token);
     },
   });
 }
@@ -3348,15 +3317,15 @@ function _getToken(forceConsent){
 
 // ── Write approval row directly to Google Sheet ────────────────────────
 async function logApprovalToSheet({requestId,fileName,requesterEmail,merchantName,gmv,slabLabel,driveLink,violations,teamGroup}){
-  let tok=await _getToken(false);
-  if(!tok.success) tok=await _getToken(true);
-  if(!tok.success){console.warn('Sheet log skipped — no token');return;}
-  const violText=(violations||[]).map(v=>v.label+': '+Number(v.rate).toFixed(2)+'%').join('; ');
-  const row=[requestId,fileName,requesterEmail,merchantName,'pending','',gmv||0,slabLabel||'',driveLink||'',violText,teamGroup||''];
   try{
+    let tok=await _getToken(false);
+    if(!tok.success) tok=await _getToken(true);
+    if(!tok.success){console.warn('Sheet log skipped — no token');return;}
+    const violText=(violations||[]).map(v=>v.label+': '+Number(v.rate).toFixed(2)+'%').join('; ');
+    const row=[requestId,fileName,requesterEmail,merchantName,'pending','',gmv||0,slabLabel||'',driveLink||'',violText,teamGroup||''];
     await _sheetAppend(tok.token,'Approvals!A:K',[row]);
     console.log('[Sheets] Approval logged');
-  }catch(e){console.warn('[Sheets] Log failed:',e.message);}
+  }catch(e){console.warn('Sheet write failed silently',e);}
 }
 
 // Encode email subject per RFC 2047 (handles non-ASCII / em-dashes / emoji)
@@ -3457,8 +3426,7 @@ async function requestApproval({requestId,requesterEmail,requesterName,merchantN
 }
 
 function startApprovalPolling(requestId){
-  stopApprovalPolling();
-  approvalPollTimer=setInterval(()=>pollApprovalStatus(requestId),15000);
+  // No-op: polling removed. Status updates arrive via email activation links.
 }
 
 function stopApprovalPolling(){
@@ -3557,7 +3525,6 @@ function showStats(){
   if(usersPanel) usersPanel.classList.toggle('hidden',!isAdmin());
   mainWrap?.classList.add('hidden');
   statsPage?.classList.remove('hidden');
-  logUserSignIn(); // ensure current user is always queued (no-op if already done)
   loadUserHistory();
   if(isAdmin()) loadUsersPanel();
 }
@@ -3827,7 +3794,6 @@ async function loadUsersPanel(){
     if(!tokObj?.success){if(body) body.innerHTML='<p class="text-sm text-red-400 text-center py-6">Auth required.</p>';return;}
     const tokenStr=tokObj.token;
     await _ensureUsersSheet(tokenStr);
-    await _flushSignInQueue(tokenStr);
     const json=await _sheetGet(tokenStr,'Users!A:F');
     const rows=(json.values||[]).slice(1).filter(r=>r[0]&&r[0].toLowerCase()!==ADMIN_EMAIL.toLowerCase());
     const pending=rows.filter(r=>(r[5]||'pending').trim()==='pending');
@@ -3874,81 +3840,68 @@ async function loadUserHistory(){
   let approvals=[];
   const admin=isAdmin();
 
-  // Load from Sheets API directly — no Apps Script
+  // Load from localStorage — always available for all users
   const localDls=JSON.parse(localStorage.getItem('rzp_downloads')||'[]');
-  downloads=admin?localDls:localDls.filter(d=>d.userEmail===(currentUser?.email||''));
+  const userEmail=currentUser?.email||'';
 
-  try{
-    let tok=await _getToken(false);
-    if(!tok.success) tok=await _getToken(true);
-    if(tok.success){
-      // Fetch Downloads sheet
-      const dlRes=await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/Downloads!A:I`,{
-        headers:{'Authorization':'Bearer '+tok.token},
-      });
-      const dlData=await dlRes.json();
-      const dlRows=(dlData.values||[]).slice(1); // skip header
-      const serverDls=dlRows.map(r=>({
-        timestamp:r[0]?new Date(r[0]).getTime():0,
-        userEmail:r[1]||'',teamGroup:r[8]||'',
-        merchantName:r[2]||'',fileName:r[3]||'',
-        fileId:r[4]||'',driveLink:r[5]||'',
-        hasViolations:r[6]==='YES',requestId:r[7]||'',
-      })).filter(r=>admin||r.userEmail===(currentUser?.email||''));
-      // Merge: localStorage + server, dedupe by fileName+email
-      const lsKeys=new Set(localDls.map(d=>d.fileName+'|'+(d.userEmail||'')));
-      const serverOnly=serverDls.filter(d=>!lsKeys.has(d.fileName+'|'+(d.userEmail||'')));
-      downloads=[...localDls,...serverOnly];
-      if(!admin) downloads=downloads.filter(d=>d.userEmail===(currentUser?.email||''));
+  if(admin){
+    // ── ADMIN PATH: read from Sheets for full team view ──────────────────
+    downloads=localDls;
+    try{
+      let tok=await _getToken(false);
+      if(!tok.success) tok=await _getToken(true);
+      if(tok.success){
+        // Fetch Downloads sheet
+        const dlRes=await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/Downloads!A:I`,{
+          headers:{'Authorization':'Bearer '+tok.token},
+        });
+        const dlData=await dlRes.json();
+        const dlRows=(dlData.values||[]).slice(1); // skip header
+        const serverDls=dlRows.map(r=>({
+          timestamp:r[0]?new Date(r[0]).getTime():0,
+          userEmail:r[1]||'',teamGroup:r[8]||'',
+          merchantName:r[2]||'',fileName:r[3]||'',
+          fileId:r[4]||'',driveLink:r[5]||'',
+          hasViolations:r[6]==='YES',requestId:r[7]||'',
+        }));
+        // Merge: localStorage + server, dedupe by fileName+email
+        const lsKeys=new Set(localDls.map(d=>d.fileName+'|'+(d.userEmail||'')));
+        const serverOnly=serverDls.filter(d=>!lsKeys.has(d.fileName+'|'+(d.userEmail||'')));
+        downloads=[...localDls,...serverOnly];
 
-      // Fetch Approvals sheet
-      const apRes=await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/Approvals!A:K`,{
-        headers:{'Authorization':'Bearer '+tok.token},
-      });
-      const apData=await apRes.json();
-      const apRows=(apData.values||[]).slice(1);
-      approvals=apRows.map(r=>({
-        requestId:r[0]||'',fileName:r[1]||'',requesterEmail:r[2]||'',
-        merchantName:r[3]||'',status:r[4]||'pending',resolvedAt:r[5]||'',
-        gmv:parseFloat(r[6])||0,slabLabel:r[7]||'',driveLink:r[8]||'',
-        teamGroup:r[10]||'',
-        timestamp:(()=>{
-          // requestId = Date.now().toString(36) + random — decode base36 timestamp
-          const id=r[0]||'';
-          if(!id) return Date.now();
-          const base36ts=parseInt(id.substring(0,8),36);
-          // valid ms timestamp is > year 2020 (1577836800000)
-          return base36ts>1577836800000?base36ts:Date.now();
-        })(),
-      }));
-      const localAps=JSON.parse(localStorage.getItem('rzp_pending_approvals')||'[]');
-      // Sync status to localStorage from ALL sheet rows (before email filter, so non-admin get updates even if sheet email was blank)
-      let lsUpdated=false;
-      approvals.forEach(sheetRow=>{
-        const lsRec=localAps.find(l=>l.requestId===sheetRow.requestId);
-        if(lsRec&&lsRec.status!==sheetRow.status){lsRec.status=sheetRow.status;lsUpdated=true;}
-        // Also copy driveLink if not stored locally
-        if(lsRec&&!lsRec.driveLink&&sheetRow.driveLink){lsRec.driveLink=sheetRow.driveLink;lsUpdated=true;}
-      });
-      if(lsUpdated) localStorage.setItem('rzp_pending_approvals',JSON.stringify(localAps));
-      // Now filter for display
-      approvals=approvals.filter(r=>admin||r.requesterEmail===(currentUser?.email||''));
-      // Merge: prefer sheet rows; fall back to localStorage for rows not visible in sheet (e.g. sheet write failed → empty email)
-      const sheetApIds=new Set(approvals.map(a=>a.requestId));
-      const localOnly=localAps.filter(a=>!sheetApIds.has(a.requestId));
-      // For localOnly rows, apply updated status from sync above
-      approvals=[...approvals,...localOnly];
-
-      // If our pending approval was resolved, trigger the resolved handler
-      if(pendingApprovalId){
-        const resolvedAp=approvals.find(a=>a.requestId===pendingApprovalId&&(a.status==='approved'||a.status==='rejected'));
-        if(resolvedAp) handleApprovalResolved(resolvedAp.requestId,resolvedAp.status);
+        // Fetch Approvals sheet
+        const apRes=await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/Approvals!A:K`,{
+          headers:{'Authorization':'Bearer '+tok.token},
+        });
+        const apData=await apRes.json();
+        const apRows=(apData.values||[]).slice(1);
+        approvals=apRows.map(r=>({
+          requestId:r[0]||'',fileName:r[1]||'',requesterEmail:r[2]||'',
+          merchantName:r[3]||'',status:r[4]||'pending',resolvedAt:r[5]||'',
+          gmv:parseFloat(r[6])||0,slabLabel:r[7]||'',driveLink:r[8]||'',
+          teamGroup:r[10]||'',
+          timestamp:(()=>{
+            const id=r[0]||'';
+            if(!id) return Date.now();
+            const base36ts=parseInt(id.substring(0,8),36);
+            return base36ts>1577836800000?base36ts:Date.now();
+          })(),
+        }));
+        const localAps=JSON.parse(localStorage.getItem('rzp_pending_approvals')||'[]');
+        // Merge localOnly approvals
+        const sheetApIds=new Set(approvals.map(a=>a.requestId));
+        const localOnly=localAps.filter(a=>!sheetApIds.has(a.requestId));
+        approvals=[...approvals,...localOnly];
+      } else {
+        approvals=JSON.parse(localStorage.getItem('rzp_pending_approvals')||'[]');
       }
-    } else {
+    }catch(e){
+      console.warn('[History] Sheets API error:',e);
       approvals=JSON.parse(localStorage.getItem('rzp_pending_approvals')||'[]');
     }
-  }catch(e){
-    console.warn('[History] Sheets API error:',e);
+  } else {
+    // ── NON-ADMIN PATH: localStorage only — zero Sheets calls ────────────
+    downloads=localDls.filter(d=>d.userEmail===userEmail);
     approvals=JSON.parse(localStorage.getItem('rzp_pending_approvals')||'[]');
   }
 
@@ -4037,13 +3990,18 @@ onGMVChange();
 onSettlementChange();
 onMCRateChange();
 checkRouteAvailability();
-// Handle approve/reject URL params — must run before normal init
-if(window.location.search.includes('action=approve')||window.location.search.includes('action=reject')||window.location.search.includes('action=final-approve')||window.location.search.includes('action=final-reject')||window.location.search.includes('action=approve-user')){
+// Handle URL action params — must run before normal init
+const _initParams = new URLSearchParams(window.location.search);
+const _initAction = _initParams.get('action');
+if(_initAction === 'activate-user'){
+  handleActivateUserUrl(_initParams);
+} else if(_initAction === 'set-approval-status'){
+  handleSetApprovalStatusUrl(_initParams);
+} else if(_initAction && ['approve','reject','final-approve','final-reject','approve-user'].includes(_initAction)){
   handleApproveRejectUrl();
 } else {
   setTab('competition');
-  // Show user profile if already signed in from a previous session
-  if(currentUser) updateUserUI();
+  if(currentUser) _routeUserAfterSignIn();
 }
 </script>
 </body>
