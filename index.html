@@ -3575,20 +3575,24 @@ async function loadUserHistory(){
           // valid ms timestamp is > year 2020 (1577836800000)
           return base36ts>1577836800000?base36ts:Date.now();
         })(),
-      })).filter(r=>admin||r.requesterEmail===(currentUser?.email||''));
-      // Merge: sheet has authoritative status; localStorage fills gaps
-      const sheetApIds=new Set(approvals.map(a=>a.requestId));
+      }));
       const localAps=JSON.parse(localStorage.getItem('rzp_pending_approvals')||'[]');
-      const localOnly=localAps.filter(a=>!sheetApIds.has(a.requestId));
-      approvals=[...approvals,...localOnly];
-
-      // Sync localStorage status from sheet (so next offline load shows correct status)
+      // Sync status to localStorage from ALL sheet rows (before email filter, so non-admin get updates even if sheet email was blank)
       let lsUpdated=false;
-      approvals.forEach(a=>{
-        const lsRec=localAps.find(l=>l.requestId===a.requestId);
-        if(lsRec&&lsRec.status!==a.status){lsRec.status=a.status;lsUpdated=true;}
+      approvals.forEach(sheetRow=>{
+        const lsRec=localAps.find(l=>l.requestId===sheetRow.requestId);
+        if(lsRec&&lsRec.status!==sheetRow.status){lsRec.status=sheetRow.status;lsUpdated=true;}
+        // Also copy driveLink if not stored locally
+        if(lsRec&&!lsRec.driveLink&&sheetRow.driveLink){lsRec.driveLink=sheetRow.driveLink;lsUpdated=true;}
       });
       if(lsUpdated) localStorage.setItem('rzp_pending_approvals',JSON.stringify(localAps));
+      // Now filter for display
+      approvals=approvals.filter(r=>admin||r.requesterEmail===(currentUser?.email||''));
+      // Merge: prefer sheet rows; fall back to localStorage for rows not visible in sheet (e.g. sheet write failed → empty email)
+      const sheetApIds=new Set(approvals.map(a=>a.requestId));
+      const localOnly=localAps.filter(a=>!sheetApIds.has(a.requestId));
+      // For localOnly rows, apply updated status from sync above
+      approvals=[...approvals,...localOnly];
 
       // If our pending approval was resolved, trigger the resolved handler
       if(pendingApprovalId){
