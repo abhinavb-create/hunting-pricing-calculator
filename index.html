@@ -48,7 +48,7 @@
       <h2 class="text-white font-black text-lg">Approval Required</h2>
     </div>
     <div class="px-6 py-5">
-      <p class="text-gray-700 text-sm leading-relaxed mb-4">The pricing results in an <strong class="text-red-600">Effective NR below ₹5 Lakh/month</strong> — below the recommended threshold.</p>
+      <p class="text-gray-700 text-sm leading-relaxed mb-4">This pricing is below the recommended NR threshold. Please loop in before sharing with the merchant.</p>
       <div class="bg-red-50 border border-red-200 rounded-xl px-4 py-3 mb-5">
         <p class="text-xs text-red-600 font-bold uppercase tracking-wide mb-2">Heads up — please loop in</p>
         <div class="flex items-center gap-3">
@@ -1858,11 +1858,11 @@ async function generateAndDownloadPDF(){
       document.getElementById('nr-modal-proceed').classList.add('hidden');
       showModal('nr-warn-modal');
       return; // hard block
-    } else if(_pgNR<500000){
+    } else if(_pgNR<1000){
       // Low NR — soft warning, user can still proceed
       const _proceed=await new Promise(res=>{
-        document.getElementById('nr-modal-title').textContent='⚠️ Low NR — Below ₹5 Lakh/month';
-        document.getElementById('nr-modal-body').textContent='This pricing results in an Effective NR below ₹5 Lakh/month. Please loop in Abhinav or Adnan before sharing with the merchant.';
+        document.getElementById('nr-modal-title').textContent='⚠️ Low NR — Below ₹1,000/month';
+        document.getElementById('nr-modal-body').textContent='This pricing results in an Effective NR below ₹1,000/month. Please loop in Abhinav or Adnan before sharing with the merchant.';
         document.getElementById('nr-modal-btn').textContent='Cancel';
         document.getElementById('nr-modal-btn').onclick=()=>{closeModal('nr-warn-modal');res(false);};
         const proceedBtn=document.getElementById('nr-modal-proceed');
