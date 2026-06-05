@@ -2462,25 +2462,24 @@ function selectTeamGroup(group){
 async function logUserSignIn(){
   if(!currentUser?.email) return;
   try{
-    const tok=await _getToken();
-    if(!tok) return;
-    // Read existing Users sheet to check if user already exists
-    const checkRes=await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/Users!A:B`,{headers:{Authorization:'Bearer '+tok}});
+    const tokObj=await _getToken();
+    if(!tokObj?.success) return;
+    const t=tokObj.token;
+    await _ensureUsersSheet(t);
+    const checkRes=await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/Users!A:B`,{headers:{Authorization:'Bearer '+t}});
     const checkJson=await checkRes.json();
     const rows=checkJson.values||[];
     const now=new Date().toISOString();
     const existing=rows.findIndex(r=>r[0]===currentUser.email);
     if(existing>0){
-      // Update LastSeen column (D) for this row
       const rowNum=existing+1;
       await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/Users!D${rowNum}?valueInputOption=RAW`,{
-        method:'PUT',headers:{Authorization:'Bearer '+tok,'Content-Type':'application/json'},
+        method:'PUT',headers:{Authorization:'Bearer '+t,'Content-Type':'application/json'},
         body:JSON.stringify({values:[[now]]})
       });
     } else {
-      // Append new user row: Email, Name, TeamGroup, LastSeen, FirstSeen
       await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/Users!A1:append?valueInputOption=RAW&insertDataOption=INSERT_ROWS`,{
-        method:'POST',headers:{Authorization:'Bearer '+tok,'Content-Type':'application/json'},
+        method:'POST',headers:{Authorization:'Bearer '+t,'Content-Type':'application/json'},
         body:JSON.stringify({values:[[currentUser.email,currentUser.name||'',currentUser.teamGroup||'',now,now]]})
       });
     }
@@ -2952,18 +2951,29 @@ async function handleApproveRejectUrl(){
       const rows=readData.values||[];
       let rowNum=-1;
       for(let i=1;i<rows.length;i++){if(rows[i][0]===requestId){rowNum=i+1;break;}}
-      if(rowNum<0){statusEl.innerHTML='<span style="color:#dc2626">❌ Request ID not found. It may have already been processed.</span>';btn.disabled=false;return;}
       const resolvedStatus=isApproveAction?'approved':'rejected';
-      await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${sheetName}!${statusCol}${rowNum}:${resolvedCol}${rowNum}?valueInputOption=RAW`,{
-        method:'PUT',headers:{'Authorization':'Bearer '+tok.token,'Content-Type':'application/json'},
-        body:JSON.stringify({values:[[resolvedStatus,new Date().toISOString()]]}),
-      });
-      // Fetch requester info to notify
-      const rowRes=await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${sheetName}!A${rowNum}:D${rowNum}`,{headers:{'Authorization':'Bearer '+tok.token}});
-      const rowData=await rowRes.json();
-      const rv=(rowData.values&&rowData.values[0])||[];
-      const requesterEmail=(rv[2]||'').trim();
-      const merchantName=(isFinal?rv[1]:rv[3])||decodeURIComponent(merchant);
+      const merchantName=decodeURIComponent(merchant);
+      let requesterEmail='';
+      if(rowNum<0){
+        // Row missing (sheet write failed on requester's end) — append it now so we can track it
+        const newRow=isFinal
+          ?[requestId,merchantName,'','','',resolvedStatus,new Date().toISOString(),'']
+          :[requestId,'','',merchantName,resolvedStatus,new Date().toISOString(),'','','','',''];
+        await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${sheetName}!A1:append?valueInputOption=RAW&insertDataOption=INSERT_ROWS`,{
+          method:'POST',headers:{'Authorization':'Bearer '+tok.token,'Content-Type':'application/json'},
+          body:JSON.stringify({values:[newRow]}),
+        });
+      } else {
+        await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${sheetName}!${statusCol}${rowNum}:${resolvedCol}${rowNum}?valueInputOption=RAW`,{
+          method:'PUT',headers:{'Authorization':'Bearer '+tok.token,'Content-Type':'application/json'},
+          body:JSON.stringify({values:[[resolvedStatus,new Date().toISOString()]]}),
+        });
+        // Fetch requester info to notify
+        const rowRes=await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${sheetName}!A${rowNum}:D${rowNum}`,{headers:{'Authorization':'Bearer '+tok.token}});
+        const rowData=await rowRes.json();
+        const rv=(rowData.values&&rowData.values[0])||[];
+        requesterEmail=(rv[2]||'').trim();
+      }
       // Notify requester
       if(requesterEmail){
         const isAppr=isApproveAction;
@@ -3443,16 +3453,36 @@ function saveGroup(){
   filterStats();
 }
 
+async function _ensureUsersSheet(tokenStr){
+  try{
+    const metaRes=await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}?fields=sheets.properties.title`,{headers:{Authorization:'Bearer '+tokenStr}});
+    const meta=await metaRes.json();
+    const exists=(meta.sheets||[]).some(s=>s.properties?.title==='Users');
+    if(!exists){
+      await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}:batchUpdate`,{
+        method:'POST',headers:{Authorization:'Bearer '+tokenStr,'Content-Type':'application/json'},
+        body:JSON.stringify({requests:[{addSheet:{properties:{title:'Users'}}}]}),
+      });
+      await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/Users!A1:E1?valueInputOption=RAW`,{
+        method:'PUT',headers:{Authorization:'Bearer '+tokenStr,'Content-Type':'application/json'},
+        body:JSON.stringify({values:[['Email','Name','TeamGroup','LastSeen','FirstSeen']]}),
+      });
+    }
+  }catch(e){console.warn('_ensureUsersSheet failed',e);}
+}
+
 async function loadUsersPanel(){
   const body=document.getElementById('stats-users-body');
   const countEl=document.getElementById('stats-users-count');
   if(body) body.innerHTML='<p class="text-sm text-gray-400 text-center py-6">Loading…</p>';
   try{
-    const tok=await _getToken();
-    if(!tok){if(body) body.innerHTML='<p class="text-sm text-red-400 text-center py-6">Auth required.</p>';return;}
-    const res=await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/Users!A:E`,{headers:{Authorization:'Bearer '+tok}});
+    const tokObj=await _getToken();
+    if(!tokObj?.success){if(body) body.innerHTML='<p class="text-sm text-red-400 text-center py-6">Auth required.</p>';return;}
+    const tokenStr=tokObj.token;
+    await _ensureUsersSheet(tokenStr);
+    const res=await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/Users!A:E`,{headers:{Authorization:'Bearer '+tokenStr}});
     const json=await res.json();
-    const rows=(json.values||[]).slice(1).filter(r=>r[0]); // skip header
+    const rows=(json.values||[]).slice(1).filter(r=>r[0]);
     if(countEl) countEl.textContent=rows.length;
     if(!rows.length){if(body) body.innerHTML='<p class="text-sm text-gray-400 text-center py-6">No users yet.</p>';return;}
     const fmtDt=s=>{if(!s)return'—';try{const d=new Date(s);return d.toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'})+' '+d.toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'});}catch{return s;}};
