@@ -55,5 +55,20 @@
     "teamGroup": "Startup Hunting",
     "versionGroup": null,
     "timestamp": 1780657048604
+  },
+  {
+    "requestId": "mq0tc075sq2ez1",
+    "fileName": "XyZ pvt Ltd-Razorpay-Proposal.pdf",
+    "requesterEmail": "adnan.noorie@razorpay.com",
+    "merchantName": "XyZ pvt Ltd",
+    "status": "pending",
+    "resolvedAt": "",
+    "gmv": 20000000,
+    "slabLabel": "75L - 5Cr",
+    "driveLink": "https://drive.google.com/file/d/1yOY-QOppFMarSl8ErKYTq3OqD5tET7CK/view",
+    "violations": "Corporate Cards (Credit & Debit): 2.20%; EMI (Cardless / No-Cost EMI): 2.00%; Net Banking - Other Banks: 1.31%; Mobile Wallets: 1.65%",
+    "teamGroup": "Startup Hunting",
+    "versionGroup": "ap_mq0t85cesi2wg7",
+    "timestamp": 1780657227505
   }
 ]
