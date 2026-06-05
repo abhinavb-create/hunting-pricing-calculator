@@ -40,5 +40,20 @@
     "violations": "Credit Cards (Visa / MC / RuPay): 1.85%",
     "teamGroup": "Shopify Hunting",
     "timestamp": 1780654913220
+  },
+  {
+    "requestId": "mq0t85cesi2wg7",
+    "fileName": "XyZ pvt Ltd-Razorpay-Proposal.pdf",
+    "requesterEmail": "adnan.noorie@razorpay.com",
+    "merchantName": "XyZ pvt Ltd",
+    "status": "pending",
+    "resolvedAt": "",
+    "gmv": 20000000,
+    "slabLabel": "75L - 5Cr",
+    "driveLink": "https://drive.google.com/file/d/1iMrTRNdTbUI5yyLCxzyhYsUQ5fkJIqcS/view",
+    "violations": "Credit Cards (Visa / MC / RuPay): 1.85%; Corporate Cards (Credit & Debit): 2.20%; EMI (Cardless / No-Cost EMI): 2.00%; Net Banking - Other Banks: 1.31%; Mobile Wallets: 1.65%",
+    "teamGroup": "Startup Hunting",
+    "versionGroup": null,
+    "timestamp": 1780657048604
   }
 ]
