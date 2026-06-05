@@ -607,6 +607,19 @@
     </div>
   </div>
 
+  <!-- Users panel (admin only) -->
+  <div id="stats-users-panel" class="hidden mb-6 bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+    <div class="flex items-center justify-between px-5 py-3 border-b border-gray-100 bg-gradient-to-r from-indigo-50 to-blue-50">
+      <div class="flex items-center gap-2">
+        <span class="text-base">👥</span>
+        <span class="text-sm font-black text-indigo-800">Platform Users</span>
+        <span id="stats-users-count" class="text-xs font-bold bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded-full">—</span>
+      </div>
+      <button onclick="loadUsersPanel()" class="text-xs text-indigo-500 hover:text-indigo-700 font-semibold">↻ Refresh</button>
+    </div>
+    <div id="stats-users-body" class="p-4 text-sm text-gray-400 text-center py-8">Loading…</div>
+  </div>
+
   <!-- Summary tiles -->
   <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
     <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-5 text-center">
@@ -760,7 +773,7 @@
   <div class="bg-white rounded-2xl shadow-2xl max-w-2xl w-full mx-4 overflow-hidden max-h-[92vh] flex flex-col">
     <div class="bg-gradient-to-r from-emerald-600 to-teal-600 px-6 py-4 flex items-center justify-between shrink-0">
       <div>
-        <h2 class="text-white font-black text-lg">📋 Final Pricing Approval</h2>
+        <h2 class="text-white font-black text-lg">📋 Send for Pricing Revamp</h2>
         <p class="text-emerald-100 text-xs mt-0.5">Send complete pricing package for ops sign-off</p>
       </div>
       <button onclick="closeModal('final-approval-modal')" class="text-white opacity-60 hover:opacity-100 text-2xl leading-none">&times;</button>
@@ -805,7 +818,7 @@
     </div>
     <div class="shrink-0 px-6 py-4 border-t border-gray-100 flex gap-3">
       <button onclick="closeModal('final-approval-modal')" class="flex-1 border-2 border-gray-200 text-gray-500 font-bold py-2.5 rounded-xl text-sm hover:bg-gray-50">Cancel</button>
-      <button id="fam-send-btn" onclick="sendFinalApprovalEmail()" class="flex-1 bg-gradient-to-r from-emerald-600 to-teal-600 text-white font-bold py-2.5 rounded-xl text-sm hover:from-emerald-700 hover:to-teal-700 transition-all">📤 Send for Final Approval</button>
+      <button id="fam-send-btn" onclick="sendFinalApprovalEmail()" class="flex-1 bg-gradient-to-r from-emerald-600 to-teal-600 text-white font-bold py-2.5 rounded-xl text-sm hover:from-emerald-700 hover:to-teal-700 transition-all">📤 Send for Pricing Revamp</button>
     </div>
   </div>
 </div>
@@ -2433,6 +2446,7 @@ function handleCredentialResponse(response){
       showModal('team-group-modal');
     } else {
       updateUserUI();
+      logUserSignIn();
     }
   }catch(e){console.error('GSI decode error:',e);}
 }
@@ -2441,6 +2455,35 @@ function selectTeamGroup(group){
   if(currentUser){currentUser.teamGroup=group;localStorage.setItem('rzp_user',JSON.stringify(currentUser));}
   closeModal('team-group-modal');
   updateUserUI();
+  logUserSignIn();
+}
+
+async function logUserSignIn(){
+  if(!currentUser?.email) return;
+  try{
+    const tok=await _getToken();
+    if(!tok) return;
+    // Read existing Users sheet to check if user already exists
+    const checkRes=await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/Users!A:B`,{headers:{Authorization:'Bearer '+tok}});
+    const checkJson=await checkRes.json();
+    const rows=checkJson.values||[];
+    const now=new Date().toISOString();
+    const existing=rows.findIndex(r=>r[0]===currentUser.email);
+    if(existing>0){
+      // Update LastSeen column (D) for this row
+      const rowNum=existing+1;
+      await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/Users!D${rowNum}?valueInputOption=RAW`,{
+        method:'PUT',headers:{Authorization:'Bearer '+tok,'Content-Type':'application/json'},
+        body:JSON.stringify({values:[[now]]})
+      });
+    } else {
+      // Append new user row: Email, Name, TeamGroup, LastSeen, FirstSeen
+      await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/Users!A1:append?valueInputOption=RAW&insertDataOption=INSERT_ROWS`,{
+        method:'POST',headers:{Authorization:'Bearer '+tok,'Content-Type':'application/json'},
+        body:JSON.stringify({values:[[currentUser.email,currentUser.name||'',currentUser.teamGroup||'',now,now]]})
+      });
+    }
+  }catch(e){console.warn('logUserSignIn failed',e);}
 }
 
 function initGoogleSignIn(){
@@ -2649,7 +2692,7 @@ function buildFinalApprovalEmailHtml({requesterName,requesterEmail,teamGroup,mer
           </td>
         </tr>
         <tr><td style="padding:12px 16px">
-          ${_buildPricingTableHtml(snap,'v'+(v.version||i+1))}
+          ${v.statusKey==='approved'?_buildPricingTableHtml(snap,'v'+(v.version||i+1)):'<p style="font-size:12px;color:#9ca3af;margin:0;font-style:italic">Pricing table only shown for approved versions.</p>'}
         </td></tr>
       </table>
     </td></tr>`;
@@ -2659,7 +2702,7 @@ function buildFinalApprovalEmailHtml({requesterName,requesterEmail,teamGroup,mer
 <table width="100%" cellpadding="0" cellspacing="0"><tr><td align="center" style="padding:32px 16px">
 <table width="640" cellpadding="0" cellspacing="0" style="background:#fff;border-radius:20px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,0.08)">
   <tr><td style="background:linear-gradient(135deg,#059669 0%,#0d9488 100%);padding:28px 32px">
-    <div style="font-size:11px;font-weight:700;letter-spacing:2px;color:#a7f3d0;text-transform:uppercase;margin-bottom:6px">Final Pricing Approval Request</div>
+    <div style="font-size:11px;font-weight:700;letter-spacing:2px;color:#a7f3d0;text-transform:uppercase;margin-bottom:6px">Pricing Revamp Request</div>
     <div style="font-size:26px;font-weight:900;color:#fff">${merchantName}</div>
     <div style="font-size:13px;color:#d1fae5;margin-top:6px">Submitted by ${requesterName} · ${teamGroup||'Hunting Team'}</div>
   </td></tr>
@@ -2747,7 +2790,15 @@ async function sendFinalApprovalEmail(){
   btn.disabled=true;btn.textContent='⏳ Sending…';
 
   const versionIds=selectedBoxes.map(b=>b.value);
-  const selectedVersions=versionIds.map(id=>statsAllRows.find(r=>r.rowId===id)).filter(Boolean);
+  // Enrich each version with best-available snapshot
+  const selectedVersions=versionIds.map(id=>{
+    const r=statsAllRows.find(x=>x.rowId===id);
+    if(!r) return null;
+    // Priority: _snapCache → row.snapshot → find matching download row → any download row for same merchant
+    const snap=window._snapCache?.[id]||r.snapshot||
+      statsAllRows.find(x=>x.type==='download'&&x.merchantName===r.merchantName&&x.snapshot)?.snapshot||null;
+    return{...r,snapshot:snap};
+  }).filter(Boolean);
   const row=statsAllRows.find(r=>r.rowId===_famRowId);
   const merchantName=row?.merchantName||'Unknown Merchant';
   const notes=document.getElementById('fam-notes').value.trim();
@@ -2782,7 +2833,7 @@ async function sendFinalApprovalEmail(){
       if(rec) rec.finalApprovalId=requestId;
     });
     localStorage.setItem('rzp_downloads',JSON.stringify(localDls));
-    setTimeout(()=>{closeModal('final-approval-modal');btn.textContent='📤 Send for Final Approval';},1800);
+    setTimeout(()=>{closeModal('final-approval-modal');btn.textContent='📤 Send for Pricing Revamp';},1800);
   } else {
     btn.textContent='❌ Failed — Retry';
     alert('Email send failed: '+(result.error||'Unknown error'));
@@ -3171,9 +3222,12 @@ function showStats(){
   const thReq=document.getElementById('stats-th-requester');
   if(emailEl&&currentUser) emailEl.textContent=currentUser.email;
   if(banner) banner.classList.toggle('hidden',!isAdmin());
+  const usersPanel=document.getElementById('stats-users-panel');
+  if(usersPanel) usersPanel.classList.toggle('hidden',!isAdmin());
   mainWrap?.classList.add('hidden');
   statsPage?.classList.remove('hidden');
   loadUserHistory();
+  if(isAdmin()) loadUsersPanel();
 }
 
 function closeStats(){
@@ -3298,7 +3352,9 @@ function renderStatsTable(rows){
             :r.snapshot
               ?`<button onclick="redownloadPDF('${r.rowId}')" class="text-xs text-indigo-500 hover:text-indigo-700 font-semibold whitespace-nowrap">↓ Re-download</button>`
               :'<span class="text-xs text-gray-300">—</span>'}
-          <button onclick="openFinalApprovalModal('${r.rowId}')" class="text-xs font-semibold text-emerald-600 hover:text-emerald-800 whitespace-nowrap flex items-center gap-1">📋 Final Approval</button>
+          ${(r.statusKey==='pending'||r.statusKey==='rejected')
+            ?`<span class="text-xs font-semibold text-gray-300 whitespace-nowrap cursor-not-allowed" title="${r.statusKey==='pending'?'Awaiting approval':'Rejected — revise first'}">📋 Pricing Revamp</span>`
+            :`<button onclick="openFinalApprovalModal('${r.rowId}')" class="text-xs font-semibold text-emerald-600 hover:text-emerald-800 whitespace-nowrap flex items-center gap-1">📋 Pricing Revamp</button>`}
         </div>
       </td>
     </tr>`;
@@ -3362,6 +3418,34 @@ function saveGroup(){
   filterStats();
 }
 
+async function loadUsersPanel(){
+  const body=document.getElementById('stats-users-body');
+  const countEl=document.getElementById('stats-users-count');
+  if(body) body.innerHTML='<p class="text-sm text-gray-400 text-center py-6">Loading…</p>';
+  try{
+    const tok=await _getToken();
+    if(!tok){if(body) body.innerHTML='<p class="text-sm text-red-400 text-center py-6">Auth required.</p>';return;}
+    const res=await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/Users!A:E`,{headers:{Authorization:'Bearer '+tok}});
+    const json=await res.json();
+    const rows=(json.values||[]).slice(1).filter(r=>r[0]); // skip header
+    if(countEl) countEl.textContent=rows.length;
+    if(!rows.length){if(body) body.innerHTML='<p class="text-sm text-gray-400 text-center py-6">No users yet.</p>';return;}
+    const fmtDt=s=>{if(!s)return'—';try{const d=new Date(s);return d.toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'})+' '+d.toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'});}catch{return s;}};
+    const trs=rows.map(r=>`<tr class="border-b border-gray-50 hover:bg-gray-50">
+      <td class="px-4 py-2.5"><div class="font-semibold text-gray-800 text-sm">${r[1]||'—'}</div><div class="text-xs text-gray-400">${r[0]}</div></td>
+      <td class="px-4 py-2.5 text-xs text-gray-500">${r[2]||'—'}</td>
+      <td class="px-4 py-2.5 text-xs text-gray-500">${fmtDt(r[4])}</td>
+      <td class="px-4 py-2.5 text-xs text-gray-500">${fmtDt(r[3])}</td>
+    </tr>`).join('');
+    if(body) body.innerHTML=`<table class="w-full"><thead><tr class="text-left">
+      <th class="px-4 py-2 text-xs font-bold text-gray-400 uppercase tracking-wide">User</th>
+      <th class="px-4 py-2 text-xs font-bold text-gray-400 uppercase tracking-wide">Team</th>
+      <th class="px-4 py-2 text-xs font-bold text-gray-400 uppercase tracking-wide">First Seen</th>
+      <th class="px-4 py-2 text-xs font-bold text-gray-400 uppercase tracking-wide">Last Seen</th>
+    </tr></thead><tbody>${trs}</tbody></table>`;
+  }catch(e){if(body) body.innerHTML='<p class="text-sm text-red-400 text-center py-6">Failed to load users.</p>';console.error(e);}
+}
+
 async function loadUserHistory(){
   const loadingEl=document.getElementById('stats-loading');
   const tableEl=document.getElementById('stats-table');
@@ -3415,7 +3499,7 @@ async function loadUserHistory(){
           // requestId = Date.now().toString(36) + random — decode base36 timestamp
           const id=r[0]||'';
           if(!id) return Date.now();
-          const base36ts=parseInt(id.substring(0,9),36);
+          const base36ts=parseInt(id.substring(0,8),36);
           // valid ms timestamp is > year 2020 (1577836800000)
           return base36ts>1577836800000?base36ts:Date.now();
         })(),
@@ -3465,8 +3549,8 @@ async function loadUserHistory(){
     const isAp=type==='approval';
     // Resolve timestamp: use explicit field, or decode from requestId (base36), or now
     let ts=d.timestamp||0;
-    if(!ts&&d.requestId){const b=parseInt((d.requestId||'').substring(0,9),36);if(b>1577836800000)ts=b;}
-    if(!ts&&d.fileId){const b=parseInt((d.fileId||'').substring(0,9),36);if(b>1577836800000)ts=b;}
+    if(!ts&&d.requestId){const b=parseInt((d.requestId||'').substring(0,8),36);if(b>1577836800000)ts=b;}
+    if(!ts&&d.fileId){const b=parseInt((d.fileId||'').substring(0,8),36);if(b>1577836800000)ts=b;}
     if(!ts) ts=Date.now();
     const{date,time,raw}=fmtDate(ts);
     const mid=extractMID(isAp?d.fileName:d.fileName);
