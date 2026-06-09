@@ -2665,7 +2665,7 @@ function _routeUserAfterSignIn(){
   if(currentUser.email.toLowerCase()===ADMIN_EMAIL.toLowerCase()||currentUser.email.toLowerCase()===CO_ADMIN_EMAIL.toLowerCase()){updateUserUI();return;}
   // Previously approved: verify not revoked, then let in
   if(currentUser.accessStatus==='active'){
-    // Check GitHub for revocation (background) and update lastSeen
+    // Check GitHub for revocation, sync teamGroup, and update lastSeen
     _ghRead('data/users.json').then(({data})=>{
       const rec=(data||[]).find(u=>u.email===currentUser.email);
       if(rec?.status==='revoked'){
@@ -2673,6 +2673,13 @@ function _routeUserAfterSignIn(){
         localStorage.setItem('rzp_user',JSON.stringify(currentUser));
         _routeUserAfterSignIn(); // re-route to revoked screen
         return;
+      }
+      // Sync teamGroup from GitHub so email routing is always up to date
+      if(rec?.teamGroup && rec.teamGroup!==currentUser.teamGroup){
+        currentUser.teamGroup=rec.teamGroup;
+        localStorage.setItem('rzp_user',JSON.stringify(currentUser));
+        const tEl=document.getElementById('user-team');
+        if(tEl) tEl.textContent=currentUser.teamGroup;
       }
       // Still active — update lastSeen
       _ghUpdate('data/users.json',arr=>{
