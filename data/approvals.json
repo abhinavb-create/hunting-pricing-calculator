@@ -115,5 +115,20 @@
     "teamGroup": "EB <> Pricing",
     "versionGroup": null,
     "timestamp": 1780988754989
+  },
+  {
+    "requestId": "mq6fj08tylccha",
+    "fileName": "test-QZREb720M9CztV-Razorpay-Proposal.pdf",
+    "requesterEmail": "deeksha.p@razorpay.com",
+    "merchantName": "test",
+    "status": "pending",
+    "resolvedAt": "",
+    "gmv": 5600000,
+    "slabLabel": "25L - 75L",
+    "driveLink": "https://drive.google.com/file/d/1vYxSXugpu1rFbCD8zuf4JQ52i9z5G9P3/view",
+    "violations": "Credit Cards (Visa / MC / RuPay): 1.85%; Debit Card (Txn <= Rs.2,000): 0.40%; Debit Card (Txn > Rs.2,000): 0.85%; RuPay Debit Card: 0.02%; International Cards: 2.80%; EMI (Cardless / No-Cost EMI): 2.20%; Net Banking - Other Banks: 1.31%; Mobile Wallets: 1.65%",
+    "teamGroup": "EB <> Pricing",
+    "versionGroup": null,
+    "timestamp": 1780996837934
   }
 ]
