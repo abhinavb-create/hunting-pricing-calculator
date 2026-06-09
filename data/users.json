@@ -22,5 +22,13 @@
     "registeredAt": "2026-06-09T06:10:59.808Z",
     "lastSeen": "2026-06-09T07:04:32.165Z",
     "status": "active"
+  },
+  {
+    "email": "anirudh.krishna@razorpay.com",
+    "name": "D Anirudh Krishna",
+    "teamGroup": "EB <> Pricing",
+    "registeredAt": "2026-06-09T07:20:15.159Z",
+    "lastSeen": "2026-06-09T07:20:15.159Z",
+    "status": "pending"
   }
 ]
