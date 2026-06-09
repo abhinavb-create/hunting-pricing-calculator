@@ -3414,7 +3414,7 @@ async function handleApproveUserUrl(params){
       await _ghUpdate('data/users.json',arr=>{
         const a=[...(arr||[])];
         const idx=a.findIndex(x=>x.email===userEmail);
-        if(idx>=0){a[idx]={...a[idx],status:'active',lastSeen:now};}
+        if(idx>=0){a[idx]={...a[idx],teamGroup:userTeam||a[idx].teamGroup,status:'active',lastSeen:now};}
         else{a.push({email:userEmail,name:userName,teamGroup:userTeam,registeredAt:now,lastSeen:now,status:'active'});}
         return a;
       },'approve user: '+userEmail);
@@ -4118,9 +4118,22 @@ async function loadUserHistory(){
       approvals=JSON.parse(localStorage.getItem('rzp_pending_approvals')||'[]');
     }
   } else {
-    // ── NON-ADMIN PATH: localStorage only — zero Sheets calls ────────────
+    // ── NON-ADMIN PATH: read localStorage + sync status from GitHub ──────
     downloads=localDls.filter(d=>d.userEmail===userEmail);
-    approvals=JSON.parse(localStorage.getItem('rzp_pending_approvals')||'[]');
+    const localAps=JSON.parse(localStorage.getItem('rzp_pending_approvals')||'[]');
+    // Sync statuses from GitHub so approvals show correctly after page reload
+    try{
+      const{data:ghAps}=await _ghRead('data/approvals.json');
+      if(ghAps&&ghAps.length){
+        let changed=false;
+        localAps.forEach(la=>{
+          const gh=ghAps.find(g=>g.requestId===la.requestId);
+          if(gh&&gh.status&&gh.status!==la.status){la.status=gh.status;changed=true;}
+        });
+        if(changed) localStorage.setItem('rzp_pending_approvals',JSON.stringify(localAps));
+      }
+    }catch(e){console.warn('[Stats] GH sync:',e);}
+    approvals=localAps;
   }
 
   // Update summary counts
