@@ -2858,6 +2858,54 @@ async function revokeUser(email){
   }
 }
 
+async function editUserTeam(email, currentTeam, userName){
+  if(!isAdminOrCoAdmin()) return;
+  const TEAM_OPTIONS=['Startup Hunting','Shopify Hunting','Competition Hunting','MM Hunting','EB Farming','EB Hunting','EB <> Pricing'];
+  // Build a small inline modal using a prompt-style select
+  const modal=document.createElement('div');
+  modal.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:9999;display:flex;align-items:center;justify-content:center;font-family:Arial,sans-serif';
+  modal.innerHTML=`
+    <div style="background:#fff;border-radius:16px;overflow:hidden;width:360px;box-shadow:0 8px 40px rgba(0,0,0,0.2)">
+      <div style="background:linear-gradient(135deg,#1f3fa3,#7048e8);padding:20px 24px">
+        <div style="font-size:11px;font-weight:700;color:#a5b4fc;text-transform:uppercase;letter-spacing:1px;margin-bottom:4px">Edit Team</div>
+        <div style="font-size:16px;font-weight:800;color:#fff">${userName||email}</div>
+        <div style="font-size:12px;color:#c7d2fe;margin-top:2px">${email}</div>
+      </div>
+      <div style="padding:20px 24px">
+        <label style="font-size:12px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:1px;display:block;margin-bottom:8px">Select New Team</label>
+        <select id="edit-team-select" style="width:100%;padding:10px 12px;border:2px solid #e5e7eb;border-radius:10px;font-size:14px;color:#111827;outline:none;cursor:pointer">
+          ${TEAM_OPTIONS.map(t=>`<option value="${t}"${t===currentTeam?' selected':''}>${t}</option>`).join('')}
+        </select>
+        <div style="display:flex;gap:10px;margin-top:16px">
+          <button id="edit-team-cancel" style="flex:1;padding:10px;border:2px solid #e5e7eb;border-radius:10px;background:#fff;font-size:13px;font-weight:700;color:#6b7280;cursor:pointer">Cancel</button>
+          <button id="edit-team-save" style="flex:1;padding:10px;border:none;border-radius:10px;background:linear-gradient(135deg,#1f3fa3,#7048e8);color:#fff;font-size:13px;font-weight:700;cursor:pointer">Save Team</button>
+        </div>
+      </div>
+    </div>`;
+  document.body.appendChild(modal);
+  document.getElementById('edit-team-cancel').onclick=()=>document.body.removeChild(modal);
+  modal.onclick=(e)=>{if(e.target===modal) document.body.removeChild(modal);};
+  document.getElementById('edit-team-save').onclick=async()=>{
+    const newTeam=document.getElementById('edit-team-select').value;
+    const saveBtn=document.getElementById('edit-team-save');
+    saveBtn.textContent='Saving…';saveBtn.disabled=true;
+    try{
+      await _ghUpdate('data/users.json',arr=>{
+        const a=[...(arr||[])];
+        const idx=a.findIndex(x=>x.email===email);
+        if(idx>=0) a[idx]={...a[idx],teamGroup:newTeam};
+        else a.push({email,name:userName||'',teamGroup:newTeam,status:'active',registeredAt:new Date().toISOString(),lastSeen:null});
+        return a;
+      },'edit team: '+email+' → '+newTeam);
+      document.body.removeChild(modal);
+      loadTeamPage();
+    }catch(e){
+      saveBtn.textContent='Save Team';saveBtn.disabled=false;
+      alert('Failed to update team: '+e.message);
+    }
+  };
+}
+
 // logUserSignIn removed — non-admin users no longer write to Sheets
 
 // Sheets helpers removed — all data now in GitHub JSON files (data/approvals.json, data/users.json, data/finalapprovals.json)
@@ -4371,7 +4419,12 @@ async function loadTeamPage(){
             </div>
           </div>
         </td>
-        <td class="px-4 py-3"><span class="text-xs font-semibold px-2 py-1 rounded-full bg-indigo-50 text-indigo-600">${u.teamGroup||'—'}</span></td>
+        <td class="px-4 py-3">
+          <div class="flex items-center gap-1.5">
+            <span class="text-xs font-semibold px-2 py-1 rounded-full bg-indigo-50 text-indigo-600">${u.teamGroup||'—'}</span>
+            <button onclick="editUserTeam('${u.email}','${(u.teamGroup||'').replace(/'/g,"\\'")}','${(u.name||'').replace(/'/g,"\\'")}' )" title="Edit team" class="text-gray-300 hover:text-indigo-500 transition-colors">✏️</button>
+          </div>
+        </td>
         <td class="px-4 py-3">${statusHtml}</td>
         <td class="px-4 py-3"><div class="flex items-center">${onlineDot}</div></td>
         <td class="px-4 py-3 text-xs text-gray-500">${fmtDate(u.registeredAt)}</td>
