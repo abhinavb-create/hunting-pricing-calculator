@@ -2620,12 +2620,18 @@ async function uploadToDrive(arrayBuffer,fileName,violations,requestId,merchantN
     });
     const file=await uploadRes.json();
     if(!file.id) return{success:false,error:file.error?.message||'Upload failed'};
-    // Make file readable by anyone with link
-    await fetch(`https://www.googleapis.com/drive/v3/files/${file.id}/permissions`,{
+    // Make file readable by anyone with the link (retry once if token expired)
+    const setPublic=async(token)=>fetch(`https://www.googleapis.com/drive/v3/files/${file.id}/permissions`,{
       method:'POST',
-      headers:{'Authorization':'Bearer '+tok.token,'Content-Type':'application/json'},
+      headers:{'Authorization':'Bearer '+token,'Content-Type':'application/json'},
       body:JSON.stringify({role:'reader',type:'anyone'}),
     });
+    let permRes=await setPublic(tok.token);
+    if(permRes.status===401){
+      const tok2=await _getToken(true);
+      if(tok2.success) permRes=await setPublic(tok2.token);
+    }
+    if(!permRes.ok) console.warn('[Drive] Permission set failed:',await permRes.text());
     const driveLink=`https://drive.google.com/file/d/${file.id}/view`;
     // Log to Downloads sheet
     await logDownloadToSheet({fileName,merchantName:merchantName||'',fileId:file.id,driveLink,hasViolations:!!(violations&&violations.length),requestId:requestId||''});
