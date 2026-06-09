@@ -2643,24 +2643,24 @@ async function uploadToDrive(arrayBuffer,fileName,violations,requestId,merchantN
     });
     const file=await uploadRes.json();
     if(!file.id) return{success:false,error:file.error?.message||'Upload failed'};
-    // Make file readable by anyone with the link (retry once if token expired)
-    // Try domain-restricted first (razorpay.com), fall back to anyone-with-link
-    const setPermission=async(token,body)=>fetch(`https://www.googleapis.com/drive/v3/files/${file.id}/permissions`,{
-      method:'POST',
-      headers:{'Authorization':'Bearer '+token,'Content-Type':'application/json'},
-      body:JSON.stringify(body),
-    });
-    let tok2=tok;
-    // Refresh token if needed
-    const ensureToken=async()=>{if(!tok2.success){tok2=await _getToken(true);}return tok2;};
-    await ensureToken();
-    // First try domain-restricted (all @razorpay.com users)
-    let permRes=await setPermission(tok2.token,{role:'reader',type:'domain',domain:'razorpay.com'});
-    if(!permRes.ok){
-      // Fall back to anyone with link
-      permRes=await setPermission(tok2.token,{role:'reader',type:'anyone'});
-    }
-    if(!permRes.ok) console.warn('[Drive] Permission set failed:',await permRes.text());
+    // Share explicitly with Abhinav + Adnan so they can always open it
+    // regardless of Workspace sharing policies
+    const shareWith=async(token,email)=>{
+      const r=await fetch(`https://www.googleapis.com/drive/v3/files/${file.id}/permissions?sendNotificationEmail=false`,{
+        method:'POST',
+        headers:{'Authorization':'Bearer '+token,'Content-Type':'application/json'},
+        body:JSON.stringify({role:'reader',type:'user',emailAddress:email}),
+      });
+      if(!r.ok) console.warn('[Drive] share with',email,'failed:',r.status);
+    };
+    // Refresh token if close to expiry
+    let activeToken=tok.token;
+    const tok2=await _getToken(false);
+    if(tok2.success) activeToken=tok2.token;
+    await Promise.all([
+      shareWith(activeToken, ADMIN_EMAIL),
+      shareWith(activeToken, CO_ADMIN_EMAIL),
+    ]);
     const driveLink=`https://drive.google.com/file/d/${file.id}/view`;
     // Log to Downloads sheet
     await logDownloadToSheet({fileName,merchantName:merchantName||'',fileId:file.id,driveLink,hasViolations:!!(violations&&violations.length),requestId:requestId||''});
