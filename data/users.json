@@ -46,5 +46,13 @@
     "registeredAt": "2026-06-09T10:47:52.750Z",
     "lastSeen": "2026-06-09T10:48:03.271Z",
     "status": "active"
+  },
+  {
+    "email": "harsha.john@razorpay.com",
+    "name": "Harsha Thomas John",
+    "teamGroup": "Shopify Hunting",
+    "registeredAt": "2026-06-09T10:48:05.097Z",
+    "lastSeen": "2026-06-09T10:48:05.097Z",
+    "status": "pending"
   }
 ]
