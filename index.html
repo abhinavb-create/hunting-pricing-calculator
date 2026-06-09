@@ -1798,6 +1798,9 @@ function downloadPDF(){
   _openPdfModal();
 }
 function _openPdfModal(){
+  // Re-read from DOM (this is called async for non-admin users)
+  const name=document.getElementById('merchant-name').value.trim();
+  const gmv=getGMV();
   // Pre-fill intro text
   const customerName=document.getElementById('customer-name').value.trim();
   const greeting=customerName?`Dear ${customerName},`:'Dear Sir/Madam,';
