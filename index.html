@@ -1817,11 +1817,16 @@ function _openPdfModal(){
   const queuedEl=document.getElementById('pdf-queued-status');
   if(queuedEl) queuedEl.classList.add('hidden');
 
+  // Check if rates were already approved (in-session OR in localStorage)
+  const _localAps=JSON.parse(localStorage.getItem('rzp_pending_approvals')||'[]');
+  const _hasApprovedRecord=_localAps.some(a=>a.status==='approved'&&a.merchantName===name);
+  const _alreadyApproved=!!_approvedRequestId||_hasApprovedRecord;
+
   // Check floor violations and populate approval section
   const violations=getFloorViolations(activeTab,gmv);
   const approvalSection=document.getElementById('pdf-approval-section');
   const violationsDiv=document.getElementById('pdf-approval-violations');
-  if(violations.length>0&&approvalSection&&violationsDiv){
+  if(violations.length>0&&!_alreadyApproved&&approvalSection&&violationsDiv){
     approvalSection.classList.remove('hidden');
     violationsDiv.innerHTML=violations.map(v=>`<div>• ${v.label}: ${v.rate.toFixed(2)}%</div>`).join('');
     // Show correct approver name based on user's team
@@ -1834,6 +1839,12 @@ function _openPdfModal(){
     }
   } else if(approvalSection){
     approvalSection.classList.add('hidden');
+    // If approved, show a green notice
+    if(violations.length>0&&_alreadyApproved&&queuedEl){
+      queuedEl.textContent='✅ Rates approved — proceeding with download.';
+      queuedEl.className='bg-green-50 border border-green-300 rounded-lg px-3 py-2 text-xs text-green-800 font-semibold';
+      queuedEl.classList.remove('hidden');
+    }
   }
   // If there's an active pending approval, show option to start fresh or check status
   if(pendingApprovalId&&queuedEl){
@@ -2330,9 +2341,13 @@ async function generateAndDownloadPDF(){
     const requesterEmail=document.getElementById('pdf-requester-email')?.value.trim()||currentUser?.email||'';
     const pdfBuffer=doc.output('arraybuffer');
 
+    // Check if already approved (in-session flag OR localStorage record for this merchant)
+    const _localApsGen=JSON.parse(localStorage.getItem('rzp_pending_approvals')||'[]');
+    const _alreadyApprovedGen=!!_approvedRequestId||_localApsGen.some(a=>a.status==='approved'&&a.merchantName===name);
+
     if(driveEl){driveEl.classList.remove('hidden');driveEl.innerHTML='<span class="text-gray-400">☁️ Uploading to Drive...</span>';}
 
-    if(violations.length>0){
+    if(violations.length>0&&!_alreadyApprovedGen){
       // ── APPROVAL FLOW: don't download yet ──
       isQueued=true;
       const requestId=genRequestId();
@@ -2443,6 +2458,7 @@ async function generateAndDownloadPDF(){
   }finally{
     if(!isQueued){
       btn.textContent='Generate & Download PDF';btn.disabled=false;
+      _approvedRequestId=null; // clear after successful download
     }
   }
 }
@@ -3549,6 +3565,7 @@ let pendingApprovalId=null;
 let pendingPDFBuffer=null;
 let pendingFileName=null;
 let approvalPollTimer=null;
+let _approvedRequestId=null; // set when approval received; bypasses re-approval on next download
 
 function genRequestId(){
   return Date.now().toString(36)+Math.random().toString(36).slice(2,8);
@@ -3777,14 +3794,14 @@ function handleApprovalResolved(requestId,status){
   const queuedEl=document.getElementById('pdf-queued-status');
 
   if(status==='approved'){
-    // Show approval notice — don't auto-download; user can re-download from stats
-    if(driveEl) driveEl.innerHTML='✅ <span class="text-green-600 font-semibold">Approved! Go to Stats to download the PDF.</span>';
+    _approvedRequestId=requestId; // allow next download to bypass approval flow
+    if(driveEl) driveEl.innerHTML='✅ <span class="text-green-600 font-semibold">Approved! Click Download PDF to get your file.</span>';
     if(queuedEl){
-      queuedEl.textContent='✅ Approved! Open Stats / History to re-download your PDF.';
+      queuedEl.textContent='✅ Approved! You can now download the PDF.';
       queuedEl.className='bg-green-50 border border-green-300 rounded-lg px-3 py-2 text-xs text-green-800 font-semibold';
     }
-    if(btn){btn.textContent='✅ Approved — Check Stats';btn.disabled=false;btn.onclick=()=>{closeModal('pdf-modal');showStats();};}
-    setTimeout(()=>{closeModal('pdf-modal');resetPdfBtn();},4000);
+    if(btn){btn.textContent='⬇ Download Approved PDF';btn.disabled=false;btn.onclick=()=>{closeModal('pdf-modal');generateAndDownloadPDF();};}
+    setTimeout(()=>{closeModal('pdf-modal');},3000);
   }else{
     if(driveEl) driveEl.innerHTML='❌ <span class="text-red-600 font-semibold">Request rejected. Please revise pricing.</span>';
     if(queuedEl){
