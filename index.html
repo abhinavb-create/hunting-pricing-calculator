@@ -1802,12 +1802,19 @@ function _openPdfModal(){
   const customerName=document.getElementById('customer-name').value.trim();
   const greeting=customerName?`Dear ${customerName},`:'Dear Sir/Madam,';
   const introEl=document.getElementById('pdf-intro-text');
-  if(!introEl.value){
-    introEl.value=`${greeting}\n\nThank you for your interest in Razorpay's payment solutions. We are pleased to present the following commercial proposal tailored for ${name}.\n\nThe rates outlined below are basis your monthly processing volume of ${lakh(gmv)}. These are negotiated rates and are subject to Razorpay's standard terms and conditions.`;
+  const defaultIntro=`${greeting}\n\nThank you for your interest in Razorpay's payment solutions. We are pleased to present the following commercial proposal tailored for ${name}.\n\nThe rates outlined below are basis your monthly processing volume of ${lakh(gmv)}. These are negotiated rates and are subject to Razorpay's standard terms and conditions.`;
+  // Always update if empty OR if it still has a placeholder with empty business name ("tailored for .")
+  if(!introEl.value||introEl.value.includes('tailored for .')||introEl.value.includes('tailored for ,')){
+    introEl.value=defaultIntro;
+  } else {
+    // Replace stale business name if merchant name changed
+    introEl.value=introEl.value.replace(/tailored for [^.\n]+\./,`tailored for ${name}.`);
   }
   const closingEl=document.getElementById('pdf-closing-text');
-  if(!closingEl.value){
+  if(!closingEl.value||closingEl.value.includes('partnering with .')){
     closingEl.value=`We look forward to partnering with ${name}. Please feel free to reach out for any clarifications or to proceed with onboarding.\n\nWarm regards,\nRazorpay Sales Team`;
+  } else {
+    closingEl.value=closingEl.value.replace(/partnering with [^.]+\./,`partnering with ${name}.`);
   }
   // Pre-fill requester email from signed-in user
   const emailEl=document.getElementById('pdf-requester-email');
