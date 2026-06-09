@@ -636,8 +636,20 @@
         </div>
         <div id="pdf-queued-status" class="hidden rounded-lg px-3 py-2 text-xs font-semibold"></div>
       </div>
+      <!-- Payment method selection -->
+      <div class="border border-gray-200 rounded-xl overflow-hidden">
+        <div class="bg-gray-50 px-4 py-2.5 flex items-center justify-between">
+          <span class="text-xs font-bold text-gray-600 uppercase tracking-wide">Payment Methods to Include</span>
+          <div class="flex gap-3">
+            <button onclick="pdfToggleAllMethods(true)" class="text-xs text-blue-600 font-semibold hover:underline">Select All</button>
+            <span class="text-gray-300">|</span>
+            <button onclick="pdfToggleAllMethods(false)" class="text-xs text-gray-400 font-semibold hover:underline">Clear</button>
+          </div>
+        </div>
+        <div id="pdf-method-checks" class="px-4 py-3 grid grid-cols-1 gap-1.5 text-xs"></div>
+      </div>
       <div class="bg-blue-50 border border-blue-100 rounded-xl px-4 py-3 text-xs text-blue-700 space-y-2">
-        <div><strong>What's included:</strong> Merchant details · Payment method rates · Settlement terms · Magic Checkout (if applicable) · T&amp;C</div>
+        <div><strong>What's included:</strong> Merchant details · Selected payment method rates · Settlement terms · Magic Checkout (if applicable) · T&amp;C</div>
         <label class="flex items-center gap-2 cursor-pointer">
           <input type="checkbox" id="pdf-include-savings" class="w-4 h-4 accent-blue-700">
           <span class="font-semibold text-blue-800">Include cost comparison vs competitor <span class="font-normal text-blue-600">(only shown if Razorpay is cheaper)</span></span>
@@ -1810,7 +1822,32 @@ function downloadPDF(){
     const btn=document.getElementById('pdf-generate-btn');
     if(btn){btn.textContent='⏳ Queued — Awaiting Approval';btn.disabled=true;btn.className='flex-1 bg-gradient-to-r from-amber-500 to-orange-500 text-white font-bold py-2.5 rounded-xl text-sm shadow-lg opacity-80 cursor-not-allowed';}
   }
+  // Populate method checkboxes (group by group, all checked by default)
+  const methodChecks=document.getElementById('pdf-method-checks');
+  if(methodChecks){
+    const GROUP_COLORS={Cards:'blue',UPI:'green','Net Banking':'purple',Others:'gray'};
+    const grpBadge={Cards:'bg-blue-100 text-blue-700',UPI:'bg-green-100 text-green-700','Net Banking':'bg-purple-100 text-purple-700',Others:'bg-gray-100 text-gray-600'};
+    let html='';
+    let lastGrp='';
+    METHODS.forEach((m,i)=>{
+      if(m.group!==lastGrp){
+        if(lastGrp) html+='</div>';
+        html+=`<div class="mb-2"><div class="text-xs font-bold uppercase tracking-wide mb-1 px-1"><span class="inline-block px-2 py-0.5 rounded-full text-xs font-bold ${grpBadge[m.group]||'bg-gray-100 text-gray-600'}">${m.group}</span></div><div class="space-y-1">`;
+        lastGrp=m.group;
+      }
+      html+=`<label class="flex items-center gap-2 cursor-pointer hover:bg-gray-50 rounded-lg px-2 py-1">
+        <input type="checkbox" class="pdf-method-cb w-3.5 h-3.5 accent-blue-600" data-idx="${i}" checked>
+        <span class="text-gray-700">${m.label}</span>
+      </label>`;
+    });
+    if(lastGrp) html+='</div></div>';
+    methodChecks.innerHTML=html;
+  }
   showModal('pdf-modal');
+}
+
+function pdfToggleAllMethods(val){
+  document.querySelectorAll('.pdf-method-cb').forEach(cb=>cb.checked=val);
 }
 
 // ================================================================
@@ -1973,10 +2010,12 @@ async function generateAndDownloadPDF(){
     const isComp=tab==='competition', isMC=tab==='magic-checkout';
     const pfx=isComp?'c':isMC?'mc':'n';
 
-    // Group methods by group header
+    // Group methods by group header — only include checked methods
+    const selectedMethodIdxs=new Set([...document.querySelectorAll('.pdf-method-cb:checked')].map(cb=>+cb.dataset.idx));
     let lastGroup='';
     const tableBody=[];
     METHODS.forEach((m,i)=>{
+      if(!selectedMethodIdxs.has(i)) return;
       if(m.group!==lastGroup){
         tableBody.push([{content:m.group,colSpan:2,styles:{fillColor:[235,239,252],textColor:[31,63,163],fontStyle:'bold',fontSize:8,cellPadding:2}}]);
         lastGroup=m.group;
