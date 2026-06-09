@@ -1783,6 +1783,21 @@ function downloadPDF(){
   const gmv=getGMV();
   if(!name){validateMerchant();alert('Please enter Business Name before downloading PDF.');return;}
   if(!gmv){document.getElementById('gmv').focus();alert('Please enter Monthly GMV before downloading PDF.');return;}
+  // Always sync teamGroup from GitHub before opening modal so routing is current
+  if(currentUser&&!isAdminOrCoAdmin()){
+    _ghRead('data/users.json').then(({data})=>{
+      const rec=(data||[]).find(u=>u.email===currentUser.email);
+      if(rec?.teamGroup&&rec.teamGroup!==currentUser.teamGroup){
+        currentUser.teamGroup=rec.teamGroup;
+        localStorage.setItem('rzp_user',JSON.stringify(currentUser));
+      }
+      _openPdfModal();
+    }).catch(()=>_openPdfModal());
+    return;
+  }
+  _openPdfModal();
+}
+function _openPdfModal(){
   // Pre-fill intro text
   const customerName=document.getElementById('customer-name').value.trim();
   const greeting=customerName?`Dear ${customerName},`:'Dear Sir/Madam,';
