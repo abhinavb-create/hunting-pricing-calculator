@@ -85,5 +85,20 @@
     "teamGroup": "",
     "versionGroup": null,
     "timestamp": 1780661349527
+  },
+  {
+    "requestId": "mq6adm66tnkqoa",
+    "fileName": "Stark industries-QZREb720M9CztV-Razorpay-Proposal.pdf",
+    "requesterEmail": "deeksha.p@razorpay.com",
+    "merchantName": "Stark industries",
+    "status": "pending",
+    "resolvedAt": "",
+    "gmv": 5600000,
+    "slabLabel": "25L - 75L",
+    "driveLink": "https://drive.google.com/file/d/1u8xiBrq0KClSLDQ6KEeOULu9R_PIzBSu/view",
+    "violations": "UPI: 0.06%",
+    "teamGroup": "EB <> Pricing",
+    "versionGroup": null,
+    "timestamp": 1780988189516
   }
 ]
