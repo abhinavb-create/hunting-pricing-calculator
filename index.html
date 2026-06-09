@@ -628,7 +628,7 @@
       </div>
       <div id="pdf-approval-section" class="hidden bg-amber-50 border-2 border-amber-300 rounded-xl px-4 py-3 space-y-2">
         <p class="text-sm font-black text-amber-800">⚠️ Approval Required</p>
-        <p class="text-xs text-amber-700">One or more rates are below the floor for this GMV slab. This PDF will automatically send an approval request to <strong>abhinav.b@razorpay.com</strong>.</p>
+        <p class="text-xs text-amber-700">One or more rates are below the floor for this GMV slab. This PDF will automatically send an approval request to <strong id="pdf-approver-name">abhinav.b@razorpay.com</strong>.</p>
         <div id="pdf-approval-violations" class="text-xs text-amber-900 font-semibold space-y-0.5"></div>
         <div>
           <label class="block text-xs font-bold text-amber-800 mb-1">Your Email (for approval reply)</label>
@@ -1809,6 +1809,14 @@ function downloadPDF(){
   if(violations.length>0&&approvalSection&&violationsDiv){
     approvalSection.classList.remove('hidden');
     violationsDiv.innerHTML=violations.map(v=>`<div>• ${v.label}: ${v.rate.toFixed(2)}%</div>`).join('');
+    // Show correct approver name based on user's team
+    const approverNameEl=document.getElementById('pdf-approver-name');
+    if(approverNameEl){
+      const teamGroup=currentUser?.teamGroup||'';
+      const approverEmail=getApproverEmail(teamGroup);
+      const approverFirst=approverEmail===CO_ADMIN_EMAIL?'Adnan (adnan.noorie@razorpay.com)':'Abhinav (abhinav.b@razorpay.com)';
+      approverNameEl.textContent=approverFirst;
+    }
   } else if(approvalSection){
     approvalSection.classList.add('hidden');
   }
@@ -2621,15 +2629,21 @@ async function uploadToDrive(arrayBuffer,fileName,violations,requestId,merchantN
     const file=await uploadRes.json();
     if(!file.id) return{success:false,error:file.error?.message||'Upload failed'};
     // Make file readable by anyone with the link (retry once if token expired)
-    const setPublic=async(token)=>fetch(`https://www.googleapis.com/drive/v3/files/${file.id}/permissions`,{
+    // Try domain-restricted first (razorpay.com), fall back to anyone-with-link
+    const setPermission=async(token,body)=>fetch(`https://www.googleapis.com/drive/v3/files/${file.id}/permissions`,{
       method:'POST',
       headers:{'Authorization':'Bearer '+token,'Content-Type':'application/json'},
-      body:JSON.stringify({role:'reader',type:'anyone'}),
+      body:JSON.stringify(body),
     });
-    let permRes=await setPublic(tok.token);
-    if(permRes.status===401){
-      const tok2=await _getToken(true);
-      if(tok2.success) permRes=await setPublic(tok2.token);
+    let tok2=tok;
+    // Refresh token if needed
+    const ensureToken=async()=>{if(!tok2.success){tok2=await _getToken(true);}return tok2;};
+    await ensureToken();
+    // First try domain-restricted (all @razorpay.com users)
+    let permRes=await setPermission(tok2.token,{role:'reader',type:'domain',domain:'razorpay.com'});
+    if(!permRes.ok){
+      // Fall back to anyone with link
+      permRes=await setPermission(tok2.token,{role:'reader',type:'anyone'});
     }
     if(!permRes.ok) console.warn('[Drive] Permission set failed:',await permRes.text());
     const driveLink=`https://drive.google.com/file/d/${file.id}/view`;
