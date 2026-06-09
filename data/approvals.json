@@ -145,5 +145,20 @@
     "teamGroup": "EB <> Pricing",
     "versionGroup": null,
     "timestamp": 1780998020612
+  },
+  {
+    "requestId": "mq6j26kwe4enai",
+    "fileName": "Twilight Inc-QZREb720M9CztV-Razorpay-Proposal.pdf",
+    "requesterEmail": "deeksha.p@razorpay.com",
+    "merchantName": "Twilight Inc",
+    "status": "pending",
+    "resolvedAt": "",
+    "gmv": 5600000,
+    "slabLabel": "25L - 75L",
+    "driveLink": "https://drive.google.com/file/d/1jpBQRwe8X1P1_PRRzD1d68IrTM7MZBDL/view",
+    "violations": "Credit Cards (Visa / MC / RuPay): 1.77%; Debit Card (Txn <= Rs.2,000): 0.27%; RuPay Debit Card: 0.03%; International Cards: 2.78%; EMI (Cardless / No-Cost EMI): 2.55%; UPI: 0.06%; Net Banking - Major Banks (HDFC/ICICI/AXIS/SBI): 1.31%; Net Banking - Other Banks: 1.41%",
+    "teamGroup": "EB <> Pricing",
+    "versionGroup": null,
+    "timestamp": 1781002769832
   }
 ]
