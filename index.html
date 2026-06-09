@@ -1884,19 +1884,9 @@ async function generateAndDownloadPDF(){
 
     const includeSavings=document.getElementById('pdf-include-savings')?.checked||false;
 
-    // NR gate
+    // NR gate (soft warning only below ₹1,000/month — no hard block)
     const _pgNR=computePGNR(tab,gmv);
-    if(_pgNR<0){
-      // Negative NR — hard block, cannot proceed
-      document.getElementById('nr-modal-title').textContent='❌ Negative NR — Cannot Download';
-      document.getElementById('nr-modal-body').textContent='This pricing results in negative net revenue for Razorpay. You cannot download or share this proposal. Please revise the rates.';
-      document.getElementById('nr-modal-btn').textContent='Go Back & Fix Rates';
-      document.getElementById('nr-modal-btn').onclick=()=>closeModal('nr-warn-modal');
-      document.getElementById('nr-modal-proceed').classList.add('hidden');
-      showModal('nr-warn-modal');
-      return; // hard block
-    } else if(_pgNR<1000){
-      // Low NR — soft warning, user can still proceed
+    if(_pgNR<1000){
       const _proceed=await new Promise(res=>{
         document.getElementById('nr-modal-title').textContent='⚠️ Low NR — Below ₹1,000/month';
         document.getElementById('nr-modal-body').textContent='This pricing results in an Effective NR below ₹1,000/month. Please loop in Abhinav or Adnan before sharing with the merchant.';
