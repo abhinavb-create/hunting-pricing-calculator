@@ -205,5 +205,20 @@
     "teamGroup": "EB <> Pricing",
     "versionGroup": null,
     "timestamp": 1781004666025
+  },
+  {
+    "requestId": "mq7pmbyfyyd3kj",
+    "fileName": "One last time Pvt Ltd-QZREb720M9CztV-Razorpay-Proposal.pdf",
+    "requesterEmail": "deeksha.p@razorpay.com",
+    "merchantName": "One last time Pvt Ltd",
+    "status": "pending",
+    "resolvedAt": "",
+    "gmv": 560000000,
+    "slabLabel": "5Cr & Above",
+    "driveLink": "https://drive.google.com/file/d/1rbgxxsQa67lLfp_kqvHywkb_u0J9hzGG/view",
+    "violations": "Credit Cards (Visa / MC / RuPay): 1.85%; Debit Card (Txn <= Rs.2,000): 0.40%; RuPay Debit Card: 0.02%; International Cards: 2.80%",
+    "teamGroup": "EB <> Pricing",
+    "versionGroup": null,
+    "timestamp": 1781074258194
   }
 ]
