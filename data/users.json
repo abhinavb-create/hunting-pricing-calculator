@@ -54,5 +54,13 @@
     "registeredAt": "2026-06-09T10:48:05.097Z",
     "lastSeen": "2026-06-09T10:48:36.699Z",
     "status": "active"
+  },
+  {
+    "email": "nishi.agarwal@razorpay.com",
+    "name": "Nishi Agarwal",
+    "teamGroup": "Competition Hunting",
+    "registeredAt": "2026-06-10T04:30:36.533Z",
+    "lastSeen": "2026-06-10T04:30:36.533Z",
+    "status": "pending"
   }
 ]
