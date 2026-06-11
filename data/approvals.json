@@ -235,5 +235,20 @@
     "teamGroup": "Competition Hunting",
     "versionGroup": null,
     "timestamp": 1781161611870
+  },
+  {
+    "requestId": "mq9b1x1hvadkpv",
+    "fileName": "Make My Tours and Travels-S683zIWmEaUuBg-Razorpay-Proposal.pdf",
+    "requesterEmail": "sainath.vishnugauri@razorpay.com",
+    "merchantName": "Make My Tours and Travels",
+    "status": "pending",
+    "resolvedAt": "",
+    "gmv": 800000,
+    "slabLabel": "Upto 25 Lakhs",
+    "driveLink": "https://drive.google.com/file/d/1YonY7Pl0kQTR3uXDU51jlLrqFK2BAd1r/view",
+    "violations": "Credit Cards (Visa / MC / RuPay): 1.80%; Debit Card (Txn <= Rs.2,000): 0.40%; Debit Card (Txn > Rs.2,000): 0.90%",
+    "teamGroup": "Competition Hunting",
+    "versionGroup": null,
+    "timestamp": 1781170718766
   }
 ]
