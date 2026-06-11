@@ -265,5 +265,20 @@
     "teamGroup": "Competition Hunting",
     "versionGroup": null,
     "timestamp": 1781174504625
+  },
+  {
+    "requestId": "mq9ge0x0jjbhgu",
+    "fileName": "B4BHARAT RELTECH PRIVATE LIMITED-SwGRpBbjoWve4b-Razorpay-Proposal.pdf",
+    "requesterEmail": "chandel.yajat@razorpay.com",
+    "merchantName": "B4BHARAT RELTECH PRIVATE LIMITED",
+    "status": "pending",
+    "resolvedAt": "",
+    "gmv": 30000000,
+    "slabLabel": "75L - 5Cr",
+    "driveLink": "https://drive.google.com/file/d/1n7rmw1MSXmZxSctPT8hLvMLAYql2tMb9/view",
+    "violations": "Credit Cards (Visa / MC / RuPay): 1.85%; EMI (Cardless / No-Cost EMI): 2.25%; Net Banking - Major Banks (HDFC/ICICI/AXIS/SBI): 1.55%; Net Banking - Other Banks: 1.40%",
+    "teamGroup": "Competition Hunting",
+    "versionGroup": null,
+    "timestamp": 1781179681664
   }
 ]
