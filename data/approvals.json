@@ -220,5 +220,20 @@
     "teamGroup": "EB <> Pricing",
     "versionGroup": null,
     "timestamp": 1781074258194
+  },
+  {
+    "requestId": "mq95mq3gdvvwrx",
+    "fileName": "Thiruporur marathon-Razorpay-Proposal.pdf",
+    "requesterEmail": "prerna.kumari@razorpay.com",
+    "merchantName": "Thiruporur marathon",
+    "status": "pending",
+    "resolvedAt": "",
+    "gmv": 500000,
+    "slabLabel": "Upto 25 Lakhs",
+    "driveLink": "https://drive.google.com/file/d/1CM21NAyZu2a28zwyOVQOVpP2CQVRczEC/view",
+    "violations": "Credit Cards (Visa / MC / RuPay): 1.90%",
+    "teamGroup": "Competition Hunting",
+    "versionGroup": null,
+    "timestamp": 1781161611870
   }
 ]
