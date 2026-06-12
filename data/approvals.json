@@ -310,5 +310,20 @@
     "teamGroup": "Competition Hunting",
     "versionGroup": null,
     "timestamp": 1781242975745
+  },
+  {
+    "requestId": "mqaife41gfc87t",
+    "fileName": "METROGINI PRIVATE LIMITED-T0J0TGXX6eYta1-Razorpay-Proposal.pdf",
+    "requesterEmail": "prerna.kumari@razorpay.com",
+    "merchantName": "METROGINI PRIVATE LIMITED",
+    "status": "pending",
+    "resolvedAt": "",
+    "gmv": 10000000,
+    "slabLabel": "75L - 5Cr",
+    "driveLink": "https://drive.google.com/file/d/1gMb8nTxaI_tirr_o1-B32R-1jLopvNZ-/view",
+    "violations": "Credit Cards (Visa / MC / RuPay): 1.88%; Debit Card (Txn <= Rs.2,000): 0.42%; Net Banking - Other Banks: 1.40%",
+    "teamGroup": "Competition Hunting",
+    "versionGroup": "ap_mq9hqb8oyst5om",
+    "timestamp": 1781243584882
   }
 ]
