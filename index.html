@@ -2403,6 +2403,7 @@ async function generateAndDownloadPDF(){
           pgNR,settleNR,effectiveNR,
           versionGroup,
           fileId,driveLink,fileName,
+          pdfBuffer,
         });
         if(driveEl){
           if(approvalResult.success) driveEl.innerHTML='<span class="text-green-600">✅ Queued & approval email sent</span>';
@@ -3795,7 +3796,7 @@ async function runEmailTest(){
   alert('Email Test:\n\n'+(result.success?'✅ Sent! Check your inbox.':'❌ Failed: '+result.error));
 }
 
-async function requestApproval({requestId,requesterEmail,requesterName,merchantName,gmv,slabLabel,violations,positiveNRMethods,pgNR,settleNR,effectiveNR,versionGroup,fileId,driveLink,fileName}){
+async function requestApproval({requestId,requesterEmail,requesterName,merchantName,gmv,slabLabel,violations,positiveNRMethods,pgNR,settleNR,effectiveNR,versionGroup,fileId,driveLink,fileName,pdfBuffer}){
   const teamGroup=currentUser?.teamGroup||'';
   const base='https://abhinavb-create.github.io/hunting-pricing-calculator/';
   const approveUrl=base+'?action=approve&requestId='+requestId+'&merchant='+encodeURIComponent(merchantName);
@@ -3804,15 +3805,28 @@ async function requestApproval({requestId,requesterEmail,requesterName,merchantN
   // 1. Log to GitHub (includes versionGroup for cross-browser versioning)
   await logApprovalToSheet({requestId,fileName,requesterEmail,merchantName,gmv,slabLabel,driveLink,violations,teamGroup,versionGroup});
 
-  // 2. Send beautiful HTML approval email via Gmail API
+  // 2. Send HTML approval email with PDF attached directly (bypasses Drive access issues)
   const htmlBody=buildApprovalEmailHtml({
     requesterName,requesterEmail,teamGroup,merchantName,gmv,slabLabel,violations,positiveNRMethods,pgNR,settleNR,effectiveNR,driveLink,approveUrl,rejectUrl,
   });
   const approverEmail=getApproverEmail(teamGroup);
-  const emailResult=await sendEmailViaGmail({
+  // Convert pdfBuffer to base64 for attachment
+  let pdfAttachment=null;
+  if(pdfBuffer){
+    try{
+      const bytes=new Uint8Array(pdfBuffer);
+      let binary='';
+      const chunk=8192;
+      for(let i=0;i<bytes.byteLength;i+=chunk) binary+=String.fromCharCode(...bytes.subarray(i,i+chunk));
+      pdfAttachment={name:fileName||'proposal.pdf',type:'application/pdf',base64:btoa(binary)};
+    }catch(e){console.warn('[Approval] PDF attach failed:',e);}
+  }
+  const emailResult=await sendEmailWithAttachment({
     to:approverEmail,
+    cc:OPS_EMAIL,
     subject:'[Approval Needed] '+merchantName+' | '+requesterName+(currentUser?.teamGroup?' | '+currentUser.teamGroup:''),
     htmlBody,
+    attachment:pdfAttachment,
   });
   console.log('[Gmail] Approval email result:',emailResult);
   return emailResult;
