@@ -2070,7 +2070,7 @@ async function generateAndDownloadPDF(){
       if(flatMode[tab]?.[i]){
         const aov=flatData[tab]?.[i]?.aov||1;
         const fee=flatData[tab]?.[i]?.fee||0;
-        rpRate=`Rs.${fee}/txn (AOV Rs.${Math.round(aov).toLocaleString('en-IN')})`;
+        rpRate=`Rs.${fee}/txn`;
       } else {
         const mdr=+(document.getElementById(`${pfx}-mdr-${i}`)?.value)||0;
         rpRate=mdr.toFixed(2)+'%';
@@ -3147,7 +3147,7 @@ function _buildPricingTableHtml(snap,vLabel){
     const isFlat=snap.flatModes[sc]?.[i];
     const fee=snap.flatFees[sc]?.[i];
     const aov=(snap.flatAovs[sc]?.[i]||50000)/100;
-    let rateStr=isFlat&&fee!=null?`₹${fee} flat (AOV ₹${Math.round(aov)})`:`${rate.toFixed(2)}%`;
+    let rateStr=isFlat&&fee!=null?`₹${fee}/txn flat`:`${rate.toFixed(2)}%`;
     if(!methodGroups[m.group]) methodGroups[m.group]=[];
     methodGroups[m.group].push({label:m.label,rateStr,rate,isFlat,fee});
   });
