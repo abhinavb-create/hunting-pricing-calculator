@@ -1303,10 +1303,10 @@ function refreshFlatUI(sc,i){
   const min=Math.ceil(bc*aov)+1;
   const minEl=document.getElementById(`${pfx}-minfee-${i}`); if(minEl)minEl.textContent=`₹${min}`;
   const feeEl=document.getElementById(`${pfx}-fee-${i}`);
-  if(feeEl&&(!feeEl.value||flatData[sc][i].fee===null)){feeEl.value=min+1;flatData[sc][i].fee=min+1;}
+  if(feeEl&&flatData[sc][i].fee===null){feeEl.value=0;flatData[sc][i].fee=0;}
   if(sc==='competition'){
     const cfEl=document.getElementById(`c-compfee-${i}`);
-    if(cfEl&&(!cfEl.value||flatData[sc][i].compFee===null)){cfEl.value=min+5;flatData[sc][i].compFee=min+5;}
+    if(cfEl&&flatData[sc][i].compFee===null){cfEl.value=0;flatData[sc][i].compFee=0;}
   }
 }
 
