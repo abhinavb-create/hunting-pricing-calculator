@@ -295,5 +295,20 @@
     "teamGroup": "Competition Hunting",
     "versionGroup": null,
     "timestamp": 1781181934695
+  },
+  {
+    "requestId": "mqai2m6eeckoy3",
+    "fileName": "CREATVER TECHNOLOGIES INDIA PRIVATE LIMITED-S0XNeGYCA1Xi2C-Razorpay-Proposal.pdf",
+    "requesterEmail": "prerna.kumari@razorpay.com",
+    "merchantName": "CREATVER TECHNOLOGIES INDIA PRIVATE LIMITED",
+    "status": "pending",
+    "resolvedAt": "",
+    "gmv": 50000000,
+    "slabLabel": "75L - 5Cr",
+    "driveLink": "https://drive.google.com/file/d/1bolaIUin3LtcSO8BMXjyP0dYlYL1cVZ3/view",
+    "violations": "Credit Cards (Visa / MC / RuPay): 1.25%; Debit Card (Txn <= Rs.2,000): 0.40%",
+    "teamGroup": "Competition Hunting",
+    "versionGroup": null,
+    "timestamp": 1781242975745
   }
 ]
