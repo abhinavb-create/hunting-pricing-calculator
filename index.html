@@ -1086,9 +1086,25 @@ function getFloorViolations(tab,gmv){
     if(floor===0) return;
     if(flatMode[tab]?.[i]) return; // flat fee mode — skip
     const mdr=+(document.getElementById(`${pfx}-mdr-${i}`)?.value)||0;
-    if(mdr<floor) v.push({label:m.label,rate:mdr,floor,idx:i});
+    const splEl=document.getElementById(`${pfx}-spl-${i}`);
+    const spl=splEl?parseFloat(splEl.value)||0:0;
+    if(mdr<floor) v.push({label:m.label,rate:mdr,floor,idx:i,split:spl});
   });
   return v;
+}
+function getPositiveNRMethods(tab,gmv,violationIdxs){
+  const pfx=tab==='competition'?'c':'mc';
+  const pos=[];
+  METHODS.forEach((m,i)=>{
+    if(m.locked) return;
+    if(violationIdxs.includes(i)) return; // already in violations
+    const splEl=document.getElementById(`${pfx}-spl-${i}`);
+    const spl=splEl?parseFloat(splEl.value)||0:0;
+    if(!spl||spl<=0) return; // no split, skip
+    const nr=methodNR(tab,i,gmv*spl/100);
+    if(nr>0) pos.push({label:m.label,split:spl,nr});
+  });
+  return pos;
 }
 function checkFloorWarnings(){
   const gmv=getGMV();
@@ -1112,17 +1128,17 @@ function checkFloorWarnings(){
 
 const METHODS = [
   // ── Cards ──
-  { id:'credit-cards',     label:'Credit Cards (Visa / MC / RuPay)',          group:'Cards',       flat:false, compRate:1.85, nocompRate:2.00, mcRate:1.85, compSplit:48, nocompSplit:48, mcSplit:48, compComp:1.95 },
+  { id:'credit-cards',     label:'Credit Cards (Visa / MC / RuPay)',          group:'Cards',       flat:false, compRate:2.00, nocompRate:2.00, mcRate:2.00, compSplit:48, nocompSplit:48, mcSplit:48, compComp:1.95 },
   { id:'debit-lt2k',       label:'Debit Card (Txn <= Rs.2,000)',               group:'Cards',       flat:false, compRate:0.40, nocompRate:0.40, mcRate:0.40, compSplit:0,  nocompSplit:0,  mcSplit:0,  compComp:0.40 },
   { id:'debit-gt2k',       label:'Debit Card (Txn > Rs.2,000)',                group:'Cards',       flat:false, compRate:0.85, nocompRate:0.90, mcRate:0.85, compSplit:0,  nocompSplit:0,  mcSplit:0,  compComp:0.90 },
   { id:'rupay-debit',      label:'RuPay Debit Card',                           group:'Cards',       flat:false, compRate:0.02, nocompRate:0.02, mcRate:0.02, compSplit:0,  nocompSplit:0,  mcSplit:0,  compComp:0.02 },
-  { id:'corp-cards',       label:'Corporate Cards (Credit & Debit)',           group:'Cards',       flat:false, compRate:2.90, nocompRate:2.95, mcRate:2.90, compSplit:0,  nocompSplit:0,  mcSplit:0,  compComp:3.00 },
-  { id:'intl-cards',       label:'International Cards',                        group:'Cards',       flat:false, compRate:2.80, nocompRate:2.95, mcRate:2.80, compSplit:0,  nocompSplit:0,  mcSplit:0,  compComp:3.00 },
-  { id:'amex',             label:'Diners / AMEX - Domestic only',              group:'Cards',       flat:false, compRate:2.90, nocompRate:2.95, mcRate:2.90, compSplit:0,  nocompSplit:0,  mcSplit:0,  compComp:3.00 },
-  { id:'emi',              label:'EMI (Cardless / No-Cost EMI)',               group:'Cards',       flat:false, compRate:2.20, nocompRate:2.30, mcRate:2.20, compSplit:0,  nocompSplit:0,  mcSplit:0,  compComp:2.40 },
+  { id:'corp-cards',       label:'Corporate Cards (Credit & Debit)',           group:'Cards',       flat:false, compRate:2.00, nocompRate:2.00, mcRate:2.00, compSplit:0,  nocompSplit:0,  mcSplit:0,  compComp:3.00 },
+  { id:'intl-cards',       label:'International Cards',                        group:'Cards',       flat:false, compRate:3.00, nocompRate:3.00, mcRate:3.00, compSplit:0,  nocompSplit:0,  mcSplit:0,  compComp:3.00 },
+  { id:'amex',             label:'Diners / AMEX - Domestic only',              group:'Cards',       flat:false, compRate:3.00, nocompRate:3.00, mcRate:3.00, compSplit:0,  nocompSplit:0,  mcSplit:0,  compComp:3.00 },
+  { id:'emi',              label:'EMI (Cardless / No-Cost EMI)',               group:'Cards',       flat:false, compRate:3.00, nocompRate:3.00, mcRate:3.00, compSplit:0,  nocompSplit:0,  mcSplit:0,  compComp:2.40 },
   // ── UPI ──
   { id:'upi',              label:'UPI',                                        group:'UPI',         flat:true,  compRate:0.25, nocompRate:0.30, mcRate:0.25, compSplit:39, nocompSplit:39, mcSplit:39, compComp:0.30 },
-  { id:'upi-cc',           label:'CC on UPI (RuPay CC on UPI)',                group:'UPI',         flat:false, compRate:2.05, nocompRate:2.10, mcRate:2.05, compSplit:0,  nocompSplit:0,  mcSplit:0,  compComp:2.15 },
+  { id:'upi-cc',           label:'CC on UPI (RuPay CC on UPI)',                group:'UPI',         flat:false, compRate:2.00, nocompRate:2.00, mcRate:2.00, compSplit:0,  nocompSplit:0,  mcSplit:0,  compComp:2.15 },
   // ── Net Banking ──
   { id:'net-banking',      label:'Net Banking - Major Banks (HDFC/ICICI/AXIS/SBI)', group:'Net Banking', flat:true,  compRate:1.65, nocompRate:1.70, mcRate:1.65, compSplit:0,  nocompSplit:0,  mcSplit:0,  compComp:1.80 },
   { id:'net-banking-others', label:'Net Banking - Other Banks',               group:'Net Banking', flat:false, compRate:1.31, nocompRate:1.31, mcRate:1.31, compSplit:0,  nocompSplit:0,  mcSplit:0,  compComp:1.40 },
@@ -2373,6 +2389,7 @@ async function generateAndDownloadPDF(){
         const pgNR=computePGNR(tab,gmv);
         const settleNR=settlementNR(gmv);
         const effectiveNR=pgNR+settleNR;
+        const positiveNRMethods=getPositiveNRMethods(tab,gmv,violations.map(v=>v.idx));
         const versionGroup=_newVersionParentGroup||null; // capture BEFORE requestApproval clears it
         const approvalResult=await requestApproval({
           requestId,
@@ -2382,6 +2399,7 @@ async function generateAndDownloadPDF(){
           gmv,
           slabLabel:FLOOR_RATES.slabs[getSlabIndex(gmv)].label,
           violations,
+          positiveNRMethods,
           pgNR,settleNR,effectiveNR,
           versionGroup,
           fileId,driveLink,fileName,
@@ -3678,17 +3696,26 @@ async function sendEmailViaGmail({to,subject,htmlBody},forceConsent=false){
   }catch(e){return{success:false,error:e.message};}
 }
 
-function buildApprovalEmailHtml({requesterName,requesterEmail,teamGroup,merchantName,gmv,slabLabel,violations,pgNR,settleNR,effectiveNR,driveLink,approveUrl,rejectUrl}){
+function buildApprovalEmailHtml({requesterName,requesterEmail,teamGroup,merchantName,gmv,slabLabel,violations,positiveNRMethods,pgNR,settleNR,effectiveNR,driveLink,approveUrl,rejectUrl}){
   const fmtRs=v=>v==null?'—':'₹'+Math.round(v).toLocaleString('en-IN');
   const totalNR=effectiveNR!=null?effectiveNR:(pgNR||0)+(settleNR||0);
   const nrColor=(totalNR==null||isNaN(totalNR))?'#374151':totalNR<0?'#dc2626':totalNR<5000?'#d97706':'#059669';
   const hasPGNR=pgNR!=null&&!isNaN(pgNR);
   const hasSettle=settleNR!=null&&!isNaN(settleNR)&&settleNR>0;
-  const violRows=(violations||[]).map(v=>`
-    <tr>
+  const violRows=(violations||[]).map(v=>{
+    const splitCell=v.split>0?`${v.split.toFixed(0)}%`:'—';
+    return `<tr>
       <td style="padding:8px 12px;border-bottom:1px solid #f0f0f0;font-size:13px;color:#374151">${v.label}</td>
+      <td style="padding:8px 12px;border-bottom:1px solid #f0f0f0;font-size:13px;color:#6b7280;text-align:center">${splitCell}</td>
       <td style="padding:8px 12px;border-bottom:1px solid #f0f0f0;font-size:13px;color:#6b7280;text-align:center">${Number(v.floor).toFixed(2)}%</td>
       <td style="padding:8px 12px;border-bottom:1px solid #f0f0f0;font-size:13px;font-weight:700;color:#dc2626;text-align:right">${Number(v.rate).toFixed(2)}%</td>
+    </tr>`;
+  }).join('');
+  const posRows=(positiveNRMethods||[]).map(p=>`
+    <tr>
+      <td style="padding:7px 12px;border-bottom:1px solid #f0f9f0;font-size:13px;color:#374151">${p.label}</td>
+      <td style="padding:7px 12px;border-bottom:1px solid #f0f9f0;font-size:13px;color:#6b7280;text-align:center">${p.split.toFixed(0)}%</td>
+      <td style="padding:7px 12px;border-bottom:1px solid #f0f9f0;font-size:13px;font-weight:700;color:#059669;text-align:right">+${fmtRs(p.nr)} / mo</td>
     </tr>`).join('');
   const nrBreakdown=hasPGNR?`
     <tr style="background:#f9fafb">
@@ -3706,8 +3733,18 @@ function buildApprovalEmailHtml({requesterName,requesterEmail,teamGroup,merchant
       <td style="padding:8px 12px;font-size:12px;font-weight:700;color:#374151">Total Effective NR</td>
       <td style="padding:8px 12px;font-size:15px;font-weight:900;color:${nrColor};text-align:right">${fmtRs(totalNR)} / month</td>
     </tr>`:'';
+  const posSection=posRows?`
+    <div style="font-size:12px;font-weight:700;color:#059669;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px">✅ Positive NR Methods (offsetting the below-floor rates)</div>
+    <table style="width:100%;border-collapse:collapse;border:1px solid #d1fae5;border-radius:8px;overflow:hidden;margin-bottom:24px;background:#f0fdf4">
+      <tr style="background:#dcfce7">
+        <th style="padding:8px 12px;font-size:11px;color:#166534;text-align:left;font-weight:600">Payment Method</th>
+        <th style="padding:8px 12px;font-size:11px;color:#166534;text-align:center;font-weight:600">GMV Split</th>
+        <th style="padding:8px 12px;font-size:11px;color:#166534;text-align:right;font-weight:600">NR Contribution</th>
+      </tr>
+      ${posRows}
+    </table>`:'';
   return `<!DOCTYPE html><html><body style="margin:0;padding:0;background:#f3f4f6;font-family:Arial,sans-serif">
-  <div style="max-width:580px;margin:32px auto;background:#fff;border-radius:16px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,0.08)">
+  <div style="max-width:600px;margin:32px auto;background:#fff;border-radius:16px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,0.08)">
     <div style="background:linear-gradient(135deg,#1f3fa3,#4f46e5);padding:28px 32px">
       <div style="font-size:11px;font-weight:700;color:#a5b4fc;letter-spacing:2px;text-transform:uppercase;margin-bottom:6px">Razorpay · Hunting Pricing</div>
       <div style="font-size:22px;font-weight:800;color:#fff">Approval Required</div>
@@ -3723,15 +3760,17 @@ function buildApprovalEmailHtml({requesterName,requesterEmail,teamGroup,merchant
       <table style="width:100%;border-collapse:collapse;border:1px solid #e5e7eb;border-radius:8px;overflow:hidden;margin-bottom:20px">
         ${nrBreakdown||`<tr><td style="padding:8px 12px;font-size:12px;color:#6b7280">Effective NR</td><td style="padding:8px 12px;font-size:15px;font-weight:900;color:${nrColor};text-align:right">${fmtRs(totalNR)} / month</td></tr>`}
       </table>
-      <div style="font-size:12px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px">Below-Floor Rates</div>
-      <table style="width:100%;border-collapse:collapse;border:1px solid #e5e7eb;border-radius:8px;overflow:hidden;margin-bottom:24px">
-        <tr style="background:#f9fafb">
-          <th style="padding:8px 12px;font-size:11px;color:#6b7280;text-align:left;font-weight:600">Payment Method</th>
-          <th style="padding:8px 12px;font-size:11px;color:#6b7280;text-align:center;font-weight:600">Floor Rate</th>
-          <th style="padding:8px 12px;font-size:11px;color:#6b7280;text-align:right;font-weight:600">Offered Rate</th>
+      <div style="font-size:12px;font-weight:700;color:#dc2626;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px">⚠️ Below-Floor Rates</div>
+      <table style="width:100%;border-collapse:collapse;border:1px solid #fee2e2;border-radius:8px;overflow:hidden;margin-bottom:24px">
+        <tr style="background:#fef2f2">
+          <th style="padding:8px 12px;font-size:11px;color:#991b1b;text-align:left;font-weight:600">Payment Method</th>
+          <th style="padding:8px 12px;font-size:11px;color:#991b1b;text-align:center;font-weight:600">GMV Split</th>
+          <th style="padding:8px 12px;font-size:11px;color:#991b1b;text-align:center;font-weight:600">Floor Rate</th>
+          <th style="padding:8px 12px;font-size:11px;color:#991b1b;text-align:right;font-weight:600">Offered Rate</th>
         </tr>
         ${violRows}
       </table>
+      ${posSection}
       ${driveLink?`<div style="margin-bottom:24px"><a href="${driveLink}" style="font-size:13px;color:#4f46e5;text-decoration:none;font-weight:600">📄 View Proposal PDF →</a></div>`:''}
       <div style="display:flex;gap:12px;margin-bottom:8px">
         <a href="${approveUrl}" style="display:inline-block;background:#16a34a;color:#fff;text-decoration:none;font-size:14px;font-weight:700;padding:12px 32px;border-radius:8px;margin-right:12px">✅ Approve</a>
@@ -3752,7 +3791,7 @@ async function runEmailTest(){
   alert('Email Test:\n\n'+(result.success?'✅ Sent! Check your inbox.':'❌ Failed: '+result.error));
 }
 
-async function requestApproval({requestId,requesterEmail,requesterName,merchantName,gmv,slabLabel,violations,pgNR,settleNR,effectiveNR,versionGroup,fileId,driveLink,fileName}){
+async function requestApproval({requestId,requesterEmail,requesterName,merchantName,gmv,slabLabel,violations,positiveNRMethods,pgNR,settleNR,effectiveNR,versionGroup,fileId,driveLink,fileName}){
   const teamGroup=currentUser?.teamGroup||'';
   const base='https://abhinavb-create.github.io/hunting-pricing-calculator/';
   const approveUrl=base+'?action=approve&requestId='+requestId+'&merchant='+encodeURIComponent(merchantName);
@@ -3763,7 +3802,7 @@ async function requestApproval({requestId,requesterEmail,requesterName,merchantN
 
   // 2. Send beautiful HTML approval email via Gmail API
   const htmlBody=buildApprovalEmailHtml({
-    requesterName,requesterEmail,teamGroup,merchantName,gmv,slabLabel,violations,pgNR,settleNR,effectiveNR,driveLink,approveUrl,rejectUrl,
+    requesterName,requesterEmail,teamGroup,merchantName,gmv,slabLabel,violations,positiveNRMethods,pgNR,settleNR,effectiveNR,driveLink,approveUrl,rejectUrl,
   });
   const approverEmail=getApproverEmail(teamGroup);
   const emailResult=await sendEmailViaGmail({
