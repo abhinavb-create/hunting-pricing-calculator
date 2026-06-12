@@ -3823,7 +3823,6 @@ async function requestApproval({requestId,requesterEmail,requesterName,merchantN
   }
   const emailResult=await sendEmailWithAttachment({
     to:approverEmail,
-    cc:OPS_EMAIL,
     subject:'[Approval Needed] '+merchantName+' | '+requesterName+(currentUser?.teamGroup?' | '+currentUser.teamGroup:''),
     htmlBody,
     attachment:pdfAttachment,
