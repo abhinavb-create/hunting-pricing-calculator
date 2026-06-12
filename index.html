@@ -309,9 +309,9 @@
       </div>
       <div id="ods-field" class="hidden min-w-44">
         <label class="block text-xs font-semibold text-gray-500 mb-1.5">ODS Rate % <span class="text-gray-300">(min 0.10%)</span></label>
-        <input id="ods-rate" type="number" value="0.10" min="0.10" max="2" step="0.01"
+        <input id="ods-rate" type="number" value="0.10" min="0" max="2" step="0.01"
           class="w-full px-3 py-2.5 border-2 border-blue-200 rounded-xl text-gray-800 font-bold text-sm focus:outline-none focus:border-blue-500"
-          oninput="clampAndUpdate('ods-rate',0.10)">
+          oninput="clampAndUpdate('ods-rate',0)">
         <p class="text-xs text-amber-600 font-semibold mt-1">⚠ Limit subject to approval at risk</p>
         <p id="ods-nr" class="text-xs text-blue-600 font-semibold mt-0.5"></p>
       </div>
@@ -952,6 +952,11 @@
       <div id="fam-merchant-info" class="bg-gray-50 rounded-xl px-4 py-3">
         <p class="text-sm font-bold text-gray-800" id="fam-merchant-name"></p>
         <p class="text-xs text-gray-500 mt-0.5" id="fam-merchant-sub"></p>
+        <div class="mt-2 flex items-center gap-2">
+          <label class="text-xs font-bold text-gray-500 whitespace-nowrap">MID</label>
+          <input id="fam-mid" type="text" placeholder="Enter MID (if available)" class="flex-1 px-3 py-1.5 border-2 border-gray-200 rounded-lg text-xs focus:outline-none focus:border-emerald-500" oninput="document.getElementById('fam-mid-display').textContent=this.value?'MID: '+this.value:''">
+          <span id="fam-mid-display" class="text-xs font-bold text-emerald-700"></span>
+        </div>
       </div>
       <!-- Version selector -->
       <div>
@@ -1448,7 +1453,7 @@ function settlementNR(gmv){
   if(t==='T2')return 0;
   if(t==='T1'){const r=+(document.getElementById('t1-rate').value)||0;return r/100*gmv;}
   if(t==='T0'){const r=Math.max(0.05,+(document.getElementById('t0-rate').value)||0.05);return r/100*gmv;}
-  if(t==='ODS'){const r=Math.max(0.10,+(document.getElementById('ods-rate').value)||0.10);return r/100*gmv;}
+  if(t==='ODS'){const r=+(document.getElementById('ods-rate').value)||0;return r/100*gmv;}
   return 0;
 }
 function settlementLabel(){
@@ -1512,7 +1517,7 @@ function updateOutputs(){
     set('t0-nr',`→ RP earns ${fmtINR2(r/100*gmv)}/month`);
   }
   if(document.getElementById('settlement-type').value==='ODS'){
-    const r=Math.max(0.10,+(document.getElementById('ods-rate').value)||0.10);
+    const r=+(document.getElementById('ods-rate').value)||0;
     set('ods-nr',`→ RP earns ${fmtINR2(r/100*gmv)}/month`);
   }
 
@@ -2116,7 +2121,7 @@ async function generateAndDownloadPDF(){
     if(settleType==='T2') settleText='T+2 - Standard (no additional charge)';
     else if(settleType==='T1'){const r=+(document.getElementById('t1-rate').value)||0;settleText=`T+1 - ${r.toFixed(2)}% of GMV`;}
     else if(settleType==='T0'){const r=Math.max(0.05,+(document.getElementById('t0-rate').value)||0.05);settleText=`T+0 - ${r.toFixed(2)}% of GMV`;}
-    else if(settleType==='ODS'){const r=Math.max(0.10,+(document.getElementById('ods-rate').value)||0.10);settleText=`On-Demand Settlement (ODS) - ${r.toFixed(2)}% of GMV`;}
+    else if(settleType==='ODS'){const r=+(document.getElementById('ods-rate').value)||0;settleText=`On-Demand Settlement (ODS) - ${r.toFixed(2)}% of GMV`;}
 
     const creditAmt=getGMVCreditAmount();
     const routeRate=getRouteRate();
@@ -3124,6 +3129,11 @@ function openFinalApprovalModal(rowId){
   const row=statsAllRows.find(r=>r.rowId===rowId);
   const merchantName=row?.merchantName||'Unknown Merchant';
   document.getElementById('fam-merchant-name').textContent=merchantName;
+  // Pre-fill MID from snapshot if available
+  const preFillMid=row?.snapshot?.mid||row?.mid||document.getElementById('merchant-mid')?.value||'';
+  const famMidEl=document.getElementById('fam-mid');
+  if(famMidEl){famMidEl.value=preFillMid;document.getElementById('fam-mid-display').textContent=preFillMid?'MID: '+preFillMid:'';}
+
 
   // Find all versions in the same group
   const group=row?.group||rowId;
@@ -3196,7 +3206,7 @@ function _buildPricingTableHtml(snap,vLabel){
   return `<table width="100%" cellpadding="0" cellspacing="0" style="border:1px solid #e5e7eb;border-radius:10px;overflow:hidden">${html}</table>`;
 }
 
-function buildFinalApprovalEmailHtml({requesterName,requesterEmail,teamGroup,merchantName,versions,notes}){
+function buildFinalApprovalEmailHtml({requesterName,requesterEmail,teamGroup,merchantName,mid,versions,notes}){
   // Build per-version pricing sections
   const verSections=versions.map((v,i)=>{
     const snap=window._snapCache?.[v.rowId]||v.snapshot||null;
@@ -3232,6 +3242,7 @@ function buildFinalApprovalEmailHtml({requesterName,requesterEmail,teamGroup,mer
   <tr><td style="background:linear-gradient(135deg,#059669 0%,#0d9488 100%);padding:28px 32px">
     <div style="font-size:11px;font-weight:700;letter-spacing:2px;color:#a7f3d0;text-transform:uppercase;margin-bottom:6px">Pricing Revamp Request</div>
     <div style="font-size:26px;font-weight:900;color:#fff">${merchantName}</div>
+    ${mid?`<div style="font-size:14px;font-weight:800;color:#a7f3d0;margin-top:4px;letter-spacing:0.5px">MID: ${mid}</div>`:''}
     <div style="font-size:13px;color:#d1fae5;margin-top:6px">Submitted by ${requesterName} · ${teamGroup||'Hunting Team'}</div>
   </td></tr>
   <tr><td style="padding:28px 32px">
@@ -3340,7 +3351,8 @@ async function sendFinalApprovalEmail(){
   const approveUrl=base+'?action=final-approve&requestId='+requestId+'&merchant='+encodeURIComponent(merchantName);
   const rejectUrl=base+'?action=final-reject&requestId='+requestId+'&merchant='+encodeURIComponent(merchantName);
 
-  const htmlBody=buildFinalApprovalEmailHtml({requesterName,requesterEmail,teamGroup,merchantName,versions:selectedVersions,notes});
+  const famMid=document.getElementById('fam-mid')?.value.trim()||'';
+  const htmlBody=buildFinalApprovalEmailHtml({requesterName,requesterEmail,teamGroup,merchantName,mid:famMid,versions:selectedVersions,notes});
 
   await logFinalApprovalToSheet({requestId,merchantName,requesterEmail,versionIds,notes,teamGroup});
 
