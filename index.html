@@ -1840,8 +1840,8 @@ function _openPdfModal(){
   const _hasApprovedRecord=_localAps.some(a=>a.status==='approved'&&a.merchantName===name);
   const _alreadyApproved=!!_approvedRequestId||_hasApprovedRecord;
 
-  // Check floor violations and populate approval section
-  const violations=getFloorViolations(activeTab,gmv);
+  // Check floor violations and populate approval section (admins/ops bypass approval)
+  const violations=isAdminOrCoAdmin()?[]:getFloorViolations(activeTab,gmv);
   const approvalSection=document.getElementById('pdf-approval-section');
   const violationsDiv=document.getElementById('pdf-approval-violations');
   if(violations.length>0&&!_alreadyApproved&&approvalSection&&violationsDiv){
@@ -2356,8 +2356,8 @@ async function generateAndDownloadPDF(){
 
     const fileName=mid?`${name}-${mid}-Razorpay-Proposal.pdf`:`${name}-Razorpay-Proposal.pdf`;
 
-    // Check for floor violations
-    const violations=getFloorViolations(tab,gmv);
+    // Check for floor violations (admins/ops bypass approval)
+    const violations=isAdminOrCoAdmin()?[]:getFloorViolations(tab,gmv);
     const requesterEmail=document.getElementById('pdf-requester-email')?.value.trim()||currentUser?.email||'';
     const pdfBuffer=doc.output('arraybuffer');
 
@@ -3088,8 +3088,11 @@ function onFamAttachChange(input){
   document.getElementById('fam-attach-label').textContent='📎 '+file.name+' ('+Math.round(file.size/1024)+' KB)';
   const reader=new FileReader();
   reader.onload=e=>{
-    const b64=btoa(String.fromCharCode(...new Uint8Array(e.target.result)));
-    _famAttachData={name:file.name,type:file.type||'application/octet-stream',base64:b64};
+    const bytes=new Uint8Array(e.target.result);
+    let binary='';
+    const chunk=8192;
+    for(let i=0;i<bytes.byteLength;i+=chunk) binary+=String.fromCharCode(...bytes.subarray(i,i+chunk));
+    _famAttachData={name:file.name,type:file.type||'application/octet-stream',base64:btoa(binary)};
   };
   reader.readAsArrayBuffer(file);
 }
@@ -3327,7 +3330,7 @@ async function sendFinalApprovalEmail(){
   const finalApproverEmail=getApproverEmail(teamGroup);
   const result=await sendEmailWithAttachment({
     to:finalApproverEmail,
-    cc:'dsstartup-ops@razorpay.com',
+    cc:'dsstartup-ops@razorpay.com,'+OPS_EMAIL,
     subject:'[Final Pricing Approval] '+merchantName+' | '+requesterName+(teamGroup?' | '+teamGroup:''),
     htmlBody,
     attachment:_famAttachData||null,
