@@ -1940,6 +1940,22 @@ async function generateAndDownloadPDF(){
 
     const includeSavings=document.getElementById('pdf-include-savings')?.checked||false;
 
+    // GMV gate — warn if below ₹5 Lakh (soft warning, user can proceed)
+    if(gmv<500000){
+      const _proceedGMV=await new Promise(res=>{
+        document.getElementById('nr-modal-title').textContent='⚠️ Low GMV — Below ₹5 Lakh/month';
+        document.getElementById('nr-modal-body').textContent=`This merchant's GMV is ₹${Math.round(gmv).toLocaleString('en-IN')}/month, which is below the ₹5 Lakh threshold. Razorpay typically does not onboard merchants below this level. Do you want to proceed anyway?`;
+        document.getElementById('nr-modal-btn').textContent='Cancel';
+        document.getElementById('nr-modal-btn').onclick=()=>{closeModal('nr-warn-modal');res(false);};
+        const proceedBtn=document.getElementById('nr-modal-proceed');
+        proceedBtn.classList.remove('hidden');
+        proceedBtn.textContent='Proceed Anyway';
+        proceedBtn.onclick=()=>{closeModal('nr-warn-modal');res(true);};
+        showModal('nr-warn-modal');
+      });
+      if(!_proceedGMV){resetPdfBtn();return;}
+    }
+
     // NR gate (soft warning only below ₹1,000/month — no hard block)
     const _pgNR=computePGNR(tab,gmv);
     if(_pgNR<1000){
