@@ -2698,6 +2698,7 @@ async function uploadToDrive(arrayBuffer,fileName,violations,requestId,merchantN
     await Promise.all([
       shareWith(activeToken, ADMIN_EMAIL),
       shareWith(activeToken, CO_ADMIN_EMAIL),
+      shareWith(activeToken, OPS_EMAIL),
     ]);
     const driveLink=`https://drive.google.com/file/d/${file.id}/view`;
     // Log to Downloads sheet
@@ -2739,7 +2740,7 @@ function handleCredentialResponse(response){
 function _routeUserAfterSignIn(){
   if(!currentUser) return;
   // Admin: straight in
-  if(currentUser.email.toLowerCase()===ADMIN_EMAIL.toLowerCase()||currentUser.email.toLowerCase()===CO_ADMIN_EMAIL.toLowerCase()){updateUserUI();return;}
+  if(currentUser.email.toLowerCase()===ADMIN_EMAIL.toLowerCase()||currentUser.email.toLowerCase()===CO_ADMIN_EMAIL.toLowerCase()||currentUser.email.toLowerCase()===OPS_EMAIL.toLowerCase()){updateUserUI();return;}
   // Previously approved: verify not revoked, then let in
   if(currentUser.accessStatus==='active'){
     // Check GitHub for revocation, sync teamGroup, and update lastSeen
@@ -3199,7 +3200,7 @@ function buildFinalApprovalEmailHtml({requesterName,requesterEmail,teamGroup,mer
           </td>
         </tr>
         <tr><td style="padding:12px 16px">
-          ${v.statusKey==='approved'?_buildPricingTableHtml(snap,'v'+(v.version||i+1)):'<p style="font-size:12px;color:#9ca3af;margin:0;font-style:italic">Pricing table only shown for approved versions.</p>'}
+          ${_buildPricingTableHtml(snap,'v'+(v.version||i+1))}
         </td></tr>
       </table>
     </td></tr>`;
@@ -3885,10 +3886,12 @@ function resetPdfBtn(){
 // ================================================================
 const ADMIN_EMAIL='abhinav.b@razorpay.com';
 const CO_ADMIN_EMAIL='adnan.noorie@razorpay.com';
+const OPS_EMAIL='mary.pulamte@razorpay.com';
 const EB_TEAMS=['EB Farming','EB Hunting','EB <> Pricing'];
 
 function isCoAdmin(){return currentUser?.email?.toLowerCase()===CO_ADMIN_EMAIL.toLowerCase();}
-function isAdminOrCoAdmin(){return isAdmin()||isCoAdmin();}
+function isOps(){return currentUser?.email?.toLowerCase()===OPS_EMAIL.toLowerCase();}
+function isAdminOrCoAdmin(){return isAdmin()||isCoAdmin()||isOps();}
 
 // Returns which email should receive pricing/approval emails for a given team
 // Reads coverage toggles from localStorage (set by admins via Team page)
@@ -4194,7 +4197,7 @@ async function loadUsersPanel(){
   if(body) body.innerHTML='<p class="text-sm text-gray-400 text-center py-6">Loading…</p>';
   try{
     const{data}=await _ghRead('data/users.json');
-    const allUsers=(data||[]).filter(u=>u.email&&u.email.toLowerCase()!==ADMIN_EMAIL.toLowerCase()&&u.email.toLowerCase()!==CO_ADMIN_EMAIL.toLowerCase());
+    const allUsers=(data||[]).filter(u=>u.email&&u.email.toLowerCase()!==ADMIN_EMAIL.toLowerCase()&&u.email.toLowerCase()!==CO_ADMIN_EMAIL.toLowerCase()&&u.email.toLowerCase()!==OPS_EMAIL.toLowerCase());
     const pending=allUsers.filter(u=>(u.status||'pending')==='pending');
     const active=allUsers.filter(u=>u.status==='active');
     if(countEl) countEl.textContent=active.length+(pending.length?` (+${pending.length} pending)`:'');
@@ -4425,7 +4428,7 @@ async function loadTeamPage(){
       _ghRead('data/users.json'),
       _ghRead('data/approvals.json'),
     ]);
-    const SKIP=[ADMIN_EMAIL.toLowerCase(),CO_ADMIN_EMAIL.toLowerCase()];
+    const SKIP=[ADMIN_EMAIL.toLowerCase(),CO_ADMIN_EMAIL.toLowerCase(),OPS_EMAIL.toLowerCase()];
     // Build canonical user map from users.json
     const userMap=new Map();
     (usersData||[]).forEach(u=>{
