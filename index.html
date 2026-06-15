@@ -1052,6 +1052,8 @@ const BANK_COSTS = {
   'mobile-wallets':     0.0165,
   'rupay-debit':        0.0002,
   'no-code':            0.0000,
+  'upi-wallet':         0.0165,
+  'cl-on-upi':          0.0215,
 };
 
 // ================================================================
@@ -1534,7 +1536,7 @@ function onGMVChange(){
 // METHOD NR
 // ================================================================
 function methodNR(sc,i,mGMV){
-  const bc=BANK_COSTS[METHODS[i].id];
+  const bc=BANK_COSTS[METHODS[i].id]??0;
   const pfx=sc==='competition'?'c':sc==='magic-checkout'?'mc':'n';
   if(flatMode[sc][i]){const aov=flatData[sc][i].aov||1,fee=flatData[sc][i].fee||0;return(fee-bc*aov)*(mGMV/aov);}
   const mdr=+(document.getElementById(`${pfx}-mdr-${i}`)?.value)||0;
