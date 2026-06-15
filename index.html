@@ -2813,8 +2813,11 @@ function handleCredentialResponse(response){
   try{
     const payload=decodeJWT(response.credential);
     const existing=JSON.parse(localStorage.getItem('rzp_user')||'null');
+    // Also check the persisted-status cache (survives sign-out)
+    let cachedStatus=existing?.accessStatus||null;
+    try{const sc=JSON.parse(localStorage.getItem('rzp_access_cache')||'{}');if(sc[payload.email]) cachedStatus=sc[payload.email];}catch(e){}
     currentUser={email:payload.email,name:payload.name,picture:payload.picture,
-      teamGroup:existing?.teamGroup||null,accessStatus:existing?.accessStatus||null};
+      teamGroup:existing?.teamGroup||null,accessStatus:cachedStatus};
     localStorage.setItem('rzp_user',JSON.stringify(currentUser));
     _routeUserAfterSignIn();
   }catch(e){console.error('GSI decode error:',e);}
@@ -2826,12 +2829,16 @@ function _routeUserAfterSignIn(){
   if(currentUser.email.toLowerCase()===ADMIN_EMAIL.toLowerCase()||currentUser.email.toLowerCase()===CO_ADMIN_EMAIL.toLowerCase()||currentUser.email.toLowerCase()===OPS_EMAIL.toLowerCase()){updateUserUI();return;}
   // Previously approved: verify not revoked, then let in
   if(currentUser.accessStatus==='active'){
+    // Refresh access cache on every active login
+    try{const sc=JSON.parse(localStorage.getItem('rzp_access_cache')||'{}');sc[currentUser.email]='active';localStorage.setItem('rzp_access_cache',JSON.stringify(sc));}catch(e){}
     // Check GitHub for revocation, sync teamGroup, and update lastSeen
     _ghRead('data/users.json').then(({data})=>{
       const rec=(data||[]).find(u=>u.email===currentUser.email);
       if(rec?.status==='revoked'){
         currentUser.accessStatus='revoked';
         localStorage.setItem('rzp_user',JSON.stringify(currentUser));
+        // Clear from access cache on revoke
+        try{const sc=JSON.parse(localStorage.getItem('rzp_access_cache')||'{}');delete sc[currentUser.email];localStorage.setItem('rzp_access_cache',JSON.stringify(sc));}catch(e){}
         _routeUserAfterSignIn(); // re-route to revoked screen
         return;
       }
@@ -2860,6 +2867,37 @@ function _routeUserAfterSignIn(){
   }
   // Already submitted a request: show pending screen
   if(currentUser.accessStatus==='pending'){showAccessPending();return;}
+  // Unknown status — check GitHub before showing request-access (handles sign-out/re-login case)
+  if(currentUser.accessStatus===null||currentUser.accessStatus===undefined){
+    _ghRead('data/users.json').then(({data})=>{
+      const rec=(data||[]).find(u=>u.email===currentUser.email);
+      if(rec?.status==='active'){
+        // Already approved — restore access silently
+        currentUser.accessStatus='active';
+        currentUser.teamGroup=rec.teamGroup||currentUser.teamGroup;
+        localStorage.setItem('rzp_user',JSON.stringify(currentUser));
+        // Persist in access cache so future sign-outs don't cause this again
+        try{const sc=JSON.parse(localStorage.getItem('rzp_access_cache')||'{}');sc[currentUser.email]='active';localStorage.setItem('rzp_access_cache',JSON.stringify(sc));}catch(e){}
+        updateUserUI();
+      }else if(rec?.status==='revoked'){
+        currentUser.accessStatus='revoked';
+        localStorage.setItem('rzp_user',JSON.stringify(currentUser));
+        _routeUserAfterSignIn();
+      }else if(rec){
+        // Record exists but status is pending
+        currentUser.accessStatus='pending';
+        localStorage.setItem('rzp_user',JSON.stringify(currentUser));
+        showAccessPending();
+      }else{
+        // Truly new user
+        showRequestAccess();
+      }
+    }).catch(()=>{
+      // Network error — fall back to request-access
+      showRequestAccess();
+    });
+    return;
+  }
   // Brand new: show request-access screen
   showRequestAccess();
 }
@@ -3661,6 +3699,8 @@ function handleActivateUserUrl(params){
     stored.accessStatus = 'active';
     localStorage.setItem('rzp_user', JSON.stringify(stored));
   }
+  // Persist in access cache so the user is recognized even after sign-out
+  try{const sc=JSON.parse(localStorage.getItem('rzp_access_cache')||'{}');sc[email]='active';localStorage.setItem('rzp_access_cache',JSON.stringify(sc));}catch(e){}
   document.body.innerHTML = `<div style="min-height:100vh;display:flex;align-items:center;justify-content:center;background:#f3f4f6;font-family:Arial,sans-serif"><div style="background:#fff;border-radius:20px;overflow:hidden;max-width:420px;width:90%;text-align:center;box-shadow:0 8px 40px rgba(0,0,0,0.12)"><div style="background:linear-gradient(135deg,#16a34a,#15803d);padding:32px"><div style="font-size:44px;margin-bottom:8px">🎉</div><div style="font-size:20px;font-weight:900;color:#fff">Access Activated!</div></div><div style="padding:28px 32px"><p style="color:#374151;font-size:14px">Your access to the Hunting Pricing Calculator has been activated. You can now sign in and start using the tool.</p><a href="https://abhinavb-create.github.io/hunting-pricing-calculator/" style="display:block;margin-top:20px;background:#1f3fa3;color:white;padding:12px 0;border-radius:10px;text-decoration:none;font-weight:700;font-size:14px">Open Calculator →</a></div></div></div>`;
 }
 
