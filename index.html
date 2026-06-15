@@ -1075,6 +1075,8 @@ const FLOOR_RATES = {
     'emi':                [2.75,2.60,2.50,2.00],
     'upi':                [0.20,0.10,0.08,0.05],
     'upi-cc':             [2.05,2.05,2.05,2.05],
+    'upi-wallet':         [1.00,1.00,1.00,1.00],
+    'cl-on-upi':          [1.80,1.80,1.80,1.80],
     'net-banking':        [1.65,1.65,1.65,1.65],
     'net-banking-others': [1.60,1.50,1.50,1.30],
     'mobile-wallets':     [1.80,1.70,1.68,1.65],
@@ -1094,11 +1096,32 @@ function computePGNR(tab,gmv){
   });
   return total;
 }
+function toggleNA(sc,i){
+  const pfx=sc==='competition'?'c':'mc';
+  const isNA=!naState[sc]?.[i];
+  if(!naState[sc]) naState[sc]={};
+  naState[sc][i]=isNA;
+  const btn=document.getElementById(`${pfx}-na-${i}`);
+  const splEl=document.getElementById(`${pfx}-spl-${i}`);
+  const mdrEl=document.getElementById(`${pfx}-mdr-${i}`);
+  if(isNA){
+    if(btn){btn.textContent='N/A ✓';btn.className='text-xs px-2 py-0.5 rounded-full border border-rose-400 bg-rose-50 text-rose-600 font-bold';}
+    if(splEl){splEl.value='0';splEl.disabled=true;splEl.classList.add('opacity-40');}
+    if(mdrEl){mdrEl.disabled=true;mdrEl.classList.add('opacity-40');}
+  }else{
+    if(btn){btn.textContent='N/A';btn.className='text-xs px-2 py-0.5 rounded-full border border-gray-300 text-gray-400 hover:bg-gray-100 font-semibold';}
+    if(splEl){splEl.disabled=false;splEl.classList.remove('opacity-40');}
+    if(mdrEl){mdrEl.disabled=false;mdrEl.classList.remove('opacity-40');}
+  }
+  updateOutputs();
+}
+
 function getFloorViolations(tab,gmv){
   const pfx=tab==='competition'?'c':'mc';
   const v=[];
   METHODS.forEach((m,i)=>{
     if(m.locked) return;
+    if(m.naFloor&&naState[tab]?.[i]) return; // marked N/A — skip floor check
     const floor=getFloor(m.id,gmv);
     if(floor===0) return;
     if(flatMode[tab]?.[i]) return; // flat fee mode — skip
@@ -1156,6 +1179,8 @@ const METHODS = [
   // ── UPI ──
   { id:'upi',              label:'UPI',                                        group:'UPI',         flat:true,  compRate:0.25, nocompRate:0.30, mcRate:0.25, compSplit:0,  nocompSplit:0,  mcSplit:0,  compComp:0.30 },
   { id:'upi-cc',           label:'CC on UPI (RuPay CC on UPI)',                group:'UPI',         flat:false, compRate:2.15, nocompRate:2.15, mcRate:2.15, compSplit:0,  nocompSplit:0,  mcSplit:0,  compComp:2.15 },
+  { id:'upi-wallet',       label:'UPI on Wallet',                              group:'UPI',         flat:false, compRate:2.00, nocompRate:2.00, mcRate:2.00, compSplit:0,  nocompSplit:0,  mcSplit:0,  compComp:2.00, naFloor:true },
+  { id:'cl-on-upi',        label:'CL on UPI',                                  group:'UPI',         flat:false, compRate:2.00, nocompRate:2.00, mcRate:2.00, compSplit:0,  nocompSplit:0,  mcSplit:0,  compComp:2.00, naFloor:true },
   // ── Net Banking ──
   { id:'net-banking',      label:'Net Banking - Major Banks (HDFC/ICICI/AXIS/SBI)', group:'Net Banking', flat:true,  compRate:1.65, nocompRate:1.70, mcRate:1.65, compSplit:0,  nocompSplit:0,  mcSplit:0,  compComp:1.80 },
   { id:'net-banking-others', label:'Net Banking - Other Banks',               group:'Net Banking', flat:false, compRate:2.00, nocompRate:2.00, mcRate:2.00, compSplit:0,  nocompSplit:0,  mcSplit:0,  compComp:1.40 },
@@ -1169,6 +1194,7 @@ const METHODS = [
 // ================================================================
 const flatMode = { competition:{}, 'magic-checkout':{} };
 const flatData  = { competition:{}, 'magic-checkout':{} };
+const naState   = { competition:{}, 'magic-checkout':{} }; // {idx: true} when method marked N/A
 METHODS.forEach((_,i) => {
   ['competition','magic-checkout'].forEach(sc => {
     flatMode[sc][i] = false;
@@ -1275,6 +1301,7 @@ function initTable(sc) {
       <td class="py-2.5 px-2 text-center align-top pt-3">
         <input id="${pfx}-spl-${i}" type="number" min="0" max="100" step="1" value="${defSpl}"
           class="w-16 text-center border-2 border-gray-200 rounded-lg px-1 py-1.5 font-bold text-xs focus:outline-none focus:border-blue-500" oninput="updateOutputs()">
+        ${m.naFloor?`<div class="mt-1"><button id="${pfx}-na-${i}" onclick="toggleNA('${sc}',${i})" class="text-xs px-2 py-0.5 rounded-full border border-gray-300 text-gray-400 hover:bg-gray-100 font-semibold">N/A</button></div>`:''}
       </td>
       <td id="${pfx}-gmv-${i}"  class="py-2.5 px-2 text-right align-top pt-3 text-gray-500 text-xs"></td>
       <td id="${pfx}-rpay-${i}" class="py-2.5 px-2 text-right align-top pt-3 font-bold text-green-700 text-xs"></td>
@@ -2100,8 +2127,9 @@ async function generateAndDownloadPDF(){
         lastGroup=m.group;
       }
       let rpRate;
-      if(flatMode[tab]?.[i]){
-        const aov=flatData[tab]?.[i]?.aov||1;
+      if(m.naFloor&&naState[tab]?.[i]){
+        rpRate='N/A';
+      } else if(flatMode[tab]?.[i]){
         const fee=flatData[tab]?.[i]?.fee||0;
         rpRate=`Rs.${fee}/txn`;
       } else {
@@ -2556,10 +2584,11 @@ function snapshotCalculatorState(){
     flatAovs: {},
     compFees: {},
     splits: {},
+    naStates: {},
   };
   ['competition','magic-checkout'].forEach(sc=>{
     const pfx=sc==='competition'?'c':'mc';
-    snap.rates[sc]={};snap.flatModes[sc]={};snap.flatFees[sc]={};snap.flatAovs[sc]={};snap.compFees[sc]={};snap.splits[sc]={};
+    snap.rates[sc]={};snap.flatModes[sc]={};snap.flatFees[sc]={};snap.flatAovs[sc]={};snap.compFees[sc]={};snap.splits[sc]={};snap.naStates[sc]={};
     METHODS.forEach((m,i)=>{
       snap.rates[sc][i]=document.getElementById(`${pfx}-mdr-${i}`)?.value||'';
       snap.flatModes[sc][i]=flatMode[sc][i]||false;
@@ -2568,6 +2597,7 @@ function snapshotCalculatorState(){
       snap.compFees[sc][i]=flatData[sc][i]?.compFee||null;
       const splEl=document.getElementById(`${pfx}-spl-${i}`);
       snap.splits[sc][i]=splEl?.value||'';
+      snap.naStates[sc][i]=naState[sc]?.[i]||false;
     });
   });
   return snap;
@@ -2604,6 +2634,12 @@ function restoreCalculatorState(snap){
         }
         const splEl=document.getElementById(`${pfx}-spl-${i}`);
         if(splEl&&snap.splits?.[sc]?.[i]!==undefined) splEl.value=snap.splits[sc][i];
+        // Restore N/A state
+        if(m.naFloor&&snap.naStates?.[sc]?.[i]){
+          if(!naState[sc]) naState[sc]={};
+          naState[sc][i]=false; // force toggle to set it properly
+          toggleNA(sc,i);
+        }
       });
     });
   }
@@ -3195,13 +3231,13 @@ function _buildPricingTableHtml(snap,vLabel){
   const pfx=sc==='competition'?'c':'mc';
   const methodGroups={};
   METHODS.forEach((m,i)=>{
+    const isNA=m.naFloor&&snap.naStates?.[sc]?.[i];
     const rate=parseFloat(snap.rates[sc]?.[i])||0;
     const isFlat=snap.flatModes[sc]?.[i];
     const fee=snap.flatFees[sc]?.[i];
-    const aov=(snap.flatAovs[sc]?.[i]||50000)/100;
-    let rateStr=isFlat&&fee!=null?`₹${fee}/txn flat`:`${rate.toFixed(2)}%`;
+    let rateStr=isNA?'N/A':isFlat&&fee!=null?`₹${fee}/txn flat`:`${rate.toFixed(2)}%`;
     if(!methodGroups[m.group]) methodGroups[m.group]=[];
-    methodGroups[m.group].push({label:m.label,rateStr,rate,isFlat,fee});
+    methodGroups[m.group].push({label:m.label,rateStr,rate,isFlat,fee,isNA});
   });
   const groupColors={'Cards':'#eff6ff','UPI':'#f0fdf4','Net Banking':'#faf5ff','Others':'#fff7ed'};
   const groupHeaderColors={'Cards':'#1d4ed8','UPI':'#15803d','Net Banking':'#7e22ce','Others':'#c2410c'};
@@ -3211,10 +3247,11 @@ function _buildPricingTableHtml(snap,vLabel){
     const hc=groupHeaderColors[grp]||'#374151';
     html+=`<tr><td colspan="2" style="background:${bg};padding:6px 10px;font-size:10px;font-weight:800;color:${hc};text-transform:uppercase;letter-spacing:1px">${grp}</td></tr>`;
     rows.forEach(r=>{
-      const isZero=r.rate===0&&!r.isFlat;
+      const isZero=r.rate===0&&!r.isFlat&&!r.isNA;
+      const dispColor=r.isNA?'#9ca3af':isZero?'#9ca3af':'#111827';
       html+=`<tr style="border-bottom:1px solid #f3f4f6">
         <td style="padding:7px 10px;font-size:12px;color:#374151;width:70%">${r.label}</td>
-        <td style="padding:7px 10px;font-size:12px;font-weight:700;color:${isZero?'#9ca3af':'#111827'};text-align:right;white-space:nowrap">${isZero?'—':r.rateStr}</td>
+        <td style="padding:7px 10px;font-size:12px;font-weight:700;color:${dispColor};text-align:right;white-space:nowrap">${isZero?'—':r.rateStr}</td>
       </tr>`;
     });
   });
