@@ -1139,12 +1139,11 @@ function getPositiveNRMethods(tab,gmv,violationIdxs){
   const pos=[];
   METHODS.forEach((m,i)=>{
     if(m.locked) return;
-    if(violationIdxs.includes(i)) return; // already in violations
     const splEl=document.getElementById(`${pfx}-spl-${i}`);
     const spl=splEl?parseFloat(splEl.value)||0:0;
     if(!spl||spl<=0) return; // no split, skip
     const nr=methodNR(tab,i,gmv*spl/100);
-    if(nr>0) pos.push({label:m.label,split:spl,nr});
+    if(nr>=0) pos.push({label:m.label,split:spl,nr,isBelowFloor:violationIdxs.includes(i)});
   });
   return pos;
 }
@@ -3900,9 +3899,9 @@ function buildApprovalEmailHtml({requesterName,requesterEmail,teamGroup,merchant
   }).join('');
   const posRows=(positiveNRMethods||[]).map(p=>`
     <tr>
-      <td style="padding:7px 12px;border-bottom:1px solid #f0f9f0;font-size:13px;color:#374151">${p.label}</td>
+      <td style="padding:7px 12px;border-bottom:1px solid #f0f9f0;font-size:13px;color:#374151">${p.label}${p.isBelowFloor?` <span style="font-size:10px;color:#f59e0b;font-weight:600">(below floor)</span>`:''}</td>
       <td style="padding:7px 12px;border-bottom:1px solid #f0f9f0;font-size:13px;color:#6b7280;text-align:center">${p.split.toFixed(0)}%</td>
-      <td style="padding:7px 12px;border-bottom:1px solid #f0f9f0;font-size:13px;font-weight:700;color:#059669;text-align:right">+${fmtRs(p.nr)} / mo</td>
+      <td style="padding:7px 12px;border-bottom:1px solid #f0f9f0;font-size:13px;font-weight:700;color:${p.nr>0?'#059669':'#6b7280'};text-align:right">${p.nr>0?'+':''}${fmtRs(p.nr)} / mo</td>
     </tr>`).join('');
   const nrBreakdown=hasPGNR?`
     <tr style="background:#f9fafb">
