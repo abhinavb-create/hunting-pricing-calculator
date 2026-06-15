@@ -2813,11 +2813,15 @@ function handleCredentialResponse(response){
   try{
     const payload=decodeJWT(response.credential);
     const existing=JSON.parse(localStorage.getItem('rzp_user')||'null');
-    // Also check the persisted-status cache (survives sign-out)
-    let cachedStatus=existing?.accessStatus||null;
-    try{const sc=JSON.parse(localStorage.getItem('rzp_access_cache')||'{}');if(sc[payload.email]) cachedStatus=sc[payload.email];}catch(e){}
+    // If same email signed back in, restore their access metadata immediately (survives sign-out)
+    const sameEmail=existing?.email?.toLowerCase()===payload.email?.toLowerCase();
+    const restoredStatus=sameEmail?(existing?.accessStatus||null):null;
+    const restoredTeam=sameEmail?(existing?.teamGroup||null):null;
+    // Also check the persisted access cache as a fallback
+    let cachedStatus=restoredStatus;
+    if(!cachedStatus){try{const sc=JSON.parse(localStorage.getItem('rzp_access_cache')||'{}');if(sc[payload.email]) cachedStatus=sc[payload.email];}catch(e){}}
     currentUser={email:payload.email,name:payload.name,picture:payload.picture,
-      teamGroup:existing?.teamGroup||null,accessStatus:cachedStatus};
+      teamGroup:restoredTeam,accessStatus:cachedStatus};
     localStorage.setItem('rzp_user',JSON.stringify(currentUser));
     _routeUserAfterSignIn();
   }catch(e){console.error('GSI decode error:',e);}
@@ -3174,8 +3178,10 @@ function updateUserUI(){
 }
 
 function signOut(){
+  // Preserve access metadata so re-login with same email restores access instantly
+  const saved=JSON.parse(localStorage.getItem('rzp_user')||'null');
+  if(saved) localStorage.setItem('rzp_user',JSON.stringify({...saved,_signedOut:true}));
   currentUser=null;
-  localStorage.removeItem('rzp_user');
   document.getElementById('access-requested-screen')?.classList.add('hidden');
   document.getElementById('request-access-screen')?.classList.add('hidden');
   stopApprovalPolling();
@@ -4454,18 +4460,25 @@ async function loadUserHistory(){
       approvals=JSON.parse(localStorage.getItem('rzp_pending_approvals')||'[]');
     }
   } else {
-    // ── NON-ADMIN PATH: read localStorage + sync status from GitHub ──────
+    // ── NON-ADMIN PATH: read localStorage + fill missing records from GitHub ──────
     downloads=localDls.filter(d=>d.userEmail===userEmail);
     const localAps=JSON.parse(localStorage.getItem('rzp_pending_approvals')||'[]');
-    // Sync statuses from GitHub so approvals show correctly after page reload
     try{
       const{data:ghAps}=await _ghRead('data/approvals.json');
       if(ghAps&&ghAps.length){
+        // Sync statuses for existing local records
         let changed=false;
         localAps.forEach(la=>{
           const gh=ghAps.find(g=>g.requestId===la.requestId);
           if(gh&&gh.status&&gh.status!==la.status){la.status=gh.status;changed=true;}
         });
+        // Revive any GitHub records not in localStorage (cleared browser, new device, etc.)
+        const localIds=new Set(localAps.map(a=>a.requestId));
+        const myGhAps=ghAps.filter(g=>g.requesterEmail===userEmail&&!localIds.has(g.requestId));
+        if(myGhAps.length){
+          myGhAps.forEach(g=>localAps.push({requestId:g.requestId,fileName:g.fileName||'',merchantName:g.merchantName||'',timestamp:g.timestamp||Date.now(),status:g.status||'pending',driveLink:g.driveLink||'',rowId:'ap_'+g.requestId,teamGroup:g.teamGroup||'',snapshot:g.snapshot||null}));
+          changed=true;
+        }
         if(changed) localStorage.setItem('rzp_pending_approvals',JSON.stringify(localAps));
       }
     }catch(e){console.warn('[Stats] GH sync:',e);}
