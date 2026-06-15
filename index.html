@@ -236,7 +236,19 @@
         <p class="text-xs text-indigo-500">Fields pre-filled from previous proposal. Edit rates and download to save as new version.</p>
       </div>
     </div>
-    <button onclick="_newVersionParentGroup=null;document.getElementById('new-version-banner').classList.add('hidden')" class="text-xs text-indigo-400 hover:text-indigo-700 font-semibold px-3 py-1.5 rounded-lg border border-indigo-200 hover:bg-indigo-100">Cancel</button>
+    <button onclick="_newVersionParentGroup=null;document.getElementById('new-version-banner').classList.add('hidden');setPricingLocked(false);" class="text-xs text-indigo-400 hover:text-indigo-700 font-semibold px-3 py-1.5 rounded-lg border border-indigo-200 hover:bg-indigo-100">Cancel</button>
+  </div>
+
+  <!-- PRICING LOCKED BANNER -->
+  <div id="pricing-locked-banner" class="hidden mb-4 bg-amber-50 border-2 border-amber-300 rounded-2xl px-5 py-3 flex items-center justify-between gap-4">
+    <div class="flex items-center gap-3">
+      <span class="text-2xl">🔒</span>
+      <div>
+        <p class="text-sm font-bold text-amber-800">Pricing Locked — PDF Downloaded</p>
+        <p class="text-xs text-amber-600">To make changes, click <strong>New Version</strong> from My Stats, or click <strong>Start Fresh</strong> below.</p>
+      </div>
+    </div>
+    <button onclick="startFreshCalculator()" class="text-xs text-amber-700 hover:text-amber-900 font-semibold px-3 py-1.5 rounded-lg border border-amber-300 hover:bg-amber-100">Start Fresh</button>
   </div>
 
   <!-- MERCHANT PROFILE -->
@@ -2466,21 +2478,29 @@ async function generateAndDownloadPDF(){
     }else{
       // ── NORMAL FLOW: download immediately ──
       doc.save(fileName);
-      // Save to localStorage immediately so stats always show it
       const snap=snapshotCalculatorState();
-      const newRowId='dl_'+Date.now();
-      const dlRec={timestamp:Date.now(),userEmail:currentUser?.email||'',userName:currentUser?.name||'',teamGroup:currentUser?.teamGroup||'',merchantName:name||'',fileName,driveLink:'',statusKey:'downloaded',rowId:newRowId,snapshot:snap};
+      const isNewVersion=!!_newVersionParentGroup;
+      // Only create a new dl_ row if: (a) it's a new version, OR (b) no row exists yet for this session
       const localDls=JSON.parse(localStorage.getItem('rzp_downloads')||'[]');
-      localDls.unshift(dlRec);
-      localStorage.setItem('rzp_downloads',JSON.stringify(localDls.slice(0,200)));
-      // If this was started as a "New Version", auto-link it to the parent group
-      if(_newVersionParentGroup){
-        statsGroupMap[newRowId]=_newVersionParentGroup;
-        localStorage.setItem('rzp_group_map',JSON.stringify(statsGroupMap));
-        _newVersionParentGroup=null;
-        const banner=document.getElementById('new-version-banner');
-        if(banner) banner.classList.add('hidden');
+      if(isNewVersion||!_currentDlRowId){
+        const newRowId='dl_'+Date.now();
+        const dlRec={timestamp:Date.now(),userEmail:currentUser?.email||'',userName:currentUser?.name||'',teamGroup:currentUser?.teamGroup||'',merchantName:name||'',fileName,driveLink:'',statusKey:'downloaded',rowId:newRowId,snapshot:snap};
+        localDls.unshift(dlRec);
+        localStorage.setItem('rzp_downloads',JSON.stringify(localDls.slice(0,200)));
+        _currentDlRowId=newRowId;
+        // If this was started as a "New Version", auto-link it to the parent group
+        if(isNewVersion){
+          statsGroupMap[newRowId]=_newVersionParentGroup;
+          localStorage.setItem('rzp_group_map',JSON.stringify(statsGroupMap));
+          _newVersionParentGroup=null;
+          document.getElementById('new-version-banner')?.classList.add('hidden');
+        }
+      }else{
+        // Re-download of same session — update snapshot/fileName on existing row only
+        const idx=localDls.findIndex(d=>d.rowId===_currentDlRowId);
+        if(idx>=0){localDls[idx].snapshot=snap;localDls[idx].fileName=fileName;localStorage.setItem('rzp_downloads',JSON.stringify(localDls));}
       }
+      const rowIdForDrive=_currentDlRowId;
       uploadToDrive(pdfBuffer,fileName,[],null,name).then(result=>{
         if(driveEl){
           if(result.success) driveEl.innerHTML='✅ <span class="text-green-600 font-medium">Saved to Razorpay Drive</span>';
@@ -2488,13 +2508,15 @@ async function generateAndDownloadPDF(){
         }
         if(result.success&&result.driveLink){
           const dls=JSON.parse(localStorage.getItem('rzp_downloads')||'[]');
-          const idx=dls.findIndex(d=>d.fileName===fileName&&d.driveLink==='');
+          const idx=dls.findIndex(d=>d.rowId===rowIdForDrive);
           if(idx>=0){dls[idx].driveLink=result.driveLink;localStorage.setItem('rzp_downloads',JSON.stringify(dls));}
         }
       }).catch(()=>{
         if(driveEl) driveEl.innerHTML='<span class="text-amber-500">⚠️ Drive save failed — PDF downloaded locally</span>';
       });
       closeModal('pdf-modal');
+      // Lock pricing after download — user must request New Version to edit
+      setTimeout(()=>setPricingLocked(true),200);
     }
   }catch(err){
     console.error('PDF error:',err);
@@ -2594,14 +2616,17 @@ function restoreCalculatorState(snap){
 function redownloadPDF(rowId){
   const row=statsAllRows.find(r=>r.rowId===rowId);
   if(!row||!row.snapshot) return;
+  // Pre-set the session row ID so re-download doesn't create a duplicate dashboard entry
+  _currentDlRowId=rowId;
   closeStats();
   restoreCalculatorState(row.snapshot);
-  // Auto-open PDF modal after state is restored
+  // Auto-open PDF modal after state is restored; keep locked state
   setTimeout(()=>{ openModal('pdf-modal'); },300);
 }
 
 function startNewVersion(rowId, parentGroup, snapJSON){
   _newVersionParentGroup = parentGroup || rowId;
+  setPricingLocked(false);
   closeStats();
   if(snapJSON){
     try{
@@ -3621,6 +3646,50 @@ let pendingPDFBuffer=null;
 let pendingFileName=null;
 let approvalPollTimer=null;
 let _approvedRequestId=null; // set when approval received; bypasses re-approval on next download
+let _currentDlRowId=null;    // tracks the active dl_ record for this session (prevents duplicate rows)
+let _pricingLocked=false;    // true after a PDF is downloaded; cleared only by "New Version"
+
+function setPricingLocked(locked){
+  _pricingLocked=locked;
+  const banner=document.getElementById('pricing-locked-banner');
+  const newVerBanner=document.getElementById('new-version-banner');
+  if(locked){
+    banner?.classList.remove('hidden');
+    // Disable all interactive inputs in main-wrap except header buttons
+    document.querySelectorAll('#main-wrap input, #main-wrap select, #main-wrap textarea').forEach(el=>{
+      el.disabled=true;
+      el.classList.add('opacity-50','cursor-not-allowed');
+    });
+    // Disable the Download PDF button — show "New Version to edit" state
+    const pdfBtn=document.getElementById('pdf-btn');
+    if(pdfBtn){pdfBtn.disabled=true;pdfBtn.classList.add('opacity-50','cursor-not-allowed');}
+  }else{
+    banner?.classList.add('hidden');
+    newVerBanner?.classList.add('hidden');
+    document.querySelectorAll('#main-wrap input, #main-wrap select, #main-wrap textarea').forEach(el=>{
+      el.disabled=false;
+      el.classList.remove('opacity-50','cursor-not-allowed');
+    });
+    const pdfBtn=document.getElementById('pdf-btn');
+    if(pdfBtn){pdfBtn.disabled=false;pdfBtn.classList.remove('opacity-50','cursor-not-allowed');}
+    _currentDlRowId=null;
+  }
+}
+
+function startFreshCalculator(){
+  _pricingLocked=false;
+  _currentDlRowId=null;
+  _newVersionParentGroup=null;
+  _approvedRequestId=null;
+  setPricingLocked(false);
+  // Reset all fields
+  document.getElementById('merchant-name').value='';
+  document.getElementById('merchant-mid').value='';
+  document.getElementById('customer-name').value='';
+  // Reset splits, MDRs to defaults
+  initializeDefaults?.();
+  updateOutputs?.();
+}
 
 function genRequestId(){
   return Date.now().toString(36)+Math.random().toString(36).slice(2,8);
