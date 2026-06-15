@@ -325,5 +325,20 @@
     "teamGroup": "Competition Hunting",
     "versionGroup": "ap_mq9hqb8oyst5om",
     "timestamp": 1781243584882
+  },
+  {
+    "requestId": "mqf3slgj4ong0s",
+    "fileName": "ASTRANAND PRIVATE LIMITED-NacZtG9fU60iY8-Razorpay-Proposal.pdf",
+    "requesterEmail": "harsha.john@razorpay.com",
+    "merchantName": "ASTRANAND PRIVATE LIMITED",
+    "status": "pending",
+    "resolvedAt": "",
+    "gmv": 15000000,
+    "slabLabel": "75L - 5Cr",
+    "driveLink": "https://drive.google.com/file/d/1dTcF0iXvTdlQ-Too_r1nfPXNnxX3BGVV/view",
+    "violations": "RuPay Debit Card: 0.05%; UPI: 0.02%",
+    "teamGroup": "Shopify Hunting",
+    "versionGroup": null,
+    "timestamp": 1781521328907
   }
 ]
