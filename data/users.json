@@ -62,5 +62,13 @@
     "registeredAt": "2026-06-10T04:30:36.533Z",
     "lastSeen": "2026-06-14T12:01:43.196Z",
     "status": "active"
+  },
+  {
+    "email": "anam.imteyaz@razorpay.com",
+    "name": "Anam Imteyaz",
+    "teamGroup": "Shopify Hunting",
+    "registeredAt": "2026-06-16T06:09:48.234Z",
+    "lastSeen": "2026-06-16T06:09:48.234Z",
+    "status": "pending"
   }
 ]
