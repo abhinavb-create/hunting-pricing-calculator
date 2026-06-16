@@ -340,5 +340,20 @@
     "teamGroup": "Shopify Hunting",
     "versionGroup": null,
     "timestamp": 1781521328907
+  },
+  {
+    "requestId": "mqgedzfwj4bpkf",
+    "fileName": "HARMONIC HUES LLP-N2deS9pNktkI3X-Razorpay-Proposal.pdf",
+    "requesterEmail": "prerna.kumari@razorpay.com",
+    "merchantName": "HARMONIC HUES LLP",
+    "status": "pending",
+    "resolvedAt": "",
+    "gmv": 5000000,
+    "slabLabel": "25L - 75L",
+    "driveLink": "https://drive.google.com/file/d/1oMXtICvY6aPImb1DSc5WLVa-zonW6ajJ/view",
+    "violations": "UPI: 0.05%; Net Banking - Major Banks (HDFC/ICICI/AXIS/SBI): 1.55%",
+    "teamGroup": "Competition Hunting",
+    "versionGroup": "dl_1781161716358",
+    "timestamp": 1781599584442
   }
 ]
