@@ -64,5 +64,16 @@
     "resolvedAt": "",
     "teamGroup": "Shopify Hunting",
     "timestamp": "2026-06-16T11:03:09.550Z"
+  },
+  {
+    "requestId": "fa_mqgl4meft8jx1f",
+    "merchantName": "GLOBAL VENTURES",
+    "requesterEmail": "prerna.kumari@razorpay.com",
+    "versionIds": "dl_1781602698563",
+    "notes": "",
+    "status": "pending",
+    "resolvedAt": "",
+    "teamGroup": "Competition Hunting",
+    "timestamp": "2026-06-16T11:54:57.257Z"
   }
 ]
