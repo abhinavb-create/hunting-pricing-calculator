@@ -3456,34 +3456,50 @@ async function sendEmailWithAttachment({to,cc,subject,htmlBody,attachment,thread
   if(!tok.success) tok=await _getToken(true);
   if(!tok.success) return{success:false,error:tok.error};
 
-  const boundary='rzp_mime_'+Date.now();
-  let mimeLines=[];
-  mimeLines.push('To: '+to);
-  if(cc) mimeLines.push('Cc: '+cc);
-  mimeLines.push('From: '+currentUser.email);
-  mimeLines.push('Subject: '+rfc2047Subject(subject));
-  mimeLines.push('MIME-Version: 1.0');
-  mimeLines.push('Content-Type: multipart/mixed; boundary="'+boundary+'"');
-  mimeLines.push('');
-  mimeLines.push('--'+boundary);
-  mimeLines.push('Content-Type: text/html; charset=utf-8');
-  mimeLines.push('Content-Transfer-Encoding: base64');
-  mimeLines.push('');
-  mimeLines.push(btoa(unescape(encodeURIComponent(htmlBody))));
-  if(attachment){
-    mimeLines.push('--'+boundary);
-    mimeLines.push('Content-Type: '+attachment.type+'; name="'+attachment.name+'"');
-    mimeLines.push('Content-Disposition: attachment; filename="'+attachment.name+'"');
-    mimeLines.push('Content-Transfer-Encoding: base64');
-    mimeLines.push('');
-    const b64=attachment.base64.replace(/(.{76})/g,'$1\r\n');
-    mimeLines.push(b64);
+  let rawMime;
+
+  if(!attachment){
+    // No attachment — use clean single-part MIME (same pattern as working approval emails)
+    const lines=[
+      'To: '+to,
+      ...(cc?['Cc: '+cc]:[]),
+      'From: '+currentUser.email,
+      'Subject: '+rfc2047Subject(subject),
+      'MIME-Version: 1.0',
+      'Content-Type: text/html; charset=utf-8',
+      'Content-Transfer-Encoding: quoted-printable',
+      '',
+      _toQP(htmlBody),
+    ];
+    rawMime=lines.join('\r\n');
+  }else{
+    // Multipart with attachment
+    const boundary='rzp_b_'+Date.now();
+    const lines=[
+      'To: '+to,
+      ...(cc?['Cc: '+cc]:[]),
+      'From: '+currentUser.email,
+      'Subject: '+rfc2047Subject(subject),
+      'MIME-Version: 1.0',
+      'Content-Type: multipart/mixed; boundary="'+boundary+'"',
+      '',
+      '--'+boundary,
+      'Content-Type: text/html; charset=utf-8',
+      'Content-Transfer-Encoding: quoted-printable',
+      '',
+      _toQP(htmlBody),
+      '--'+boundary,
+      'Content-Type: '+attachment.type+'; name="'+_encodeFilename(attachment.name)+'"',
+      'Content-Disposition: attachment; filename="'+_encodeFilename(attachment.name)+'"',
+      'Content-Transfer-Encoding: base64',
+      '',
+      attachment.base64.replace(/(.{76})/g,'$1\r\n').trimEnd(),
+      '--'+boundary+'--',
+    ];
+    rawMime=lines.join('\r\n');
   }
-  mimeLines.push('--'+boundary+'--');
 
-  const rawMime=mimeLines.join('\r\n');
   const encoded=btoa(unescape(encodeURIComponent(rawMime))).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
-
   const payload={raw:encoded};
   if(threadId) payload.threadId=threadId;
 
@@ -3495,6 +3511,29 @@ async function sendEmailWithAttachment({to,cc,subject,htmlBody,attachment,thread
   if(data.id) return{success:true,messageId:data.id,threadId:data.threadId};
   if(data.error?.code===401){_gToken=null;return sendEmailWithAttachment({to,cc,subject,htmlBody,attachment,threadId});}
   return{success:false,error:data.error?.message||JSON.stringify(data)};
+}
+
+// Quoted-printable encode (safe for all HTML)
+function _toQP(str){
+  // encode non-ASCII and = and long lines
+  let out='',line='';
+  for(let i=0;i<str.length;i++){
+    const c=str[i],code=str.charCodeAt(i);
+    let enc;
+    if(c==='\r'&&str[i+1]==='\n'){out+=line+'=\r\n\r\n';line='';i++;continue;}
+    if(c==='\n'){out+=line+'=\r\n\r\n';line='';continue;}
+    if(c==='\r') continue;
+    if(c==='='||code>126||code<9||(code===9)){enc='='+code.toString(16).toUpperCase().padStart(2,'0');}
+    else enc=c;
+    if(line.length+enc.length>=75){out+=line+'=\r\n';line='';}
+    line+=enc;
+  }
+  if(line) out+=line;
+  return out;
+}
+
+function _encodeFilename(name){
+  return name.replace(/[^\w\s.\-]/g,'_');
 }
 
 async function logFinalApprovalToSheet({requestId,merchantName,requesterEmail,versionIds,notes,teamGroup}){
