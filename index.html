@@ -4447,7 +4447,7 @@ function renderStatsTable(rows){
 
     const sendBtn=`<button onclick="openMerchantCompose('${latest.rowId}')" class="mt-1.5 flex items-center gap-1 text-xs font-semibold text-blue-600 hover:text-blue-800 hover:underline" title="Send pricing email to merchant">✉️ Send to Merchant</button>`;
 
-    const pricingCell=`<div>${vChips}${linkVerBtn}${newVerBtn}${revampBtn}${sendBtn}</div>`;
+    const pricingCell=`<div data-pricingcell="${latest.rowId}">${vChips}${linkVerBtn}${newVerBtn}${revampBtn}${sendBtn}</div>`;
 
     // Overall status = latest version
     const gmvR=versions.find(v=>v.gmvDisplay)||r;
@@ -5409,6 +5409,33 @@ function _startReplyPolling(){
   },60000);
 }
 
+function _showReplyToast(merchants){
+  document.getElementById('reply-toast')?.remove();
+  const iconMap={replied:'💬','floor-violation':'⚠️','floor-approved':'✅',closed:'✅'};
+  const colorMap={replied:'text-amber-700 bg-amber-50 border-amber-300','floor-violation':'text-red-700 bg-red-50 border-red-300','floor-approved':'text-emerald-700 bg-emerald-50 border-emerald-300',closed:'text-green-700 bg-green-50 border-green-300'};
+  const rows=merchants.map(f=>`
+    <div class="flex items-center justify-between py-1.5 border-b border-gray-100 last:border-0">
+      <span class="text-sm font-semibold text-gray-800">${f.name}</span>
+      <span class="text-xs font-bold px-2 py-0.5 rounded-full border ${colorMap[f.status]||'text-gray-600 bg-gray-50 border-gray-200'}">
+        ${iconMap[f.status]||'💬'} ${f.status==='floor-violation'?'Below floor — approval needed':f.status==='closed'?'Closed by Mary':f.status==='floor-approved'?'Floor approved':f.count+' repl'+(f.count===1?'y':'ies')}
+      </span>
+    </div>`).join('');
+  const toast=document.createElement('div');
+  toast.id='reply-toast';
+  toast.className='fixed top-4 right-4 z-[9990] bg-white rounded-2xl shadow-2xl border border-gray-200 w-96 overflow-hidden';
+  toast.innerHTML=`
+    <div class="flex items-center justify-between px-4 py-3 bg-gradient-to-r from-indigo-600 to-blue-600">
+      <span class="text-sm font-bold text-white">💬 Merchant Replies Detected</span>
+      <button onclick="document.getElementById('reply-toast')?.remove()" class="text-indigo-200 hover:text-white text-lg leading-none">✕</button>
+    </div>
+    <div class="px-4 py-2">${rows}</div>
+    <div class="px-4 pb-3 pt-1">
+      <p class="text-xs text-gray-400">Badges have been added to each merchant row below. Click a badge to view the thread.</p>
+    </div>`;
+  document.body.appendChild(toast);
+  setTimeout(()=>toast.remove(),15000);
+}
+
 function _setSyncStatus(msg,color='text-gray-500'){
   const btn=document.getElementById('reply-sync-btn');
   if(btn) btn.title=msg;
@@ -5466,7 +5493,7 @@ async function checkMerchantReplies(){
     if(!merchants.length){_setSyncStatus('No merchants found','text-gray-400');_replyChecking=false;return;}
     _setSyncStatus(`Checking ${merchants.length} merchant${merchants.length>1?'s':''}…`,'text-blue-500');
 
-    let foundCount=0;
+    const foundMerchants=[];
 
     for(const m of merchants){
       try{
@@ -5547,23 +5574,33 @@ async function checkMerchantReplies(){
         if(closedByMary){
           _replyBadges[m.rowId]={status:'closed',count:extMsgs.length,threadId,merchantName:m.merchantName,gmv};
           _updateReplyBadge(m.rowId,'closed',extMsgs.length,threadId,m.merchantName,[]);
-          foundCount++;
+          foundMerchants.push({name:m.merchantName,status:'closed'});
         }else if(floorViolations.length>0&&!isThreadApproved){
           _replyBadges[m.rowId]={status:'floor-violation',count:extMsgs.length,threadId,merchantName:m.merchantName,gmv,violations:floorViolations};
           _updateReplyBadge(m.rowId,'floor-violation',extMsgs.length,threadId,m.merchantName,floorViolations);
-          foundCount++;
+          foundMerchants.push({name:m.merchantName,status:'floor-violation'});
         }else if(floorViolations.length>0&&isThreadApproved){
           _replyBadges[m.rowId]={status:'floor-approved',count:extMsgs.length,threadId,merchantName:m.merchantName,gmv,violations:floorViolations};
           _updateReplyBadge(m.rowId,'floor-approved',extMsgs.length,threadId,m.merchantName,floorViolations);
-          foundCount++;
+          foundMerchants.push({name:m.merchantName,status:'floor-approved'});
         }else if(extMsgs.length>0){
           _replyBadges[m.rowId]={status:'replied',count:extMsgs.length,threadId,merchantName:m.merchantName,gmv};
           _updateReplyBadge(m.rowId,'replied',extMsgs.length,threadId,m.merchantName,[]);
-          foundCount++;
+          foundMerchants.push({name:m.merchantName,status:'replied',count:extMsgs.length});
         }
       }catch(e){console.error('Thread check error for '+m.merchantName,e);}
     }
-    _setSyncStatus(foundCount>0?`${foundCount} thread${foundCount>1?'s':''} with replies`:'No replies found — last synced '+new Date().toLocaleTimeString(), foundCount>0?'text-amber-600':'text-green-600');
+    if(foundMerchants.length>0){
+      const names=foundMerchants.map(f=>{
+        if(f.status==='floor-violation') return `⚠️ ${f.name}`;
+        if(f.status==='closed') return `✅ ${f.name}`;
+        return `💬 ${f.name} (${f.count||''} repl${f.count===1?'y':'ies'})`;
+      }).join(' · ');
+      _setSyncStatus(names,'text-amber-600');
+      _showReplyToast(foundMerchants);
+    }else{
+      _setSyncStatus('No new replies — '+new Date().toLocaleTimeString(),'text-green-600');
+    }
   }catch(e){_setSyncStatus('⚠ Sync error: '+e.message,'text-red-500');}
   _replyChecking=false;
 }
@@ -5615,14 +5652,14 @@ function _updateReplyBadge(rowId,status,count,threadId,merchantName,violations){
     label=`💬 ${count} merchant repl${count===1?'y':'ies'}`;
     cls='rzp-reply-badge flex items-center gap-1 text-xs font-semibold text-amber-700 bg-amber-50 border border-amber-300 rounded-full px-2 py-0.5 hover:bg-amber-100 cursor-pointer transition-colors';
   }
-  document.querySelectorAll(`[onclick*="openMerchantCompose('${rowId}')"]`).forEach(anchor=>{
-    const container=anchor.closest('div');
-    if(!container) return;
+  // Use data-pricingcell for reliable targeting
+  const container=document.querySelector(`[data-pricingcell="${rowId}"]`);
+  if(container){
     const b=document.createElement('button');
     b.className=cls;b.dataset.rowid=rowId;b.innerHTML=label;
     if(clickable) b.onclick=e=>{e.stopPropagation();openReplyPanel(rowId,threadId,merchantName,violations||[]);};
     container.appendChild(b);
-  });
+  }
 }
 
 function openReplyPanel(rowId,threadId,merchantName,violations){
