@@ -250,6 +250,21 @@
     </div>
     <button onclick="startFreshCalculator()" class="text-xs text-amber-700 hover:text-amber-900 font-semibold px-3 py-1.5 rounded-lg border border-amber-300 hover:bg-amber-100">Start Fresh</button>
   </div>
+  <!-- Merchant negotiation update banner -->
+  <div id="pricing-update-banner" class="hidden mb-4 bg-blue-50 border-2 border-blue-300 rounded-2xl px-5 py-3">
+    <div class="flex items-start justify-between gap-4">
+      <div class="flex items-center gap-3">
+        <span class="text-2xl">✏️</span>
+        <div>
+          <p class="text-sm font-bold text-blue-800">Pricing Update in Progress — <span id="pricing-update-merchant" class="text-blue-700"></span></p>
+          <p class="text-xs text-blue-600 mt-0.5">Adjust rates below. <strong>Floor rates are enforced.</strong> Submit for approval when ready — pricing will not be sent until approved.</p>
+        </div>
+      </div>
+      <button onclick="_cancelPricingUpdate()" class="shrink-0 text-xs text-blue-500 hover:text-red-500 font-semibold px-3 py-1.5 rounded-lg border border-blue-200 hover:border-red-300 hover:bg-red-50">✕ Cancel</button>
+    </div>
+    <!-- Highlighted methods from merchant reply -->
+    <div id="pricing-update-hints" class="hidden mt-2.5 flex flex-wrap gap-2"></div>
+  </div>
 
   <!-- MERCHANT PROFILE -->
   <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-5 mb-4">
@@ -4949,6 +4964,8 @@ if(_initAction === 'activate-user'){
   handleActivateUserUrl(_initParams);
 } else if(_initAction === 'set-approval-status'){
   handleSetApprovalStatusUrl(_initParams);
+} else if(_initAction==='approve-thread'){
+  _handleThreadApprovalUrl(_initParams);
 } else if(_initAction && ['approve','reject','final-approve','final-reject','approve-user'].includes(_initAction)){
   handleApproveRejectUrl();
 } else {
@@ -5450,50 +5467,138 @@ async function checkMerchantReplies(){
 
         if(!allMsgs.length) continue;
 
+        // Need full messages for body parsing — re-fetch with full format if we only have metadata
+        let fullMsgs=allMsgs;
+        if(!allMsgs[0]?.payload?.body&&!allMsgs[0]?.payload?.parts){
+          try{
+            const rf=await fetch(`https://gmail.googleapis.com/gmail/v1/users/me/threads/${threadId}?format=full`,{headers:{'Authorization':'Bearer '+tok.token}});
+            if(rf.ok){const df=await rf.json();fullMsgs=df.messages||allMsgs;}
+          }catch(e){}
+        }
+
         // Classify messages
-        const extMsgs=allMsgs.filter(msg=>{
+        const extMsgs=fullMsgs.filter(msg=>{
           const from=(msg.payload?.headers?.find(h=>h.name==='From')?.value||'').toLowerCase();
           return !from.includes('razorpay.com');
         });
-        const lastMsg=allMsgs[allMsgs.length-1];
+        const rzpMsgs=fullMsgs.filter(msg=>{
+          const from=(msg.payload?.headers?.find(h=>h.name==='From')?.value||'').toLowerCase();
+          return from.includes('razorpay.com')&&!from.includes(OPS_EMAIL.toLowerCase());
+        });
+        const lastMsg=fullMsgs[fullMsgs.length-1];
         const lastFrom=(lastMsg?.payload?.headers?.find(h=>h.name==='From')?.value||'').toLowerCase();
         const closedByMary=lastFrom.includes(OPS_EMAIL.toLowerCase())||lastFrom.includes('mary.');
 
-        if(closedByMary){
-          _replyBadges[m.rowId]={status:'closed',count:extMsgs.length,threadId,merchantName:m.merchantName};
-          _updateReplyBadge(m.rowId,'closed',extMsgs.length,threadId,m.merchantName);
-        }else if(extMsgs.length>0){
-          _replyBadges[m.rowId]={status:'replied',count:extMsgs.length,threadId,merchantName:m.merchantName};
-          _updateReplyBadge(m.rowId,'replied',extMsgs.length,threadId,m.merchantName);
+        // Get merchant GMV for floor calc
+        const mRow=statsAllRows.find(r=>r.rowId===m.rowId);
+        const gmv=parseFloat(mRow?.gmv)||0;
+
+        // Check if POC replied with below-floor rates
+        let floorViolations=[];
+        if(rzpMsgs.length>0&&extMsgs.length>0){
+          // Only check POC replies that came AFTER the merchant first replied
+          const firstExtTs=extMsgs[0]?.internalDate||0;
+          const pocRepliesAfterMerchant=rzpMsgs.filter(msg=>(msg.internalDate||0)>firstExtTs);
+          for(const msg of pocRepliesAfterMerchant){
+            const body=_stripHtml(_decodeGmailBody(msg.payload));
+            const rates=_extractRatesFromText(body);
+            for(const r of rates){
+              if(!r.method) continue;
+              const floor=getFloor(r.method,gmv);
+              if(floor>0&&r.rate<floor){
+                floorViolations.push({...r,floor,methodLabel:METHODS.find(x=>x.id===r.method)?.label||r.method});
+              }
+            }
+          }
         }
-      }catch(e){}
+
+        // Check if already approved for thread floor violations
+        const threadApprovals=JSON.parse(localStorage.getItem('rzp_thread_approvals')||'{}');
+        const isThreadApproved=threadApprovals[threadId]?.status==='approved';
+
+        if(closedByMary){
+          _replyBadges[m.rowId]={status:'closed',count:extMsgs.length,threadId,merchantName:m.merchantName,gmv};
+          _updateReplyBadge(m.rowId,'closed',extMsgs.length,threadId,m.merchantName,[]);
+        }else if(floorViolations.length>0&&!isThreadApproved){
+          _replyBadges[m.rowId]={status:'floor-violation',count:extMsgs.length,threadId,merchantName:m.merchantName,gmv,violations:floorViolations};
+          _updateReplyBadge(m.rowId,'floor-violation',extMsgs.length,threadId,m.merchantName,floorViolations);
+        }else if(floorViolations.length>0&&isThreadApproved){
+          _replyBadges[m.rowId]={status:'floor-approved',count:extMsgs.length,threadId,merchantName:m.merchantName,gmv,violations:floorViolations};
+          _updateReplyBadge(m.rowId,'floor-approved',extMsgs.length,threadId,m.merchantName,floorViolations);
+        }else if(extMsgs.length>0){
+          _replyBadges[m.rowId]={status:'replied',count:extMsgs.length,threadId,merchantName:m.merchantName,gmv};
+          _updateReplyBadge(m.rowId,'replied',extMsgs.length,threadId,m.merchantName,[]);
+        }
+      }catch(e){console.error('Thread check error',e);}
     }
   }catch(e){}
   _replyChecking=false;
 }
 
-function _updateReplyBadge(rowId,status,count,threadId,merchantName){
-  // Remove existing badge first (may be stale)
+// Extract rate mentions from email body text
+function _extractRatesFromText(text){
+  const rates=[];
+  const seen=new Set();
+  const re=/(\d+\.?\d*)\s*%/g;
+  let match;
+  while((match=re.exec(text))!==null){
+    const rate=parseFloat(match[1]);
+    if(rate<=0||rate>10) continue; // ignore out-of-range
+    const ctx=text.slice(Math.max(0,match.index-100),match.index+60).toLowerCase();
+    let method=null;
+    if(/credit\s*card|visa|mastercard|\bcc\b/.test(ctx)) method='credit-cards';
+    else if(/debit.*2000|debit.*gt|above.*2000|>.*2000/.test(ctx)) method='debit-gt2k';
+    else if(/debit.*2000|debit.*lt|below.*2000|<.*2000|small.*debit/.test(ctx)) method='debit-lt2k';
+    else if(/rupay/.test(ctx)) method='rupay-debit';
+    else if(/upi.*(wallet|credit)|(wallet|credit).*upi/.test(ctx)) method='upi-wallet';
+    else if(/upi/.test(ctx)) method='upi';
+    else if(/net.?bank|nb\b/.test(ctx)) method='net-banking';
+    else if(/wallet/.test(ctx)) method='mobile-wallets';
+    else if(/corp|corporate/.test(ctx)) method='corp-cards';
+    else if(/intl|international/.test(ctx)) method='intl-cards';
+    else if(/amex|diners/.test(ctx)) method='amex';
+    else if(/emi/.test(ctx)) method='emi';
+    const key=`${method||'?'}:${rate}`;
+    if(!seen.has(key)){seen.add(key);rates.push({rate,method,snippet:text.slice(Math.max(0,match.index-40),match.index+40).replace(/\n/g,' ').trim()});}
+  }
+  return rates;
+}
+
+function _updateReplyBadge(rowId,status,count,threadId,merchantName,violations){
   document.querySelectorAll('.rzp-reply-badge[data-rowid="'+rowId+'"]').forEach(el=>el.remove());
-
-  const isClosed=status==='closed';
-  const label=isClosed?'✅ Closed by Mary':`💬 ${count} merchant repl${count===1?'y':'ies'}`;
-  const cls=isClosed
-    ?'rzp-reply-badge flex items-center gap-1 text-xs font-bold text-green-700 bg-green-50 border border-green-200 rounded-full px-2 py-0.5'
-    :'rzp-reply-badge flex items-center gap-1 text-xs font-semibold text-amber-700 bg-amber-50 border border-amber-300 rounded-full px-2 py-0.5 hover:bg-amber-100 cursor-pointer transition-colors';
-
-  // Find the "Send to Merchant" button area for this row
+  let label,cls,clickable=true;
+  if(status==='closed'){
+    label='✅ Closed by Mary';
+    cls='rzp-reply-badge flex items-center gap-1 text-xs font-bold text-green-700 bg-green-50 border border-green-200 rounded-full px-2 py-0.5';
+    clickable=false;
+  }else if(status==='floor-violation'){
+    label=`⚠️ Below floor in thread — approval required`;
+    cls='rzp-reply-badge flex items-center gap-1 text-xs font-bold text-red-700 bg-red-50 border border-red-300 rounded-full px-2 py-0.5 hover:bg-red-100 cursor-pointer transition-colors animate-pulse';
+  }else if(status==='floor-approved'){
+    label='✅ Floor override approved — proceed to revamp';
+    cls='rzp-reply-badge flex items-center gap-1 text-xs font-bold text-emerald-700 bg-emerald-50 border border-emerald-300 rounded-full px-2 py-0.5';
+    clickable=false;
+  }else{
+    label=`💬 ${count} merchant repl${count===1?'y':'ies'}`;
+    cls='rzp-reply-badge flex items-center gap-1 text-xs font-semibold text-amber-700 bg-amber-50 border border-amber-300 rounded-full px-2 py-0.5 hover:bg-amber-100 cursor-pointer transition-colors';
+  }
   document.querySelectorAll(`[onclick*="openMerchantCompose('${rowId}')"]`).forEach(anchor=>{
     const container=anchor.closest('div');
     if(!container) return;
     const b=document.createElement('button');
     b.className=cls;b.dataset.rowid=rowId;b.innerHTML=label;
-    if(!isClosed) b.onclick=e=>{e.stopPropagation();openReplyPanel(rowId,threadId,merchantName);};
+    if(clickable) b.onclick=e=>{e.stopPropagation();openReplyPanel(rowId,threadId,merchantName,violations||[]);};
     container.appendChild(b);
   });
 }
 
-function openReplyPanel(rowId,threadId,merchantName){
+function openReplyPanel(rowId,threadId,merchantName,violations){
+  // If there are floor violations — show guardrail modal FIRST
+  if(violations&&violations.length>0){
+    _showFloorViolationModal(rowId,threadId,merchantName,violations);
+    return;
+  }
+  // No violations — open normal compose with thread
   openMerchantCompose(rowId);
   setTimeout(()=>{
     _composeThreadId=threadId;
@@ -5503,11 +5608,119 @@ function openReplyPanel(rowId,threadId,merchantName){
     if(info){info.textContent='Will reply into this thread';info.className='text-xs text-blue-500';}
     const wrap=document.getElementById('mc-thread-view-wrap');
     if(wrap) wrap.classList.remove('hidden');
-    _threadViewLoaded=false;
-    _toggleThreadView();
+    _threadViewLoaded=false;_toggleThreadView();
     const notice=document.getElementById('mc-reply-notice');
-    if(notice) notice.classList.remove('hidden');
+    if(notice){
+      notice.classList.remove('hidden');
+      const snip=document.getElementById('mc-reply-snippet');
+      if(snip) snip.textContent='Merchant has replied — review the thread and adjust pricing if needed.';
+    }
   },400);
+}
+
+function _showFloorViolationModal(rowId,threadId,merchantName,violations){
+  // Build modal
+  const violHtml=violations.map(v=>`
+    <div class="flex items-center justify-between px-3 py-2 bg-red-50 border border-red-100 rounded-lg">
+      <div>
+        <div class="text-xs font-bold text-red-800">${v.methodLabel}</div>
+        <div class="text-xs text-gray-500 mt-0.5 italic truncate max-w-xs">"${v.snippet}"</div>
+      </div>
+      <div class="text-right shrink-0 ml-3">
+        <div class="text-sm font-black text-red-700">${v.rate}% offered</div>
+        <div class="text-xs text-gray-500">Floor: <strong>${v.floor}%</strong></div>
+      </div>
+    </div>`).join('');
+
+  const modal=document.createElement('div');
+  modal.id='floor-violation-modal';
+  modal.className='fixed inset-0 z-[10000] flex items-center justify-center p-4';
+  modal.innerHTML=`
+    <div class="absolute inset-0 bg-black/40" onclick="document.getElementById('floor-violation-modal')?.remove()"></div>
+    <div class="relative bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden">
+      <div class="bg-gradient-to-r from-red-600 to-rose-600 px-5 py-4 flex items-center justify-between">
+        <div>
+          <div class="text-xs font-bold text-red-200 uppercase tracking-widest mb-0.5">⚠️ Floor Rate Violation Detected</div>
+          <div class="text-base font-extrabold text-white">${merchantName}</div>
+        </div>
+        <button onclick="document.getElementById('floor-violation-modal')?.remove()" class="text-red-200 hover:text-white text-xl w-8 h-8 flex items-center justify-center rounded-full hover:bg-white/10">✕</button>
+      </div>
+      <div class="p-5">
+        <p class="text-sm text-gray-700 mb-4">Your reply in the email thread offered rates <strong>below the minimum floor</strong>. You cannot proceed to Pricing Revamp until this is approved by <strong>Abhinav</strong>.</p>
+        <div class="space-y-2 mb-5">${violHtml}</div>
+        <div class="bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 mb-5">
+          <p class="text-xs text-amber-700">📧 An approval request will be sent to Abhinav. Once approved, you can proceed to Pricing Revamp — the full email thread will be auto-attached as PDF.</p>
+        </div>
+        <div class="flex gap-3">
+          <button onclick="_requestThreadFloorApproval('${rowId}','${threadId}','${merchantName.replace(/'/g,"&#39;")}',${JSON.stringify(violations).replace(/'/g,"&#39;")})"
+            class="flex-1 bg-gradient-to-r from-red-600 to-rose-600 text-white font-bold py-2.5 rounded-xl text-sm hover:opacity-90 transition-all shadow">
+            🔒 Request Floor Approval
+          </button>
+          <button onclick="document.getElementById('floor-violation-modal')?.remove();openReplyPanel('${rowId}','${threadId}','${merchantName.replace(/'/g,"&#39;")}',[])"
+            class="flex-1 bg-gray-100 text-gray-700 font-bold py-2.5 rounded-xl text-sm hover:bg-gray-200 transition-all">
+            View Thread Only
+          </button>
+        </div>
+      </div>
+    </div>`;
+  document.body.appendChild(modal);
+}
+
+async function _requestThreadFloorApproval(rowId,threadId,merchantName,violations){
+  const btn=document.querySelector('#floor-violation-modal button[onclick*="_requestThreadFloorApproval"]');
+  if(btn){btn.disabled=true;btn.textContent='⏳ Sending request…';}
+  try{
+    // Build approval email to Abhinav
+    const violText=violations.map(v=>`• ${v.methodLabel}: offered ${v.rate}% (floor ${v.floor}%)\n  Context: "${v.snippet}"`).join('\n');
+    const subject=`Floor Rate Approval Required — ${merchantName} (Thread Negotiation)`;
+    const htmlBody=`<!DOCTYPE html><html><body style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:24px">
+      <div style="background:#dc2626;color:white;padding:16px 20px;border-radius:12px 12px 0 0">
+        <div style="font-size:11px;font-weight:700;letter-spacing:2px;opacity:0.8;margin-bottom:4px">FLOOR RATE APPROVAL REQUIRED</div>
+        <div style="font-size:18px;font-weight:900">${merchantName}</div>
+      </div>
+      <div style="border:2px solid #dc2626;border-top:none;border-radius:0 0 12px 12px;padding:20px">
+        <p style="font-size:14px;color:#374151">${currentUser?.name||currentUser?.email} has offered the following rates in an email thread that are <strong>below floor rates</strong>:</p>
+        <div style="background:#fef2f2;border:1px solid #fecaca;border-radius:8px;padding:12px 16px;margin:16px 0">
+          <pre style="font-size:13px;color:#991b1b;margin:0;white-space:pre-wrap">${violText}</pre>
+        </div>
+        <p style="font-size:13px;color:#6b7280">The merchant has confirmed acceptance of these rates. Approval is needed before proceeding to Pricing Revamp.</p>
+        <div style="margin-top:20px;display:flex;gap:12px">
+          <a href="${window.location.origin}${window.location.pathname}?action=approve-thread&rowId=${encodeURIComponent(rowId)}&threadId=${encodeURIComponent(threadId)}&token=${btoa(rowId+':'+threadId)}"
+            style="background:#16a34a;color:white;padding:10px 20px;border-radius:8px;text-decoration:none;font-weight:700;font-size:13px">✅ Approve</a>
+          <a href="${window.location.origin}${window.location.pathname}?action=reject-thread&rowId=${encodeURIComponent(rowId)}"
+            style="background:#dc2626;color:white;padding:10px 20px;border-radius:8px;text-decoration:none;font-weight:700;font-size:13px">❌ Reject</a>
+        </div>
+      </div>
+    </body></html>`;
+    const result=await sendEmailWithAttachment({to:ADMIN_EMAIL,subject,htmlBody,attachment:null,threadId:null});
+    if(result.success){
+      // Save pending state
+      const tappr=JSON.parse(localStorage.getItem('rzp_thread_approvals')||'{}');
+      tappr[threadId]={status:'pending',rowId,merchantName,violations,requestedAt:Date.now(),requestedBy:currentUser?.email};
+      localStorage.setItem('rzp_thread_approvals',JSON.stringify(tappr));
+      document.getElementById('floor-violation-modal')?.remove();
+      alert(`✅ Approval request sent to Abhinav. You will be notified once approved. Until then, Pricing Revamp is blocked for ${merchantName}.`);
+      // Update badge to show pending
+      _updateReplyBadge(rowId,'floor-violation',violations.length,threadId,merchantName,violations);
+    }else{
+      if(btn){btn.disabled=false;btn.textContent='🔒 Request Floor Approval';}
+      alert('Failed to send approval request: '+(result.error||'unknown'));
+    }
+  }catch(e){
+    if(btn){btn.disabled=false;btn.textContent='🔒 Request Floor Approval';}
+    alert('Error: '+e.message);
+  }
+}
+
+// Handle approve-thread URL action (when Abhinav clicks approve link)
+function _handleThreadApprovalUrl(params){
+  const rowId=params.get('rowId');const threadId=params.get('threadId');
+  if(!rowId||!threadId) return;
+  const tappr=JSON.parse(localStorage.getItem('rzp_thread_approvals')||'{}');
+  if(tappr[threadId]){tappr[threadId].status='approved';tappr[threadId].approvedAt=Date.now();localStorage.setItem('rzp_thread_approvals',JSON.stringify(tappr));}
+  // Re-check and update badge
+  setTimeout(()=>checkMerchantReplies(),500);
+  alert(`✅ Thread floor rates approved for ${tappr[threadId]?.merchantName||rowId}. They can now proceed to Pricing Revamp.`);
 }
 
 function _buildSimplePricingTable(snap){
@@ -5636,8 +5849,21 @@ function _buildMerchantEmailHtml({merchantName,intro,snap}){
     <input id="mc-compose-rowid" type="hidden">
 
     <!-- Merchant reply notice (shown when opened from reply panel) -->
-    <div id="mc-reply-notice" class="hidden mx-5 mt-3 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2.5">
-      <p class="text-xs text-amber-700">💡 <strong>Merchant replied</strong> — review their requests and submit for pricing update if rates need to change. Floor rates still apply.</p>
+    <!-- Merchant reply action panel -->
+    <div id="mc-reply-notice" class="hidden mx-5 mt-3 bg-amber-50 border border-amber-300 rounded-xl overflow-hidden">
+      <div class="px-3 py-2.5 flex items-start gap-2">
+        <span class="text-lg shrink-0">💬</span>
+        <div class="flex-1">
+          <p class="text-xs font-bold text-amber-800 mb-0.5">Merchant has replied</p>
+          <p class="text-xs text-amber-700" id="mc-reply-snippet">Review the thread above for their rate requests.</p>
+        </div>
+      </div>
+      <div class="border-t border-amber-200 px-3 py-2 bg-amber-100/60 flex items-center gap-2 flex-wrap">
+        <button onclick="_loadPricingForUpdate()" class="flex items-center gap-1.5 text-xs font-bold bg-blue-600 text-white px-3 py-1.5 rounded-lg hover:bg-blue-700 transition-colors shadow-sm">
+          ✏️ Update Pricing in Calculator
+        </button>
+        <span class="text-xs text-amber-600">Floor rates enforced · Approval required</span>
+      </div>
     </div>
 
     <!-- Intro text -->
