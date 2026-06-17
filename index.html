@@ -4447,7 +4447,10 @@ function renderStatsTable(rows){
 
     const sendBtn=`<button onclick="openMerchantCompose('${latest.rowId}')" class="mt-1.5 flex items-center gap-1 text-xs font-semibold text-blue-600 hover:text-blue-800 hover:underline" title="Send pricing email to merchant">✉️ Send to Merchant</button>`;
 
-    const pricingCell=`<div data-pricingcell="${latest.rowId}">${vChips}${linkVerBtn}${newVerBtn}${revampBtn}${sendBtn}</div>`;
+    const pricingCell=`<div data-pricingcell="${latest.rowId}" data-merchantname="${(r.merchantName||'').replace(/"/g,'&quot;')}">${vChips}${linkVerBtn}${newVerBtn}${revampBtn}${sendBtn}</div>`;
+    // Keep a live map of merchantName → latestRowId for reply badge injection
+    if(!window._merchantRowMap) window._merchantRowMap={};
+    window._merchantRowMap[(r.merchantName||'').trim().toLowerCase()]=latest.rowId;
 
     // Overall status = latest version
     const gmvR=versions.find(v=>v.gmvDisplay)||r;
@@ -5652,40 +5655,132 @@ function _updateReplyBadge(rowId,status,count,threadId,merchantName,violations){
     label=`💬 ${count} merchant repl${count===1?'y':'ies'}`;
     cls='rzp-reply-badge flex items-center gap-1 text-xs font-semibold text-amber-700 bg-amber-50 border border-amber-300 rounded-full px-2 py-0.5 hover:bg-amber-100 cursor-pointer transition-colors';
   }
-  // Use data-pricingcell for reliable targeting
-  const container=document.querySelector(`[data-pricingcell="${rowId}"]`);
+  // Resolve correct latest rowId via merchant map (fixes version mismatch)
+  const resolvedRowId=(window._merchantRowMap&&window._merchantRowMap[(merchantName||'').trim().toLowerCase()])||rowId;
+  let container=document.querySelector(`[data-pricingcell="${resolvedRowId}"]`)||document.querySelector(`[data-pricingcell="${rowId}"]`);
+  if(!container){
+    // Last resort: search by merchant name attribute
+    container=document.querySelector(`[data-merchantname="${(merchantName||'').replace(/"/g,'\\"')}"]`);
+  }
   if(container){
     const b=document.createElement('button');
-    b.className=cls;b.dataset.rowid=rowId;b.innerHTML=label;
-    if(clickable) b.onclick=e=>{e.stopPropagation();openReplyPanel(rowId,threadId,merchantName,violations||[]);};
+    b.className=cls;b.dataset.rowid=resolvedRowId;b.innerHTML=label;
+    if(clickable) b.onclick=e=>{e.stopPropagation();openReplyPanel(resolvedRowId,threadId,merchantName,violations||[]);};
     container.appendChild(b);
+
+    // Block Pricing Revamp button ONLY for floor violations
+    if(status==='floor-violation'){
+      const revampBtn=container.querySelector('[onclick*="openFinalApprovalModal"]');
+      if(revampBtn&&!revampBtn.dataset.replyBlocked){
+        revampBtn.dataset.replyBlocked='1';
+        revampBtn.dataset.origOnclick=revampBtn.getAttribute('onclick');
+        revampBtn.removeAttribute('onclick');
+        revampBtn.className='text-xs font-semibold text-red-400 cursor-not-allowed mt-1';
+        revampBtn.title='Below-floor rate in email thread — request approval first';
+        revampBtn.innerHTML='🔒 Revamp Blocked';
+        revampBtn.onclick=e=>{e.stopPropagation();openReplyPanel(resolvedRowId,threadId,merchantName,violations||[]);};
+      }
+    }else if(status==='floor-approved'||status==='closed'||status==='replied'){
+      // Unblock if previously blocked
+      const blockedBtn=container.querySelector('[data-reply-blocked="1"]');
+      if(blockedBtn&&blockedBtn.dataset.origOnclick){
+        blockedBtn.setAttribute('onclick',blockedBtn.dataset.origOnclick);
+        blockedBtn.removeAttribute('data-reply-blocked');
+        blockedBtn.className='text-xs font-semibold text-emerald-600 hover:text-emerald-800 mt-1';
+        blockedBtn.innerHTML='📋 Pricing Revamp';blockedBtn.title='';
+      }
+    }
   }
 }
 
-function openReplyPanel(rowId,threadId,merchantName,violations){
-  // If there are floor violations — show guardrail modal FIRST
-  if(violations&&violations.length>0){
-    _showFloorViolationModal(rowId,threadId,merchantName,violations);
-    return;
-  }
-  // No violations — open normal compose with thread
-  openMerchantCompose(rowId);
-  setTimeout(()=>{
-    _composeThreadId=threadId;
-    const tag=document.getElementById('mc-selected-thread-tag');
-    const info=document.getElementById('mc-thread-info');
-    if(tag){tag.querySelector('span').textContent='Thread: '+merchantName;tag.classList.remove('hidden');tag.classList.add('inline-flex');}
-    if(info){info.textContent='Will reply into this thread';info.className='text-xs text-blue-500';}
-    const wrap=document.getElementById('mc-thread-view-wrap');
-    if(wrap) wrap.classList.remove('hidden');
-    _threadViewLoaded=false;_toggleThreadView();
-    const notice=document.getElementById('mc-reply-notice');
-    if(notice){
-      notice.classList.remove('hidden');
-      const snip=document.getElementById('mc-reply-snippet');
-      if(snip) snip.textContent='Merchant has replied — review the thread and adjust pricing if needed.';
-    }
-  },400);
+async function openReplyPanel(rowId,threadId,merchantName,violations){
+  // Always show the thread viewer modal first — actionable from there
+  _showThreadActionModal(rowId,threadId,merchantName,violations||[]);
+}
+
+async function _showThreadActionModal(rowId,threadId,merchantName,violations){
+  document.getElementById('thread-action-modal')?.remove();
+  const hasViolations=violations&&violations.length>0;
+  const threadApprovals=JSON.parse(localStorage.getItem('rzp_thread_approvals')||'{}');
+  const isPending=threadApprovals[threadId]?.status==='pending';
+  const isApproved=threadApprovals[threadId]?.status==='approved';
+
+  const modal=document.createElement('div');
+  modal.id='thread-action-modal';
+  modal.className='fixed inset-0 z-[10000] flex items-end sm:items-center justify-center p-4';
+  modal.innerHTML=`
+    <div class="absolute inset-0 bg-black/40" onclick="document.getElementById('thread-action-modal')?.remove()"></div>
+    <div class="relative bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[85vh] flex flex-col overflow-hidden">
+      <!-- Header -->
+      <div class="flex items-center justify-between px-5 py-4 ${hasViolations?'bg-gradient-to-r from-red-600 to-rose-600':'bg-gradient-to-r from-blue-700 to-indigo-700'} shrink-0">
+        <div>
+          <div class="text-xs font-bold opacity-70 uppercase tracking-widest mb-0.5">${hasViolations?'⚠️ Below Floor Rate Detected':'💬 Merchant Reply'}</div>
+          <div class="text-base font-extrabold text-white">${merchantName}</div>
+        </div>
+        <button onclick="document.getElementById('thread-action-modal')?.remove()" class="text-white/70 hover:text-white text-xl w-8 h-8 flex items-center justify-center rounded-full hover:bg-white/10">✕</button>
+      </div>
+
+      <!-- Floor violation warning -->
+      ${hasViolations?`<div class="px-5 py-3 bg-red-50 border-b border-red-100 shrink-0">
+        <p class="text-xs font-bold text-red-700 mb-2">Your reply offered below-floor rates:</p>
+        <div class="space-y-1.5">
+          ${violations.map(v=>`<div class="flex items-center justify-between bg-white border border-red-200 rounded-lg px-3 py-2">
+            <div class="text-xs font-semibold text-gray-800">${v.methodLabel}</div>
+            <div class="flex items-center gap-3 text-xs">
+              <span class="text-red-600 font-bold">Offered: ${v.rate}%</span>
+              <span class="text-gray-400">Floor: ${v.floor}%</span>
+              <span class="text-red-500 font-bold">-${(v.floor-v.rate).toFixed(2)}%</span>
+            </div>
+          </div>`).join('')}
+        </div>
+        ${isPending?'<p class="text-xs text-amber-600 font-semibold mt-2">⏳ Approval request already sent — awaiting Abhinav\'s response.</p>':''}
+        ${isApproved?'<p class="text-xs text-green-600 font-semibold mt-2">✅ Floor override approved — you can proceed to Pricing Revamp.</p>':''}
+      </div>`:''}
+
+      <!-- Thread messages -->
+      <div class="flex-1 overflow-y-auto divide-y divide-gray-100" id="tam-thread-body">
+        <div class="text-center py-8 text-gray-400 text-sm">⏳ Loading thread…</div>
+      </div>
+
+      <!-- Action bar -->
+      <div class="shrink-0 px-5 py-4 border-t border-gray-100 bg-gray-50 flex gap-3 flex-wrap">
+        ${hasViolations&&!isPending&&!isApproved
+          ?`<button onclick="_requestThreadFloorApproval('${rowId}','${threadId}','${merchantName.replace(/'/g,"&#39;")}',${JSON.stringify(violations).replace(/\\/g,'\\\\').replace(/'/g,"&#39;")})" class="flex-1 bg-red-600 text-white font-bold py-2.5 rounded-xl text-sm hover:bg-red-700 transition-all shadow">🔒 Request Floor Approval from Abhinav</button>`
+          :''}
+        ${isApproved||!hasViolations
+          ?`<button onclick="document.getElementById('thread-action-modal')?.remove();openMerchantCompose('${rowId}');setTimeout(()=>{_composeThreadId='${threadId}';const tag=document.getElementById('mc-selected-thread-tag');if(tag){tag.querySelector('span').textContent='Reply to ${merchantName.replace(/'/g,"&#39;")}';tag.classList.remove('hidden');tag.classList.add('inline-flex');}},400)" class="flex-1 bg-blue-600 text-white font-bold py-2.5 rounded-xl text-sm hover:bg-blue-700 transition-all shadow">✉️ Reply in Thread</button>`
+          :''}
+        <button onclick="document.getElementById('thread-action-modal')?.remove()" class="px-5 bg-gray-200 text-gray-700 font-bold py-2.5 rounded-xl text-sm hover:bg-gray-300 transition-all">Close</button>
+      </div>
+    </div>`;
+  document.body.appendChild(modal);
+
+  // Load thread async
+  const thread=await _fetchFullThread(threadId);
+  const body=document.getElementById('tam-thread-body');
+  if(!body) return;
+  if(!thread||!thread.messages){body.innerHTML='<p class="text-center py-8 text-red-400 text-sm">⚠ Could not load thread</p>';return;}
+  body.innerHTML=thread.messages.map(msg=>{
+    const hdrs=msg.payload?.headers||[];
+    const from=hdrs.find(h=>h.name==='From')?.value||'';
+    const date=hdrs.find(h=>h.name==='Date')?.value||'';
+    const subj=hdrs.find(h=>h.name==='Subject')?.value||'';
+    const bodyText=_stripHtml(_decodeGmailBody(msg.payload)).slice(0,1200);
+    const isRzp=from.toLowerCase().includes('razorpay.com');
+    // Highlight rate mentions in text
+    const highlighted=bodyText.replace(/(\d+\.?\d*\s*%)/g,'<mark class="bg-yellow-100 text-yellow-800 font-bold px-0.5 rounded">$1</mark>');
+    return `<div class="px-5 py-4 ${isRzp?'bg-blue-50/60':'bg-white'}">
+      <div class="flex items-start justify-between gap-2 mb-2">
+        <div>
+          <span class="text-xs font-bold ${isRzp?'text-blue-700':'text-gray-800'}">${from.slice(0,60)}</span>
+          ${isRzp?'<span class="ml-2 text-xs bg-blue-100 text-blue-600 px-1.5 py-0.5 rounded font-semibold">You</span>':'<span class="ml-2 text-xs bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded font-semibold">Merchant</span>'}
+        </div>
+        <span class="text-xs text-gray-400 shrink-0">${date.split(' ').slice(1,5).join(' ')}</span>
+      </div>
+      <div class="text-xs text-gray-500 italic mb-2 truncate">${subj}</div>
+      <div class="text-sm text-gray-700 whitespace-pre-wrap leading-relaxed">${highlighted}</div>
+    </div>`;
+  }).join('');
 }
 
 function _showFloorViolationModal(rowId,threadId,merchantName,violations){
