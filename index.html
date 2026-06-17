@@ -3444,7 +3444,7 @@ function buildFinalApprovalEmailHtml({requesterName,requesterEmail,teamGroup,mer
 </table></td></tr></table></body></html>`;
 }
 
-async function sendEmailWithAttachment({to,cc,subject,htmlBody,attachment}){
+async function sendEmailWithAttachment({to,cc,subject,htmlBody,attachment,threadId}){
   let tok=await _getToken(false);
   if(!tok.success) tok=await _getToken(true);
   if(!tok.success) return{success:false,error:tok.error};
@@ -3469,7 +3469,6 @@ async function sendEmailWithAttachment({to,cc,subject,htmlBody,attachment}){
     mimeLines.push('Content-Disposition: attachment; filename="'+attachment.name+'"');
     mimeLines.push('Content-Transfer-Encoding: base64');
     mimeLines.push('');
-    // Split base64 into 76-char lines per RFC 2822
     const b64=attachment.base64.replace(/(.{76})/g,'$1\r\n');
     mimeLines.push(b64);
   }
@@ -3478,13 +3477,16 @@ async function sendEmailWithAttachment({to,cc,subject,htmlBody,attachment}){
   const rawMime=mimeLines.join('\r\n');
   const encoded=btoa(unescape(encodeURIComponent(rawMime))).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
 
+  const payload={raw:encoded};
+  if(threadId) payload.threadId=threadId;
+
   const res=await fetch('https://gmail.googleapis.com/gmail/v1/users/me/messages/send',{
     method:'POST',headers:{'Authorization':'Bearer '+tok.token,'Content-Type':'application/json'},
-    body:JSON.stringify({raw:encoded}),
+    body:JSON.stringify(payload),
   });
   const data=await res.json();
-  if(data.id) return{success:true,messageId:data.id};
-  if(data.error?.code===401){_gToken=null;return sendEmailWithAttachment({to,cc,subject,htmlBody,attachment});}
+  if(data.id) return{success:true,messageId:data.id,threadId:data.threadId};
+  if(data.error?.code===401){_gToken=null;return sendEmailWithAttachment({to,cc,subject,htmlBody,attachment,threadId});}
   return{success:false,error:data.error?.message||JSON.stringify(data)};
 }
 
@@ -4371,7 +4373,9 @@ function renderStatsTable(rows){
       ?`<span class="text-xs text-gray-300 cursor-not-allowed mt-1">📋 Pricing Revamp</span>`
       :`<button onclick="openFinalApprovalModal('${latest.rowId}')" class="text-xs font-semibold text-emerald-600 hover:text-emerald-800 mt-1">📋 Pricing Revamp</button>`;
 
-    const pricingCell=`<div>${vChips}${linkVerBtn}${newVerBtn}${revampBtn}</div>`;
+    const sendBtn=`<button onclick="openMerchantCompose('${latest.rowId}')" class="mt-1.5 flex items-center gap-1 text-xs font-semibold text-blue-600 hover:text-blue-800 hover:underline" title="Send pricing email to merchant">✉️ Send to Merchant</button>`;
+
+    const pricingCell=`<div>${vChips}${linkVerBtn}${newVerBtn}${revampBtn}${sendBtn}</div>`;
 
     // Overall status = latest version
     const gmvR=versions.find(v=>v.gmvDisplay)||r;
@@ -4897,6 +4901,237 @@ if(_initAction === 'activate-user'){
   _loadCoverageState(); // sync coverage toggles from GitHub on startup
   if(currentUser) _routeUserAfterSignIn();
 }
+// ================================================================
+// MERCHANT COMPOSE — Gmail-style side panel
+// ================================================================
+let _composeRowId=null;
+let _composePdfData=null; // {name,base64,type}
+let _composeMinimised=false;
+
+function openMerchantCompose(rowId){
+  _composeRowId=rowId;
+  _composePdfData=null;
+  const row=statsAllRows.find(r=>r.rowId===rowId);
+  if(!row) return;
+  const snap=window._snapCache?.[rowId]||row.snapshot||null;
+  const merchantName=row.merchantName||'';
+  const mid=row.mid||snap?.mid||'';
+
+  // Pre-fill subject
+  const subj=`Pricing Proposal — ${merchantName}${mid?' (MID: '+mid+')':''}`;
+  document.getElementById('mc-compose-subject').value=subj;
+  document.getElementById('mc-compose-to').value='';
+  document.getElementById('mc-compose-thread').value='';
+  document.getElementById('mc-compose-intro').value=`Dear ${merchantName} Team,\n\nPlease find below our customised pricing proposal for your review.`;
+  document.getElementById('mc-compose-merchant').value=merchantName;
+  document.getElementById('mc-compose-rowid').value=rowId;
+  document.getElementById('mc-compose-attach-status').textContent='⏳ Fetching PDF…';
+  document.getElementById('mc-compose-attach-status').className='text-xs text-amber-500 font-semibold';
+
+  // Build pricing preview
+  const previewEl=document.getElementById('mc-compose-pricing-preview');
+  if(snap){
+    previewEl.innerHTML=_buildPricingTableHtml(snap,'');
+    previewEl.classList.remove('hidden');
+  } else {
+    previewEl.innerHTML='<p class="text-xs text-gray-400 italic">No pricing snapshot available.</p>';
+    previewEl.classList.remove('hidden');
+  }
+
+  // Show panel
+  const panel=document.getElementById('mc-compose-panel');
+  panel.classList.remove('hidden','translate-y-full');
+  _composeMinimised=false;
+  document.getElementById('mc-compose-body').classList.remove('hidden');
+
+  // Try to fetch PDF from Drive
+  _fetchComposePDF(row, snap);
+}
+
+async function _fetchComposePDF(row, snap){
+  const statusEl=document.getElementById('mc-compose-attach-status');
+  // Find driveLink from row or any version in the group
+  let driveLink=row.driveLink||'';
+  let fileName=row.fileName||'Proposal.pdf';
+  if(!driveLink && row.group){
+    const grouped=statsAllRows.filter(r=>(r.group||r.rowId)===row.group&&r.driveLink);
+    if(grouped.length) {driveLink=grouped[grouped.length-1].driveLink;fileName=grouped[grouped.length-1].fileName||fileName;}
+  }
+  if(!driveLink){
+    statusEl.textContent='⚠ No PDF on Drive — will send without attachment';
+    statusEl.className='text-xs text-amber-500 font-semibold';
+    return;
+  }
+  const fileIdMatch=driveLink.match(/\/d\/([a-zA-Z0-9_-]+)/);
+  if(!fileIdMatch){statusEl.textContent='⚠ Could not parse Drive link';statusEl.className='text-xs text-amber-500';return;}
+  const fileId=fileIdMatch[1];
+  try{
+    let tok=await _getToken(false);
+    if(!tok.success) tok=await _getToken(true);
+    if(!tok.success){statusEl.textContent='⚠ Auth needed to fetch PDF';statusEl.className='text-xs text-amber-500';return;}
+    statusEl.textContent='⏳ Downloading PDF from Drive…';
+    const res=await fetch(`https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`,{
+      headers:{'Authorization':'Bearer '+tok.token}
+    });
+    if(!res.ok){statusEl.textContent='⚠ Could not fetch PDF (will send without)';statusEl.className='text-xs text-amber-500';return;}
+    const buf=await res.arrayBuffer();
+    const bytes=new Uint8Array(buf);
+    let binary='';const chunk=8192;
+    for(let i=0;i<bytes.byteLength;i+=chunk) binary+=String.fromCharCode(...bytes.subarray(i,i+chunk));
+    _composePdfData={name:fileName||'Razorpay-Proposal.pdf',type:'application/pdf',base64:btoa(binary)};
+    statusEl.textContent='📎 '+(_composePdfData.name.length>40?_composePdfData.name.slice(0,37)+'...':_composePdfData.name);
+    statusEl.className='text-xs text-green-600 font-semibold';
+  }catch(e){
+    console.warn('[Compose] PDF fetch error:',e);
+    statusEl.textContent='⚠ PDF fetch failed (will send without)';
+    statusEl.className='text-xs text-amber-500';
+  }
+}
+
+function toggleComposeMinimise(){
+  _composeMinimised=!_composeMinimised;
+  const body=document.getElementById('mc-compose-body');
+  const minBtn=document.getElementById('mc-compose-min-btn');
+  if(_composeMinimised){body.classList.add('hidden');minBtn.textContent='□';}
+  else{body.classList.remove('hidden');minBtn.textContent='—';}
+}
+
+function closeCompose(){
+  document.getElementById('mc-compose-panel').classList.add('hidden');
+  _composePdfData=null;_composeRowId=null;
+}
+
+async function sendMerchantMail(isReply){
+  const btn=document.getElementById('mc-compose-send-btn');
+  const replyBtn=document.getElementById('mc-compose-reply-btn');
+  btn.disabled=true;replyBtn.disabled=true;
+  btn.textContent='⏳ Sending…';
+
+  const to=document.getElementById('mc-compose-to').value.trim();
+  const subject=document.getElementById('mc-compose-subject').value.trim();
+  const intro=document.getElementById('mc-compose-intro').value.trim();
+  const threadId=document.getElementById('mc-compose-thread').value.trim();
+  const rowId=document.getElementById('mc-compose-rowid').value;
+  const merchantName=document.getElementById('mc-compose-merchant').value;
+
+  if(!to){alert('Please enter a recipient email address.');btn.disabled=false;btn.textContent='Send (New Thread)';replyBtn.disabled=false;return;}
+
+  const row=statsAllRows.find(r=>r.rowId===rowId);
+  const snap=window._snapCache?.[rowId]||row?.snapshot||null;
+
+  const htmlBody=_buildMerchantEmailHtml({merchantName,intro,snap});
+
+  const result=await sendEmailWithAttachment({
+    to,
+    subject,
+    htmlBody,
+    attachment:_composePdfData||null,
+    threadId:isReply?threadId:null,
+  });
+
+  if(result.success){
+    document.getElementById('mc-compose-attach-status').textContent='✅ Email sent!';
+    document.getElementById('mc-compose-attach-status').className='text-xs text-green-600 font-bold';
+    setTimeout(()=>closeCompose(),1800);
+  }else{
+    alert('Send failed: '+(result.error||'unknown error'));
+    btn.disabled=false;btn.textContent='Send (New Thread)';replyBtn.disabled=false;
+  }
+}
+
+function _buildMerchantEmailHtml({merchantName,intro,snap}){
+  const introHtml=intro.replace(/\n/g,'<br>');
+  const pricingTable=snap?_buildPricingTableHtml(snap,''):'<p style="color:#9ca3af;font-size:13px">Pricing details not available.</p>';
+  return `<!DOCTYPE html><html><body style="margin:0;padding:0;background:#f3f4f6;font-family:Arial,sans-serif">
+<table width="100%" cellpadding="0" cellspacing="0"><tr><td align="center" style="padding:32px 16px">
+<table width="600" cellpadding="0" cellspacing="0" style="background:#fff;border-radius:16px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,0.08)">
+  <tr><td style="background:linear-gradient(135deg,#1f3fa3 0%,#3b5ce4 100%);padding:24px 32px">
+    <div style="font-size:11px;font-weight:700;letter-spacing:2px;color:#a5b4fc;text-transform:uppercase;margin-bottom:4px">Razorpay Payment Solutions</div>
+    <div style="font-size:22px;font-weight:900;color:#fff">Pricing Proposal</div>
+    <div style="font-size:13px;color:#c7d2fe;margin-top:4px">${merchantName}</div>
+  </td></tr>
+  <tr><td style="padding:28px 32px">
+    <p style="font-size:14px;color:#374151;line-height:1.6;margin:0 0 24px">${introHtml}</p>
+    <div style="font-size:12px;font-weight:800;color:#374151;text-transform:uppercase;letter-spacing:1px;margin-bottom:12px">📋 Proposed Pricing</div>
+    ${pricingTable}
+    <div style="margin-top:28px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:10px;padding:14px 18px">
+      <p style="font-size:13px;color:#065f46;margin:0;font-style:italic">📄 Please refer to the attached PDF for the complete and detailed pricing offering, including terms and conditions.</p>
+    </div>
+    <p style="font-size:12px;color:#9ca3af;margin-top:24px;line-height:1.6">The above commercials are valid for 15 days from the date of sharing. Please feel free to reach out for any queries.</p>
+  </td></tr>
+  <tr><td style="background:#f9fafb;padding:14px 32px;text-align:center;border-top:1px solid #f3f4f6">
+    <p style="font-size:11px;color:#9ca3af;margin:0">Razorpay Software Private Limited · <a href="https://razorpay.com" style="color:#6366f1;text-decoration:none">razorpay.com</a></p>
+  </td></tr>
+</table></td></tr></table></body></html>`;
+}
+
 </script>
+
+<!-- ================================================================ -->
+<!-- MERCHANT COMPOSE PANEL — Gmail-style                             -->
+<!-- ================================================================ -->
+<div id="mc-compose-panel" class="hidden fixed bottom-0 right-6 w-[480px] max-w-[calc(100vw-24px)] bg-white rounded-t-2xl shadow-2xl border border-gray-200 z-[9999] flex flex-col" style="max-height:82vh">
+  <!-- Header -->
+  <div class="flex items-center justify-between px-4 py-3 bg-gray-800 rounded-t-2xl cursor-pointer select-none" onclick="toggleComposeMinimise()">
+    <span class="text-sm font-bold text-white flex items-center gap-2">📧 Send Pricing to Merchant</span>
+    <div class="flex items-center gap-2">
+      <button id="mc-compose-min-btn" onclick="event.stopPropagation();toggleComposeMinimise()" class="text-gray-300 hover:text-white font-bold text-lg w-6 h-6 flex items-center justify-center">—</button>
+      <button onclick="event.stopPropagation();closeCompose()" class="text-gray-300 hover:text-white font-bold text-lg w-6 h-6 flex items-center justify-center">✕</button>
+    </div>
+  </div>
+
+  <!-- Body -->
+  <div id="mc-compose-body" class="flex flex-col overflow-y-auto" style="max-height:calc(82vh - 52px)">
+    <!-- Fields -->
+    <div class="border-b border-gray-100 px-4 py-2 flex items-center gap-2">
+      <span class="text-xs font-bold text-gray-400 w-14 shrink-0">To</span>
+      <input id="mc-compose-to" type="email" placeholder="merchant@company.com" class="flex-1 text-sm text-gray-800 outline-none py-1 placeholder:text-gray-300">
+    </div>
+    <div class="border-b border-gray-100 px-4 py-2 flex items-center gap-2">
+      <span class="text-xs font-bold text-gray-400 w-14 shrink-0">Subject</span>
+      <input id="mc-compose-subject" type="text" class="flex-1 text-sm text-gray-800 outline-none py-1">
+    </div>
+
+    <!-- Thread toggle -->
+    <div class="border-b border-gray-100 px-4 py-2.5 bg-gray-50 flex items-center gap-3 flex-wrap">
+      <span class="text-xs font-bold text-gray-500">Reply to existing thread?</span>
+      <input id="mc-compose-thread" type="text" placeholder="Paste Gmail Thread ID (optional)" class="flex-1 min-w-40 text-xs px-2.5 py-1.5 border border-gray-200 rounded-lg outline-none focus:border-blue-400 text-gray-700 bg-white">
+      <span class="text-xs text-gray-400">Leave blank for new thread</span>
+    </div>
+
+    <!-- Hidden helpers -->
+    <input id="mc-compose-rowid" type="hidden">
+    <input id="mc-compose-merchant" type="hidden">
+
+    <!-- Intro text -->
+    <div class="px-4 pt-3 pb-1">
+      <textarea id="mc-compose-intro" rows="3" class="w-full text-sm text-gray-700 outline-none resize-none leading-relaxed placeholder:text-gray-300 border border-gray-200 rounded-xl px-3 py-2 focus:border-blue-400" placeholder="Opening message to merchant…"></textarea>
+    </div>
+
+    <!-- Pricing preview -->
+    <div class="px-4 pb-2">
+      <div class="text-xs font-bold text-gray-400 uppercase tracking-wide mb-2">📋 Pricing Table (will appear in email)</div>
+      <div id="mc-compose-pricing-preview" class="hidden overflow-auto max-h-64 rounded-xl border border-gray-100 bg-gray-50 p-2 text-xs"></div>
+    </div>
+
+    <!-- Footer note preview -->
+    <div class="mx-4 mb-3 bg-emerald-50 border border-emerald-200 rounded-xl px-3 py-2.5">
+      <p class="text-xs text-emerald-700 italic">📄 Please refer to the attached PDF for the complete and detailed pricing offering, including terms and conditions.</p>
+    </div>
+
+    <!-- Attachment status -->
+    <div class="px-4 pb-2 flex items-center gap-2">
+      <svg class="w-4 h-4 text-gray-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"/></svg>
+      <span id="mc-compose-attach-status" class="text-xs text-gray-400">No attachment</span>
+    </div>
+
+    <!-- Send buttons -->
+    <div class="px-4 pb-4 flex gap-2 border-t border-gray-100 pt-3">
+      <button id="mc-compose-send-btn" onclick="sendMerchantMail(false)" class="flex-1 bg-gradient-to-r from-blue-700 to-indigo-700 text-white font-bold py-2 rounded-xl text-sm hover:opacity-90 transition-all shadow">📤 Send (New Thread)</button>
+      <button id="mc-compose-reply-btn" onclick="sendMerchantMail(true)" class="flex-1 bg-gradient-to-r from-gray-600 to-gray-700 text-white font-bold py-2 rounded-xl text-sm hover:opacity-90 transition-all">↩ Reply to Thread</button>
+    </div>
+  </div>
+</div>
+
 </body>
 </html>
