@@ -5601,19 +5601,19 @@ async function checkMerchantReplies(){
         if(closedByMary){
           _replyBadges[m.rowId]={status:'closed',count:extMsgs.length,threadId,merchantName:m.merchantName,gmv};
           _updateReplyBadge(m.rowId,'closed',extMsgs.length,threadId,m.merchantName,[]);
-          foundMerchants.push({name:m.merchantName,status:'closed'});
+          foundMerchants.push({name:m.merchantName,status:'closed',threadId,count:extMsgs.length});
         }else if(floorViolations.length>0&&!isThreadApproved){
           _replyBadges[m.rowId]={status:'floor-violation',count:extMsgs.length,threadId,merchantName:m.merchantName,gmv,violations:floorViolations};
           _updateReplyBadge(m.rowId,'floor-violation',extMsgs.length,threadId,m.merchantName,floorViolations);
-          foundMerchants.push({name:m.merchantName,status:'floor-violation'});
+          foundMerchants.push({name:m.merchantName,status:'floor-violation',threadId,count:extMsgs.length});
         }else if(floorViolations.length>0&&isThreadApproved){
           _replyBadges[m.rowId]={status:'floor-approved',count:extMsgs.length,threadId,merchantName:m.merchantName,gmv,violations:floorViolations};
           _updateReplyBadge(m.rowId,'floor-approved',extMsgs.length,threadId,m.merchantName,floorViolations);
-          foundMerchants.push({name:m.merchantName,status:'floor-approved'});
+          foundMerchants.push({name:m.merchantName,status:'floor-approved',threadId,count:extMsgs.length});
         }else if(extMsgs.length>0){
           _replyBadges[m.rowId]={status:'replied',count:extMsgs.length,threadId,merchantName:m.merchantName,gmv};
           _updateReplyBadge(m.rowId,'replied',extMsgs.length,threadId,m.merchantName,[]);
-          foundMerchants.push({name:m.merchantName,status:'replied',count:extMsgs.length});
+          foundMerchants.push({name:m.merchantName,status:'replied',threadId,count:extMsgs.length});
         }
       }catch(e){console.error('Thread check error for '+m.merchantName,e);}
     }
@@ -5624,7 +5624,19 @@ async function checkMerchantReplies(){
         return `💬 ${f.name} (${f.count||''} repl${f.count===1?'y':'ies'})`;
       }).join(' · ');
       _setSyncStatus(names,'text-amber-600');
-      _showReplyToast(foundMerchants);
+      // Only toast merchants that are NEW since last sync
+      const seenKey='rzp_seen_reply_states';
+      const seen=JSON.parse(localStorage.getItem(seenKey)||'{}');
+      const newMerchants=foundMerchants.filter(f=>{
+        const key=(f.threadId||f.name)+'__'+f.status+'__'+(f.count||0);
+        return seen[f.name]!==key;
+      });
+      // Update seen state for all found merchants
+      foundMerchants.forEach(f=>{
+        seen[f.name]=(f.threadId||f.name)+'__'+f.status+'__'+(f.count||0);
+      });
+      localStorage.setItem(seenKey,JSON.stringify(seen));
+      if(newMerchants.length>0) _showReplyToast(newMerchants);
     }else{
       _setSyncStatus('No new replies — '+new Date().toLocaleTimeString(),'text-green-600');
     }
