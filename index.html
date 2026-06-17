@@ -4927,9 +4927,20 @@ async function _resolveSnap(rowId){
   // 5. GitHub approvals.json (admin path)
   try{
     const{data:ghAps}=await _ghRead('data/approvals.json');
-    const gh=(ghAps||[]).find(g=>'ap_'+g.requestId===rowId||g.requestId===reqId);
+    const gh=(ghAps||[]).find(g=>'ap_'+g.requestId===rowId||g.requestId===reqId||g.requestId===rowId);
     if(gh?.snapshot){if(!window._snapCache) window._snapCache={};window._snapCache[rowId]=gh.snapshot;return gh.snapshot;}
   }catch(e){}
+  // 6. GitHub finalapprovals.json
+  try{
+    const{data:ghFa}=await _ghRead('data/finalapprovals.json');
+    const fa=(ghFa||[]).find(g=>g.requestId===reqId||'ap_'+g.requestId===rowId||g.rowId===rowId);
+    if(fa?.snapshot){if(!window._snapCache) window._snapCache={};window._snapCache[rowId]=fa.snapshot;return fa.snapshot;}
+  }catch(e){}
+  // 7. Any statsAllRow for same merchant that has a snapshot
+  if(row){
+    const fallback=statsAllRows.find(x=>x.rowId!==rowId&&x.merchantName===row.merchantName&&x.snapshot);
+    if(fallback?.snapshot) return fallback.snapshot;
+  }
   return null;
 }
 
@@ -5033,18 +5044,29 @@ async function _searchThreads(q){
       resultsEl.innerHTML=details.map(t=>{
         const hdrs=t.messages?.[0]?.payload?.headers||[];
         const subj=hdrs.find(h=>h.name==='Subject')?.value||'(no subject)';
+        const toHdr=hdrs.find(h=>h.name==='To')?.value||'';
+        const fromHdr=hdrs.find(h=>h.name==='From')?.value||'';
+        // Extract email from "Name <email>" format
+        const extractEmail=s=>{const m=s.match(/<([^>]+)>/);return m?m[1]:s.trim();};
+        const myEmail=currentUser?.email||'';
+        // Recipient = whoever is not me
+        const toEmail=extractEmail(toHdr);
+        const fromEmail=extractEmail(fromHdr);
+        const recipientEmail=fromEmail.toLowerCase()===myEmail.toLowerCase()?toEmail:fromEmail;
         const snippet=(t.snippet||'').slice(0,80);
         const short=subj.length>55?subj.slice(0,52)+'…':subj;
-        return `<button onclick="_setSelectedThread('${t.id}','${short.replace(/'/g,"&#39;")}')" class="w-full text-left px-3 py-2.5 hover:bg-blue-50 border-b border-gray-100 last:border-0 transition-colors">
+        const safeShort=short.replace(/'/g,"&#39;").replace(/"/g,'&quot;');
+        const safeRecipient=recipientEmail.replace(/'/g,"&#39;");
+        return `<button onclick="_setSelectedThread('${t.id}','${safeShort}','${safeRecipient}')" class="w-full text-left px-3 py-2.5 hover:bg-blue-50 border-b border-gray-100 last:border-0 transition-colors">
           <div class="text-xs font-bold text-gray-800 truncate">${short}</div>
-          <div class="text-xs text-gray-400 truncate mt-0.5">${snippet}</div>
+          <div class="text-xs text-gray-400 truncate mt-0.5">${recipientEmail?'<span class=\'text-blue-400\'>'+recipientEmail+'</span> · ':''} ${snippet}</div>
         </button>`;
       }).join('');
     }catch(e){resultsEl.innerHTML='<p class="text-xs text-red-400 px-3 py-2">Error: '+e.message+'</p>';}
   },400);
 }
 
-function _setSelectedThread(threadId,label){
+function _setSelectedThread(threadId,label,recipientEmail){
   _composeThreadId=threadId||null;
   const tag=document.getElementById('mc-selected-thread-tag');
   const info=document.getElementById('mc-thread-info');
@@ -5055,6 +5077,11 @@ function _setSelectedThread(threadId,label){
     info.textContent='Will reply into this thread';
     info.className='text-xs text-blue-500';
     document.getElementById('mc-thread-search').value='';
+    // Auto-fill recipient if found and To field is empty
+    if(recipientEmail){
+      const toEl=document.getElementById('mc-compose-to');
+      if(toEl&&!toEl.value.trim()) toEl.value=recipientEmail;
+    }
   }else{
     tag.classList.add('hidden');tag.classList.remove('inline-flex');
     info.textContent='No thread selected — will create a new conversation';
@@ -5129,7 +5156,7 @@ function _buildMerchantEmailHtml({merchantName,intro,snap}){
 <div id="mc-compose-backdrop" class="hidden fixed inset-0 bg-black/30 z-[9998]" onclick="closeCompose()"></div>
 
 <!-- Side Panel -->
-<div id="mc-compose-panel" class="hidden fixed top-0 right-0 h-full w-[480px] max-w-full bg-white shadow-2xl z-[9999] flex flex-col transition-transform duration-300" style="border-left:1px solid #e5e7eb;">
+<div id="mc-compose-panel" class="hidden fixed top-0 right-0 h-full w-[620px] max-w-full bg-white shadow-2xl z-[9999] flex flex-col transition-transform duration-300" style="border-left:1px solid #e5e7eb;">
 
   <!-- Header -->
   <div class="flex items-center justify-between px-5 py-4 bg-gradient-to-r from-blue-800 to-indigo-700 shrink-0">
