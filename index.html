@@ -1021,9 +1021,12 @@
         <p class="text-xs text-emerald-600 mt-2">Abhinav will receive Approve / Reject buttons in the email.</p>
       </div>
     </div>
-    <div class="shrink-0 px-6 py-4 border-t border-gray-100 flex gap-3">
-      <button onclick="closeModal('final-approval-modal')" class="flex-1 border-2 border-gray-200 text-gray-500 font-bold py-2.5 rounded-xl text-sm hover:bg-gray-50">Cancel</button>
-      <button id="fam-send-btn" onclick="sendFinalApprovalEmail()" class="flex-1 bg-gradient-to-r from-emerald-600 to-teal-600 text-white font-bold py-2.5 rounded-xl text-sm hover:from-emerald-700 hover:to-teal-700 transition-all">📤 Send for Pricing Revamp</button>
+    <div class="shrink-0 px-6 py-4 border-t border-gray-100">
+      <div id="fam-thread-status" class="hidden text-xs text-gray-500 mb-2"></div>
+      <div class="flex gap-3">
+        <button onclick="closeModal('final-approval-modal')" class="flex-1 border-2 border-gray-200 text-gray-500 font-bold py-2.5 rounded-xl text-sm hover:bg-gray-50">Cancel</button>
+        <button id="fam-send-btn" onclick="sendFinalApprovalEmail()" class="flex-1 bg-gradient-to-r from-emerald-600 to-teal-600 text-white font-bold py-2.5 rounded-xl text-sm hover:from-emerald-700 hover:to-teal-700 transition-all">📤 Send for Pricing Revamp</button>
+      </div>
     </div>
   </div>
 </div>
@@ -3338,6 +3341,10 @@ function openFinalApprovalModal(rowId){
   }).join('');
 
   showModal('final-approval-modal');
+  // Attach thread PDF if available
+  window._famThreadPDF=null;
+  const famRow=statsAllRows.find(r=>r.rowId===_famRowId);
+  if(famRow) _attachThreadPDFToRevamp(_famRowId, famRow.merchantName);
 }
 
 function _buildPricingTableHtml(snap,vLabel){
@@ -3537,12 +3544,17 @@ async function sendFinalApprovalEmail(){
   await logFinalApprovalToSheet({requestId,merchantName,requesterEmail,versionIds,notes,teamGroup});
 
   const finalApproverEmail=getApproverEmail(teamGroup);
+  // If thread PDF was generated, add a note to the email body
+  let finalHtmlBody=htmlBody;
+  if(window._famThreadPDF){
+    finalHtmlBody+=`<p style="font-size:12px;color:#6b7280;margin-top:16px;padding-top:12px;border-top:1px solid #e5e7eb">📧 <strong>Email thread PDF attached</strong> — contains the merchant conversation history.</p>`;
+  }
   const result=await sendEmailWithAttachment({
     to:finalApproverEmail,
     cc:'dsstartup-ops@razorpay.com,'+OPS_EMAIL,
     subject:'[Final Pricing Approval] '+merchantName+' | '+requesterName+(teamGroup?' | '+teamGroup:''),
-    htmlBody,
-    attachment:_famAttachData||null,
+    htmlBody:finalHtmlBody,
+    attachment:_famAttachData||window._famThreadPDF||null,
   });
 
   btn.disabled=false;
@@ -4264,6 +4276,8 @@ function filterStats(){
     }
   });
   renderStatsTable(filtered);
+  // Check for merchant replies after stats render
+  setTimeout(()=>checkMerchantReplies(),1000);
 }
 
 function renderStatsTable(rows){
@@ -5004,6 +5018,8 @@ function closeCompose(){
   document.getElementById('mc-compose-panel').classList.add('hidden');
   document.getElementById('mc-compose-backdrop').classList.add('hidden');
   _composePdfData=null;_composeRowId=null;_composeThreadId=null;
+  const notice=document.getElementById('mc-reply-notice');
+  if(notice) notice.classList.add('hidden');
 }
 
 function _onManualPDF(input){
@@ -5127,10 +5143,20 @@ function _setSelectedThread(threadId,label,recipientEmail){
       const toEl=document.getElementById('mc-compose-to');
       if(toEl&&!toEl.value.trim()) toEl.value=recipientEmail;
     }
+    // Show thread view wrap and reset loaded state
+    const viewWrap=document.getElementById('mc-thread-view-wrap');
+    if(viewWrap) viewWrap.classList.remove('hidden');
+    _threadViewLoaded=false;
+    const viewBody=document.getElementById('mc-thread-view-body');
+    if(viewBody) viewBody.classList.add('hidden');
+    const viewBtn=document.getElementById('mc-thread-view-btn');
+    if(viewBtn) viewBtn.textContent='📨 View full thread';
   }else{
     tag.classList.add('hidden');tag.classList.remove('inline-flex');
     info.textContent='No thread selected — will create a new conversation';
     info.className='text-xs text-gray-400';
+    const viewWrap=document.getElementById('mc-thread-view-wrap');
+    if(viewWrap) viewWrap.classList.add('hidden');
   }
 }
 
@@ -5158,11 +5184,218 @@ async function sendMerchantMail(){
 
   if(result.success){
     sendBtn.innerHTML='✅ Sent!';sendBtn.className='w-full bg-green-600 text-white font-bold py-3 rounded-xl text-sm';
+    _saveMerchantThread(rowId, merchantName, result.threadId||_composeThreadId, to);
     setTimeout(()=>closeCompose(),1800);
   }else{
     alert('Send failed: '+(result.error||'unknown'));
     sendBtn.disabled=false;sendBtn.innerHTML='📤 Send Email';
   }
+}
+
+function _saveMerchantThread(rowId, merchantName, threadId, recipientEmail){
+  if(!threadId) return;
+  try{
+    const t=JSON.parse(localStorage.getItem('rzp_merchant_threads')||'{}');
+    t[rowId]={threadId,merchantName,recipientEmail:recipientEmail||'',sentAt:Date.now()};
+    // index by merchantName too
+    t['_m_'+(merchantName||'').toLowerCase().replace(/\s+/g,'_')]=t[rowId];
+    localStorage.setItem('rzp_merchant_threads',JSON.stringify(t));
+  }catch(e){}
+}
+
+function _getMerchantThread(rowId, merchantName){
+  try{
+    const t=JSON.parse(localStorage.getItem('rzp_merchant_threads')||'{}');
+    return t[rowId]||t['_m_'+(merchantName||'').toLowerCase().replace(/\s+/g,'_')]||null;
+  }catch(e){return null;}
+}
+
+async function _fetchFullThread(threadId){
+  let tok=await _getToken(false);
+  if(!tok.success) tok=await _getToken(true);
+  if(!tok.success) return null;
+  try{
+    const res=await fetch(`https://gmail.googleapis.com/gmail/v1/users/me/threads/${threadId}?format=full`,{headers:{'Authorization':'Bearer '+tok.token}});
+    if(!res.ok) return null;
+    return res.json();
+  }catch(e){return null;}
+}
+
+function _decodeGmailBody(payload){
+  const find=(parts,mime)=>{
+    for(const p of(parts||[])){
+      if(p.mimeType===mime&&p.body?.data) return p.body.data;
+      if(p.parts){const r=find(p.parts,mime);if(r) return r;}
+    }
+    return null;
+  };
+  const b64=find(payload?.parts,'text/plain')||find(payload?.parts,'text/html')||payload?.body?.data||'';
+  if(!b64) return '';
+  try{return decodeURIComponent(escape(atob(b64.replace(/-/g,'+').replace(/_/g,'/'))));}
+  catch(e){try{return atob(b64.replace(/-/g,'+').replace(/_/g,'/'));}catch(e2){return '';}}
+}
+
+function _stripHtml(html){
+  return html.replace(/<style[^>]*>[\s\S]*?<\/style>/gi,'').replace(/<br\s*\/?>/gi,'\n').replace(/<p[^>]*>/gi,'\n').replace(/<div[^>]*>/gi,'\n').replace(/<[^>]+>/g,'').replace(/&nbsp;/g,' ').replace(/&amp;/g,'&').replace(/&lt;/g,'<').replace(/&gt;/g,'>').replace(/&quot;/g,'"').replace(/&#39;/g,"'").replace(/\n{3,}/g,'\n\n').trim();
+}
+
+async function _threadToPDF(threadId, merchantName){
+  const thread=await _fetchFullThread(threadId);
+  if(!thread||!thread.messages) return null;
+  const{jsPDF}=window.jspdf;
+  const doc=new jsPDF({unit:'mm',format:'a4'});
+  const pageW=doc.internal.pageSize.getWidth();
+  const margin=14;const maxW=pageW-margin*2;
+  let y=20;
+  doc.setFont('helvetica','bold');doc.setFontSize(13);doc.setTextColor(31,63,163);
+  doc.text('Email Thread — '+merchantName,margin,y);y+=7;
+  doc.setDrawColor(180,180,180);doc.setLineWidth(0.3);doc.line(margin,y,pageW-margin,y);y+=6;
+  doc.setFontSize(8);doc.setFont('helvetica','normal');doc.setTextColor(120,120,120);
+  doc.text(`${thread.messages.length} message(s) · Exported ${new Date().toLocaleDateString()}`,margin,y);y+=8;
+  for(const msg of thread.messages){
+    const hdrs=msg.payload?.headers||[];
+    const from=hdrs.find(h=>h.name==='From')?.value||'';
+    const to=hdrs.find(h=>h.name==='To')?.value||'';
+    const date=hdrs.find(h=>h.name==='Date')?.value||'';
+    const subj=hdrs.find(h=>h.name==='Subject')?.value||'';
+    const bodyRaw=_decodeGmailBody(msg.payload);
+    const bodyText=_stripHtml(bodyRaw).slice(0,3000);
+    if(y>255){doc.addPage();y=20;}
+    // header bg
+    doc.setFillColor(243,244,246);doc.rect(margin,y-3,maxW,5.5,'F');
+    doc.setFont('helvetica','bold');doc.setFontSize(8.5);doc.setTextColor(30,30,30);
+    doc.text(from.slice(0,80),margin+1,y+0.5);
+    const dateShort=date.split(' ').slice(0,4).join(' ');
+    doc.setFont('helvetica','normal');doc.setFontSize(7.5);doc.setTextColor(100,100,100);
+    doc.text(dateShort,pageW-margin-doc.getTextWidth(dateShort)-1,y+0.5);
+    y+=6;
+    doc.setFont('helvetica','normal');doc.setFontSize(7.5);doc.setTextColor(120,120,120);
+    if(to) doc.text('To: '+to.slice(0,90),margin+1,y);y+=4;
+    doc.setFont('helvetica','italic');doc.setFontSize(8);doc.setTextColor(60,60,150);
+    doc.text(subj.slice(0,90),margin+1,y);y+=5;
+    doc.setFont('helvetica','normal');doc.setFontSize(8.5);doc.setTextColor(30,30,30);
+    const lines=doc.splitTextToSize(bodyText,maxW);
+    for(const line of lines){
+      if(y>275){doc.addPage();y=20;}
+      doc.text(line,margin,y);y+=4;
+    }
+    y+=3;doc.setDrawColor(210,210,210);doc.line(margin,y,pageW-margin,y);y+=5;
+  }
+  return doc.output('arraybuffer');
+}
+
+async function _attachThreadPDFToRevamp(rowId, merchantName){
+  const entry=_getMerchantThread(rowId,merchantName);
+  if(!entry?.threadId) return;
+  const statusEl=document.getElementById('fam-thread-status');
+  if(!statusEl) return;
+  statusEl.textContent='⏳ Fetching email thread…';statusEl.classList.remove('hidden');
+  const buf=await _threadToPDF(entry.threadId,merchantName);
+  if(buf){
+    const bytes=new Uint8Array(buf);let bin='';const ch=8192;
+    for(let i=0;i<bytes.byteLength;i+=ch) bin+=String.fromCharCode(...bytes.subarray(i,i+ch));
+    window._famThreadPDF={name:`Email-Thread-${merchantName.replace(/\s+/g,'-')}.pdf`,type:'application/pdf',base64:btoa(bin)};
+    statusEl.textContent='✅ Email thread PDF attached ('+entry.merchantName+')';
+    statusEl.className='text-xs text-green-600 font-semibold';
+  }else{
+    statusEl.textContent='⚠ Could not fetch thread PDF';
+    statusEl.className='text-xs text-amber-500';
+  }
+}
+
+let _threadViewLoaded=false;
+async function _toggleThreadView(){
+  const body=document.getElementById('mc-thread-view-body');
+  const btn=document.getElementById('mc-thread-view-btn');
+  if(!body.classList.contains('hidden')){
+    body.classList.add('hidden');btn.textContent='📨 View full thread';return;
+  }
+  if(_threadViewLoaded){body.classList.remove('hidden');btn.textContent='▲ Hide thread';return;}
+  if(!_composeThreadId){return;}
+  btn.textContent='⏳ Loading…';
+  const thread=await _fetchFullThread(_composeThreadId);
+  if(!thread||!thread.messages){btn.textContent='⚠ Could not load thread';return;}
+  body.innerHTML=thread.messages.map(msg=>{
+    const hdrs=msg.payload?.headers||[];
+    const from=hdrs.find(h=>h.name==='From')?.value||'';
+    const date=hdrs.find(h=>h.name==='Date')?.value||'';
+    const subj=hdrs.find(h=>h.name==='Subject')?.value||'';
+    const bodyRaw=_decodeGmailBody(msg.payload);
+    const bodyText=_stripHtml(bodyRaw).slice(0,1500);
+    const isRzp=(from.toLowerCase().includes('razorpay'));
+    return `<div class="px-3 py-2.5 ${isRzp?'bg-blue-50':'bg-white'}">
+      <div class="flex items-start justify-between gap-2 mb-1">
+        <span class="text-xs font-bold text-gray-800 truncate max-w-[70%]">${from.slice(0,60)}</span>
+        <span class="text-xs text-gray-400 shrink-0">${date.split(' ').slice(1,4).join(' ')}</span>
+      </div>
+      <div class="text-xs text-gray-500 italic mb-1 truncate">${subj}</div>
+      <div class="text-xs text-gray-700 whitespace-pre-wrap leading-relaxed">${bodyText}</div>
+    </div>`;
+  }).join('');
+  _threadViewLoaded=true;
+  body.classList.remove('hidden');
+  btn.textContent='▲ Hide thread';
+}
+
+const _replyBadges={};
+
+async function checkMerchantReplies(){
+  try{
+    const threads=JSON.parse(localStorage.getItem('rzp_merchant_threads')||'{}');
+    const myDomain='razorpay.com';
+    let tok=await _getToken(false);
+    if(!tok.success) return;
+    for(const[key,entry] of Object.entries(threads)){
+      if(key.startsWith('_')||!entry.threadId) continue;
+      const res=await fetch(`https://gmail.googleapis.com/gmail/v1/users/me/threads/${entry.threadId}?format=metadata&metadataHeaders=From&metadataHeaders=Date`,{headers:{'Authorization':'Bearer '+tok.token}});
+      if(!res.ok) continue;
+      const data=await res.json();
+      const msgs=data.messages||[];
+      // replies = messages from non-razorpay senders
+      const replies=msgs.filter(m=>{
+        const from=(m.payload?.headers?.find(h=>h.name==='From')?.value||'').toLowerCase();
+        return !from.includes(myDomain);
+      });
+      if(replies.length>0&&entry.rowId){
+        _replyBadges[entry.rowId]={count:replies.length,threadId:entry.threadId,merchantName:entry.merchantName,recipientEmail:entry.recipientEmail};
+        _injectReplyBadge(entry.rowId,replies.length,entry.threadId,entry.merchantName);
+      }
+    }
+  }catch(e){}
+}
+
+function _injectReplyBadge(rowId,count,threadId,merchantName){
+  // Inject into stats table. Stats rows have send-to-merchant buttons; find by rowId in onclick attributes
+  document.querySelectorAll('[onclick*="'+rowId+'"]').forEach(el=>{
+    const container=el.closest('div,td');
+    if(container&&!container.querySelector('.rzp-reply-badge')){
+      const b=document.createElement('button');
+      b.className='rzp-reply-badge mt-1 flex items-center gap-1 text-xs font-bold text-amber-700 bg-amber-50 border border-amber-300 rounded-full px-2 py-0.5 hover:bg-amber-100 transition-colors';
+      b.innerHTML=`💬 ${count} merchant repl${count===1?'y':'ies'}`;
+      b.onclick=e=>{e.stopPropagation();openReplyPanel(rowId,threadId,merchantName);};
+      container.appendChild(b);
+    }
+  });
+}
+
+function openReplyPanel(rowId,threadId,merchantName){
+  // Open compose panel pre-loaded with the thread, and show the thread view
+  openMerchantCompose(rowId);
+  // After compose opens, auto-select the thread
+  setTimeout(()=>{
+    _composeThreadId=threadId;
+    const tag=document.getElementById('mc-selected-thread-tag');
+    const info=document.getElementById('mc-thread-info');
+    if(tag){tag.querySelector('span').textContent='Thread: '+merchantName;tag.classList.remove('hidden');tag.classList.add('inline-flex');}
+    if(info){info.textContent='Will reply into this thread';info.className='text-xs text-blue-500';}
+    // Auto-load thread view
+    const wrap=document.getElementById('mc-thread-view-wrap');
+    if(wrap) wrap.classList.remove('hidden');
+    _toggleThreadView();
+    // Show reply notice
+    const notice=document.getElementById('mc-reply-notice');
+    if(notice) notice.classList.remove('hidden');
+  },300);
 }
 
 function _buildSimplePricingTable(snap){
@@ -5280,10 +5513,20 @@ function _buildMerchantEmailHtml({merchantName,intro,snap}){
         </span>
         <span id="mc-thread-info" class="text-xs text-gray-400">No thread selected — will create a new conversation</span>
       </div>
+      <!-- View thread toggle -->
+      <div id="mc-thread-view-wrap" class="hidden mt-2">
+        <button onclick="_toggleThreadView()" id="mc-thread-view-btn" class="text-xs text-blue-500 hover:text-blue-700 underline">📨 View full thread</button>
+        <div id="mc-thread-view-body" class="hidden mt-2 max-h-80 overflow-y-auto rounded-xl border border-gray-200 bg-white divide-y divide-gray-100"></div>
+      </div>
     </div>
 
     <!-- Hidden helpers -->
     <input id="mc-compose-rowid" type="hidden">
+
+    <!-- Merchant reply notice (shown when opened from reply panel) -->
+    <div id="mc-reply-notice" class="hidden mx-5 mt-3 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2.5">
+      <p class="text-xs text-amber-700">💡 <strong>Merchant replied</strong> — review their requests and submit for pricing update if rates need to change. Floor rates still apply.</p>
+    </div>
 
     <!-- Intro text -->
     <div class="px-5 pt-4 pb-2">
