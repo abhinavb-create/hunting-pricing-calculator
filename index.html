@@ -272,6 +272,12 @@
         <input id="merchant-mid" type="text" placeholder="e.g. MID1234567890"
           class="w-full px-3 py-2.5 border-2 border-gray-200 rounded-xl text-gray-800 font-bold text-sm focus:outline-none focus:border-blue-500 transition">
       </div>
+      <div class="flex-1 min-w-28">
+        <label class="block text-xs font-semibold text-gray-500 mb-1.5">MCC <span class="text-gray-300 font-normal">(optional)</span></label>
+        <input id="merchant-mcc" type="text" maxlength="4" placeholder="e.g. 5411"
+          class="w-full px-3 py-2.5 border-2 border-gray-200 rounded-xl text-gray-800 font-bold text-sm focus:outline-none focus:border-blue-500 transition"
+          oninput="this.value=this.value.replace(/\D/g,'').slice(0,4)">
+      </div>
       <div class="flex-1 min-w-44">
         <label class="block text-xs font-semibold text-gray-500 mb-1.5">Monthly GMV (₹) <span class="text-red-400">*</span></label>
         <div class="relative">
@@ -401,6 +407,19 @@
     </div>
   </div>
   </div><!-- /addon-cards -->
+
+  <!-- Pricing Slab Selector -->
+  <div class="bg-blue-50 border border-blue-100 rounded-2xl px-4 py-3 mb-4 flex items-center gap-3 flex-wrap">
+    <span class="text-xs font-bold text-blue-700 uppercase tracking-wide whitespace-nowrap">📋 E-com B2C Slab</span>
+    <select id="pricing-slab" onchange="applySlab(this.value)" class="flex-1 min-w-36 max-w-xs px-3 py-1.5 border-2 border-blue-200 rounded-xl text-sm font-semibold text-blue-900 bg-white focus:outline-none focus:border-blue-500">
+      <option value="">— Custom / No slab —</option>
+      <option value="1">Slab 1 (Standard)</option>
+      <option value="2">Slab 2 (Mid-tier)</option>
+      <option value="3">Slab 3 (Enterprise)</option>
+    </select>
+    <span id="slab-applied-tag" class="hidden text-xs font-bold text-blue-600 bg-blue-100 px-2 py-1 rounded-full">Applied</span>
+    <span class="text-xs text-blue-400">Applies to both Competition &amp; PG+Magic tabs</span>
+  </div>
 
   <!-- Tabs -->
   <div id="scenario-tabs" class="flex gap-2 mb-4 flex-wrap">
@@ -1815,6 +1834,53 @@ function closeModal(id){document.getElementById(id).classList.remove('show');}
 // ================================================================
 // TABS
 // ================================================================
+// ================================================================
+// PRICING SLAB — E-com B2C rates from pricing sheet
+// ================================================================
+const PRICING_SLABS = {
+  // method-id: [slab1, slab2, slab3]  (as % values)
+  'credit-cards':        [2.00, 1.95, 1.90],
+  'debit-lt2k':          [0.75, 0.55, 0.45],
+  'debit-gt2k':          [1.20, 1.00, 0.85],
+  'rupay-debit':         [0.75, 0.40, 0.20],
+  'corp-cards':          [2.95, 2.85, 2.85],
+  'intl-cards':          [2.95, 2.85, 2.85],
+  'amex':                [2.95, 2.85, 2.60],
+  'emi':                 [2.95, 2.85, 2.85],
+  'upi':                 [0.80, 0.40, 0.20],
+  'upi-cc':              [2.15, 2.15, 2.05],
+  'net-banking':         [1.70, 1.65, 1.65],
+  'net-banking-others':  [1.65, 1.50, 1.40],
+  'mobile-wallets':      [1.80, 1.80, 1.70],
+};
+
+function applySlab(slab){
+  const tag=document.getElementById('slab-applied-tag');
+  if(!slab){if(tag) tag.classList.add('hidden');return;}
+  const idx=parseInt(slab)-1; // 0-based
+  ['competition','magic-checkout'].forEach(sc=>{
+    const pfx=sc==='competition'?'c':'mc';
+    METHODS.forEach((m,i)=>{
+      if(m.locked) return;
+      const rates=PRICING_SLABS[m.id];
+      if(!rates) return;
+      const rate=rates[idx];
+      if(rate===undefined) return;
+      // Only set % MDR mode (skip if currently flat fee)
+      if(flatMode[sc]?.[i]) return;
+      const el=document.getElementById(`${pfx}-mdr-${i}`);
+      if(el) el.value=rate.toFixed(2);
+      // For competition tab also set the comp (competitor) rate to same slab value
+      if(sc==='competition'){
+        const compEl=document.getElementById(`c-comp-${i}`);
+        if(compEl) compEl.value=rate.toFixed(2);
+      }
+    });
+  });
+  if(tag){tag.classList.remove('hidden');tag.textContent=`Slab ${slab} Applied`;}
+  updateOutputs();
+}
+
 function setTab(tab){
   activeTab=tab;
   ['competition','magic-checkout'].forEach(p=>{
@@ -2067,10 +2133,12 @@ async function generateAndDownloadPDF(){
     // ══════════════════════════════════════════
     // MERCHANT DETAILS — 4-cell info grid
     // ══════════════════════════════════════════
+    const mcc=document.getElementById('merchant-mcc').value.trim();
     const detailCells=[];
     detailCells.push({label:'PREPARED FOR',value:name});
     if(customerName) detailCells.push({label:'CONTACT',value:customerName});
     if(mid) detailCells.push({label:'MID',value:mid});
+    if(mcc) detailCells.push({label:'MCC',value:mcc});
     detailCells.push({label:'DATE',value:today});
     detailCells.push({label:'MONTHLY GMV',value:lakh(gmv).replace(/₹/g,'Rs.')});
 
@@ -2568,6 +2636,7 @@ function snapshotCalculatorState(){
     merchantName: document.getElementById('merchant-name')?.value||'',
     customerName: document.getElementById('customer-name')?.value||'',
     mid: document.getElementById('merchant-mid')?.value||'',
+    mcc: document.getElementById('merchant-mcc')?.value||'',
     gmv: document.getElementById('gmv')?.value||'',
     settlementType: document.getElementById('settlement-type')?.value||'T2',
     t1Rate: document.getElementById('t1-rate')?.value||'0',
@@ -2610,6 +2679,7 @@ function restoreCalculatorState(snap){
   set('merchant-name',snap.merchantName);
   set('customer-name',snap.customerName);
   set('merchant-mid',snap.mid);
+  set('merchant-mcc',snap.mcc||'');
   set('gmv',snap.gmv);
   set('settlement-type',snap.settlementType);
   set('t1-rate',snap.t1Rate);
@@ -3307,8 +3377,9 @@ function _buildPricingTableHtml(snap,vLabel){
   const gmvCr=snap.gmvCredit==='custom'?snap.gmvCreditCustom:snap.gmvCredit;
   html+=`<tr><td colspan="2" style="background:#f8fafc;padding:6px 10px;font-size:10px;font-weight:800;color:#64748b;text-transform:uppercase;letter-spacing:1px">Settlement &amp; Terms</td></tr>
     <tr style="border-bottom:1px solid #f3f4f6"><td style="padding:7px 10px;font-size:12px;color:#374151">Settlement Cycle</td><td style="padding:7px 10px;font-size:12px;font-weight:700;color:#111827;text-align:right">${settl}</td></tr>
-    ${t1>0?`<tr style="border-bottom:1px solid #f3f4f6"><td style="padding:7px 10px;font-size:12px;color:#374151">T+1 Rate</td><td style="padding:7px 10px;font-size:12px;font-weight:700;color:#111827;text-align:right">${t1}%</td></tr>`:''}
-    ${t0>0?`<tr style="border-bottom:1px solid #f3f4f6"><td style="padding:7px 10px;font-size:12px;color:#374151">T+0 Rate</td><td style="padding:7px 10px;font-size:12px;font-weight:700;color:#111827;text-align:right">${t0}%</td></tr>`:''}
+    ${settl==='T1'&&t1>0?`<tr style="border-bottom:1px solid #f3f4f6"><td style="padding:7px 10px;font-size:12px;color:#374151">T+1 Rate</td><td style="padding:7px 10px;font-size:12px;font-weight:700;color:#111827;text-align:right">${t1}%</td></tr>`:''}
+    ${settl==='T0'&&t0>0?`<tr style="border-bottom:1px solid #f3f4f6"><td style="padding:7px 10px;font-size:12px;color:#374151">T+0 Rate</td><td style="padding:7px 10px;font-size:12px;font-weight:700;color:#111827;text-align:right">${t0}%</td></tr>`:''}
+    ${settl==='ODS'&&t0>0?`<tr style="border-bottom:1px solid #f3f4f6"><td style="padding:7px 10px;font-size:12px;color:#374151">ODS Rate</td><td style="padding:7px 10px;font-size:12px;font-weight:700;color:#111827;text-align:right">${parseFloat(snap.odsRate)||0}%</td></tr>`:''}
     ${gmvCr&&gmvCr!=='none'?`<tr style="border-bottom:1px solid #f3f4f6"><td style="padding:7px 10px;font-size:12px;color:#374151">GMV Credit</td><td style="padding:7px 10px;font-size:12px;font-weight:700;color:#059669;text-align:right">${gmvCr}</td></tr>`:''}`;
   return `<table width="100%" cellpadding="0" cellspacing="0" style="border:1px solid #e5e7eb;border-radius:10px;overflow:hidden">${html}</table>`;
 }
