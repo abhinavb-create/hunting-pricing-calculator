@@ -5409,12 +5409,25 @@ function _startReplyPolling(){
   },60000);
 }
 
+function _setSyncStatus(msg,color='text-gray-500'){
+  const btn=document.getElementById('reply-sync-btn');
+  if(btn) btn.title=msg;
+  let el=document.getElementById('reply-sync-status');
+  if(!el){
+    el=document.createElement('span');el.id='reply-sync-status';
+    el.className='text-xs ml-2';
+    btn?.parentNode?.insertBefore(el,btn.nextSibling);
+  }
+  el.className='text-xs ml-1 '+color;
+  el.textContent=msg;
+}
+
 async function _manualReplySync(){
   const btn=document.getElementById('reply-sync-btn');
-  if(btn){btn.disabled=true;btn.innerHTML='⏳ Checking…';}
-  _replyChecking=false; // allow re-run
+  if(btn){btn.disabled=true;btn.innerHTML='⏳ Syncing…';}
+  _replyChecking=false;
   await checkMerchantReplies();
-  if(btn){btn.disabled=false;btn.innerHTML='🔄 Sync Replies';}
+  if(btn){btn.disabled=false;btn.innerHTML='💬 Sync Replies';}
 }
 
 async function checkMerchantReplies(){
@@ -5422,26 +5435,38 @@ async function checkMerchantReplies(){
   _replyChecking=true;
   try{
     let tok=await _getToken(false);
-    if(!tok.success){_replyChecking=false;return;}
+    if(!tok.success){
+      _setSyncStatus('⚠ Auth needed — re-open page','text-red-500');
+      _replyChecking=false;return;
+    }
 
-    // Build set of active merchants from statsAllRows (approved/downloaded only)
-    const activeRows=statsAllRows.filter(r=>r.statusKey==='approved'||r.statusKey==='downloaded');
+    // Include ALL merchant rows — not just approved/downloaded
     const seen=new Set();
     const merchants=[];
-    activeRows.forEach(r=>{
+    statsAllRows.forEach(r=>{
       const key=(r.merchantName||'').trim().toLowerCase();
       if(key&&!seen.has(key)){seen.add(key);merchants.push({merchantName:r.merchantName,rowId:r.rowId});}
     });
 
-    // Also include any saved threads
+    // Also include any saved threads (even if merchant not in current statsAllRows view)
     const savedThreads=JSON.parse(localStorage.getItem('rzp_merchant_threads')||'{}');
     Object.entries(savedThreads).forEach(([k,v])=>{
       if(k.startsWith('_')||!v.threadId) return;
-      if(v.merchantName&&!seen.has(v.merchantName.trim().toLowerCase())){
-        seen.add(v.merchantName.trim().toLowerCase());
+      const key=(v.merchantName||'').trim().toLowerCase();
+      if(key&&!seen.has(key)){
+        seen.add(key);
         merchants.push({merchantName:v.merchantName,rowId:v.rowId,threadId:v.threadId});
+      }else{
+        // Add threadId to existing entry if missing
+        const ex=merchants.find(m=>m.merchantName?.trim().toLowerCase()===key);
+        if(ex&&!ex.threadId) ex.threadId=v.threadId;
       }
     });
+
+    if(!merchants.length){_setSyncStatus('No merchants found','text-gray-400');_replyChecking=false;return;}
+    _setSyncStatus(`Checking ${merchants.length} merchant${merchants.length>1?'s':''}…`,'text-blue-500');
+
+    let foundCount=0;
 
     for(const m of merchants){
       try{
@@ -5454,9 +5479,10 @@ async function checkMerchantReplies(){
           const r=await fetch(`https://gmail.googleapis.com/gmail/v1/users/me/threads/${threadId}?format=metadata&metadataHeaders=From&metadataHeaders=Date&metadataHeaders=Subject`,{headers:{'Authorization':'Bearer '+tok.token}});
           if(r.ok){const d=await r.json();allMsgs=d.messages||[];}
         }else{
-          // Search Gmail for threads matching merchant name sent in last 180 days
-          const q=encodeURIComponent(`"${m.merchantName}" newer_than:180d`);
-          const r=await fetch(`https://gmail.googleapis.com/gmail/v1/users/me/threads?q=${q}&maxResults=3`,{headers:{'Authorization':'Bearer '+tok.token}});
+          // Search Gmail for threads matching merchant name — try exact then broad
+          const nameWords=m.merchantName.trim().split(/\s+/).slice(0,4).join(' ');
+          const q=encodeURIComponent(`"${nameWords}" newer_than:365d`);
+          const r=await fetch(`https://gmail.googleapis.com/gmail/v1/users/me/threads?q=${q}&maxResults=5`,{headers:{'Authorization':'Bearer '+tok.token}});
           if(!r.ok) continue;
           const d=await r.json();
           const threads=(d.threads||[]);
@@ -5521,19 +5547,24 @@ async function checkMerchantReplies(){
         if(closedByMary){
           _replyBadges[m.rowId]={status:'closed',count:extMsgs.length,threadId,merchantName:m.merchantName,gmv};
           _updateReplyBadge(m.rowId,'closed',extMsgs.length,threadId,m.merchantName,[]);
+          foundCount++;
         }else if(floorViolations.length>0&&!isThreadApproved){
           _replyBadges[m.rowId]={status:'floor-violation',count:extMsgs.length,threadId,merchantName:m.merchantName,gmv,violations:floorViolations};
           _updateReplyBadge(m.rowId,'floor-violation',extMsgs.length,threadId,m.merchantName,floorViolations);
+          foundCount++;
         }else if(floorViolations.length>0&&isThreadApproved){
           _replyBadges[m.rowId]={status:'floor-approved',count:extMsgs.length,threadId,merchantName:m.merchantName,gmv,violations:floorViolations};
           _updateReplyBadge(m.rowId,'floor-approved',extMsgs.length,threadId,m.merchantName,floorViolations);
+          foundCount++;
         }else if(extMsgs.length>0){
           _replyBadges[m.rowId]={status:'replied',count:extMsgs.length,threadId,merchantName:m.merchantName,gmv};
           _updateReplyBadge(m.rowId,'replied',extMsgs.length,threadId,m.merchantName,[]);
+          foundCount++;
         }
-      }catch(e){console.error('Thread check error',e);}
+      }catch(e){console.error('Thread check error for '+m.merchantName,e);}
     }
-  }catch(e){}
+    _setSyncStatus(foundCount>0?`${foundCount} thread${foundCount>1?'s':''} with replies`:'No replies found — last synced '+new Date().toLocaleTimeString(), foundCount>0?'text-amber-600':'text-green-600');
+  }catch(e){_setSyncStatus('⚠ Sync error: '+e.message,'text-red-500');}
   _replyChecking=false;
 }
 
