@@ -70,5 +70,13 @@
     "registeredAt": "2026-06-16T06:09:48.234Z",
     "lastSeen": "2026-06-17T06:05:58.448Z",
     "status": "active"
+  },
+  {
+    "email": "darshita.patel@razorpay.com",
+    "name": "Darshita Patel",
+    "teamGroup": "EB <> Pricing",
+    "registeredAt": "2026-06-17T06:11:51.404Z",
+    "lastSeen": "2026-06-17T06:11:51.404Z",
+    "status": "pending"
   }
 ]
