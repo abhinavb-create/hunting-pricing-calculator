@@ -6473,13 +6473,48 @@ function _buildMerchantEmailHtml({merchantName,intro,snap}){
     const tab=typeof activeTab!=='undefined'?activeTab:'competition';
     const pfx=tab==='competition'?'c':'mc';
 
+    // ── GUARDRAIL 0: Low GMV warning ──
+    if(gmv>0&&gmv<500000){
+      _addMsg('assistant',`<div class="font-bold text-amber-300 mb-2">⚠️ Very Low GMV</div>
+<p class="text-xs text-white/70">GMV is <strong class="text-amber-300">₹${gmv.toLocaleString()}</strong> — this is below ₹5L/month which is unusually small for a pricing proposal. Are you sure this is correct?</p>`,true);
+      const proceed=await new Promise(res=>{
+        _chips(['✅ Yes, GMV is correct','❌ Cancel — let me fix GMV']);
+        document.getElementById('ai-chips').querySelectorAll('button').forEach(btn=>{
+          btn.onclick=()=>{ _chips([]); _addMsg('user',btn.textContent); res(btn.textContent.includes('Yes')); };
+        });
+      });
+      if(!proceed) return false;
+    }
+
+    // ── GUARDRAIL 0.5: Split not set ──
+    const totalSpl=METHODS.reduce((sum,m,i)=>{
+      if(m.locked) return sum;
+      const el=document.getElementById(`${pfx}-spl-${i}`);
+      return sum+(el?parseFloat(el.value)||0:0);
+    },0);
+    if(totalSpl<1){
+      _addMsg('assistant',`<div class="font-bold text-amber-300 mb-2">⚠️ Split Not Set</div>
+<p class="text-xs text-white/70 mb-2">No payment method splits have been entered. Split is required to calculate Net Revenue accurately before downloading.</p>
+<p class="text-xs text-white/60">Please provide the transaction split (e.g. <em>"UPI 60%, CC 25%, DC 15%"</em>).</p>`,true);
+      await new Promise(res=>{
+        _chips(['✏️ Let me set the split now']);
+        document.getElementById('ai-chips').querySelectorAll('button').forEach(btn=>{
+          btn.onclick=()=>{ _chips([]); _addMsg('user',btn.textContent); res(); };
+        });
+      });
+      _state.step=SETUP_STEPS.indexOf('split');
+      _state.mode='setup';
+      _ask('What\'s the transaction split across payment methods? (e.g. UPI 60%, CC 25%, DC≤2k 10%, DC>2k 5%)');
+      return false;
+    }
+
     // ── GUARDRAIL 1: Negative NR (selling below cost) ──
     const negNR=[];
     METHODS.forEach((m,i)=>{
       if(m.locked) return;
       const splEl=document.getElementById(`${pfx}-spl-${i}`);
       const spl=splEl?parseFloat(splEl.value)||0:0;
-      if(!spl||spl<=0) return; // skip methods with no split
+      if(spl<=0) return; // skip methods with no split assigned
       const nr=typeof methodNR==='function'?methodNR(tab,i,gmv*spl/100):0;
       if(nr<-0.01){
         const bc=(BANK_COSTS[m.id]||0)*100;
