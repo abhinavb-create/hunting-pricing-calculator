@@ -6445,111 +6445,158 @@ function _buildMerchantEmailHtml({merchantName,intro,snap}){
   }
 
   // ================================================================
-  // COMMAND MODE — actions after setup (or directly)
+  // COMMAND MODE
   // ================================================================
   function _enterCommandMode(){
     _state.mode='command';
-    setTimeout(()=>{
-      _ask(_md("What would you like to do?\n\n• **Download PDF** — download current calculator\n• **Send for Approval** — submit for pricing approval\n• **Pricing Revamp** — send for revamp\n• **Re-download [merchant name]** — re-download a past PDF"),
-        ['Download PDF','Send for Approval','Pricing Revamp','Re-download a past PDF','Fill calculator details']);
-    },200);
+    setTimeout(()=>_ask(_md("What would you like to do?"),
+      ['📄 Download PDF','🔒 Send for Approval','📋 Pricing Revamp','🔁 Re-download past PDF','✏️ Fill calculator details']),200);
   }
 
   async function _handleCommand(text,img){
-    const t=text.toLowerCase();
-
-    // Always let user re-enter setup
-    if(/fill|setup|calculator details|new merchant/i.test(t)){ _state.mode='setup'; _state.step=0; _start(); return; }
-
-    // Download PDF
-    if(/download pdf|download proposal|get pdf|pdf/i.test(t)&&!/re.?download|past|previous|old|again/i.test(t)){
-      _addMsg('assistant','⏳ Triggering PDF download…');
-      setTimeout(()=>{ if(typeof downloadPDF==='function') downloadPDF(); else _addMsg('assistant','❌ downloadPDF not available'); },300);
-      setTimeout(()=>_backToCommands(),1500);
-      return;
-    }
-
-    // Re-download past PDF
-    if(/re.?download|past pdf|previous pdf|old pdf|pdf.*again|download.*again/i.test(t)){
-      await _handleRedownload(text);
-      return;
-    }
-
-    // Send for Approval
-    if(/approv/i.test(t)&&!/revamp/i.test(t)){
-      _addMsg('assistant','⏳ Opening approval modal…');
-      setTimeout(()=>{
-        // Find current row from stats or trigger downloadPDF which opens the modal
-        const rowId=_state.data._currentRowId;
-        if(rowId&&typeof openFinalApprovalModal==='function'){ openFinalApprovalModal(rowId); }
-        else if(typeof downloadPDF==='function'){ downloadPDF(); }
-        else { _addMsg('assistant','Please use the Download PDF button to trigger approval.'); }
-      },300);
-      setTimeout(()=>_backToCommands(),1500);
-      return;
-    }
-
-    // Pricing Revamp
-    if(/revamp/i.test(t)){
-      _addMsg('assistant','⏳ Opening Pricing Revamp…');
-      setTimeout(()=>{
-        const rowId=_state.data._currentRowId;
-        if(rowId&&typeof openFinalApprovalModal==='function'){ openFinalApprovalModal(rowId); }
-        else {
-          // Find latest downloaded row
-          const latest=statsAllRows?.filter(r=>r.statusKey==='downloaded'||r.statusKey==='approved')
-            .sort((a,b)=>b.timestamp-a.timestamp)?.[0];
-          if(latest&&typeof openFinalApprovalModal==='function') openFinalApprovalModal(latest.rowId);
-          else if(typeof downloadPDF==='function') downloadPDF();
-          else _addMsg('assistant','Use the Pricing Revamp button on the row in Activity Dashboard.');
-        }
-      },300);
-      setTimeout(()=>_backToCommands(),1500);
-      return;
-    }
-
-    // Fallback — ask Claude to classify
+    const t=text.toLowerCase().replace(/[📄🔒📋🔁✏️]/g,'').trim();
+    if(/fill|setup|calculator|new merchant/i.test(t)){ _state.mode='setup'; _state.step=0; _start(); return; }
+    if(/re.?download|past pdf|previous|old pdf/i.test(t)){ await _cmdRedownload(t); return; }
+    if(/download|pdf/i.test(t)&&!/re.?download|past|previous/i.test(t)){ await _cmdDownloadPDF(false); return; }
+    if(/approv/i.test(t)&&!/revamp/i.test(t)){ await _cmdDownloadPDF(false); return; } // approval is triggered by generateAndDownloadPDF if violations exist
+    if(/revamp/i.test(t)){ await _cmdPricingRevamp(); return; }
+    // Claude classify fallback
     const tp=_typing();
     try{
-      const resp=await _callClaude([{role:'user',content:`User said: "${text}". They are using a pricing calculator. Which action do they want? Reply with exactly one of: DOWNLOAD_PDF, SEND_APPROVAL, PRICING_REVAMP, REDOWNLOAD, FILL_CALCULATOR, UNKNOWN`}],'Reply with only the action code.',50);
+      const resp=await _callClaude([{role:'user',content:`User message: "${text}". They're on a pricing calculator. Classify intent: DOWNLOAD_PDF, PRICING_REVAMP, REDOWNLOAD, FILL_CALCULATOR. Return one word only.`}],'Return one word only.',30);
       tp.remove();
       const code=resp.trim().toUpperCase();
-      if(code==='DOWNLOAD_PDF'){ await _handleCommand('download pdf',null); }
-      else if(code==='SEND_APPROVAL'){ await _handleCommand('send for approval',null); }
-      else if(code==='PRICING_REVAMP'){ await _handleCommand('pricing revamp',null); }
-      else if(code==='REDOWNLOAD'){ await _handleRedownload(text); }
+      if(code==='DOWNLOAD_PDF'){ await _cmdDownloadPDF(false); }
+      else if(code==='PRICING_REVAMP'){ await _cmdPricingRevamp(); }
+      else if(code==='REDOWNLOAD'){ await _cmdRedownload(t); }
       else if(code==='FILL_CALCULATOR'){ _state.mode='setup'; _state.step=0; _start(); }
-      else { _addMsg('assistant',"I can help with: Download PDF, Send for Approval, Pricing Revamp, or Re-download a past PDF. What would you like?"); _backToCommands(); }
-    }catch(e){tp.remove(); _addMsg('assistant','Sorry, try one of the quick options below.'); _backToCommands();}
+      else{ _addMsg('assistant','I can help with: Download PDF, Send for Approval, Pricing Revamp, or Re-download a past PDF.'); _backToCommands(); }
+    }catch(e){tp.remove(); _addMsg('assistant','Not sure what you need — pick from below.'); _backToCommands();}
   }
 
-  async function _handleRedownload(text){
-    // Build list of past downloads from statsAllRows
+  // ── Download PDF (silently fills modal, calls generateAndDownloadPDF, hides modal) ──
+  async function _cmdDownloadPDF(forApproval){
+    const name=document.getElementById('merchant-name')?.value.trim();
+    const gmv=typeof getGMV==='function'?getGMV():0;
+    if(!name||!gmv){
+      _addMsg('assistant','⚠️ Please fill Business Name and GMV in the calculator first.');
+      _backToCommands(); return;
+    }
+    // Check for floor violations so we can warn upfront
+    const violations=typeof getFloorViolations==='function'?getFloorViolations(activeTab,gmv):[];
+    if(violations.length>0){
+      const rows=violations.map(v=>`<li><strong>${v.label}</strong>: ${v.rate.toFixed(2)}% <span class="text-gray-400">(floor ${v.floor?.toFixed(2)||'?'}%)</span></li>`).join('');
+      _addMsg('assistant',`<div class="mb-2 font-bold text-amber-700">⚠️ Floor Violations Detected</div><ul class="text-xs space-y-1 mb-3">${rows}</ul><p class="text-xs text-gray-600">Generating PDF — an <strong>approval request will be sent automatically</strong> to Abhinav. You'll be notified when approved.</p>`,true);
+    }
+    const t=_addTyping();
+    try{
+      // Pre-fill modal fields silently (modal stays hidden)
+      const customerName=document.getElementById('customer-name')?.value.trim()||'';
+      const greeting=customerName?`Dear ${customerName},`:'Dear Sir/Madam,';
+      const introEl=document.getElementById('pdf-intro-text');
+      if(introEl) introEl.value=`${greeting}\n\nThank you for your interest in Razorpay's payment solutions. We are pleased to present the following commercial proposal tailored for ${name}.\n\nThe rates outlined below are basis your monthly processing volume of ${typeof lakh==='function'?lakh(gmv):gmv}. These are negotiated rates and are subject to Razorpay's standard terms and conditions.`;
+      const closingEl=document.getElementById('pdf-closing-text');
+      if(closingEl) closingEl.value=`We look forward to partnering with ${name}. Please feel free to reach out for any clarifications or to proceed with onboarding.\n\nWarm regards,\nRazorpay Sales Team`;
+      const emailEl=document.getElementById('pdf-requester-email');
+      if(emailEl&&currentUser) emailEl.value=currentUser.email;
+      // Select all method checkboxes
+      document.querySelectorAll('#pdf-method-checks input[type=checkbox]').forEach(cb=>cb.checked=true);
+      // Clear any previous state
+      if(typeof resetPdfBtn==='function') resetPdfBtn();
+
+      t.remove();
+      _addMsg('assistant','⏳ Generating PDF…');
+      // Call the real function — it handles upload, approval request, etc.
+      await generateAndDownloadPDF();
+      // After it runs, find the new row and save rowId for Revamp
+      setTimeout(()=>{
+        const latest=(typeof statsAllRows!=='undefined'?statsAllRows:[])
+          .filter(r=>r.merchantName===name).sort((a,b)=>b.timestamp-a.timestamp)[0];
+        if(latest) _state.data._currentRowId=latest.rowId;
+        if(violations.length>0)
+          _addMsg('assistant','✅ PDF generated & approval request sent to Abhinav automatically.',false);
+        else
+          _addMsg('assistant','✅ PDF downloaded!',false);
+        _backToCommands();
+      },3000);
+    }catch(e){
+      t.remove();
+      _addMsg('assistant','❌ Error generating PDF: '+e.message);
+      _backToCommands();
+    }
+  }
+
+  // ── Pricing Revamp — silently opens modal, auto-selects, auto-sends ──
+  async function _cmdPricingRevamp(){
+    // Find best row for current merchant
+    const name=document.getElementById('merchant-name')?.value.trim();
+    const rows=(typeof statsAllRows!=='undefined'?statsAllRows:[]);
+    const candidates=name
+      ? rows.filter(r=>r.merchantName===name&&(r.statusKey==='downloaded'||r.statusKey==='approved')).sort((a,b)=>b.timestamp-a.timestamp)
+      : rows.filter(r=>r.statusKey==='downloaded'||r.statusKey==='approved').sort((a,b)=>b.timestamp-a.timestamp);
+
+    if(!candidates.length){
+      _addMsg('assistant','⚠️ No downloaded PDF found for this merchant. Please download a PDF first.');
+      _backToCommands(); return;
+    }
+    const row=candidates[0];
+    _state.data._currentRowId=row.rowId;
+
+    // Check if floor approval is required and not yet done
+    const threadApprovals=JSON.parse(localStorage.getItem('rzp_thread_approvals')||'{}');
+    const isBlocked=Object.values(threadApprovals).some(a=>a.merchantName===row.merchantName&&a.status==='pending');
+    if(isBlocked){
+      _addMsg('assistant','🔒 Pricing Revamp is blocked — a floor violation approval is still pending. Reply thread needs approval first.');
+      _backToCommands(); return;
+    }
+
+    _addMsg('assistant',`⏳ Sending Pricing Revamp for <strong>${row.merchantName}</strong>…`,true);
+    try{
+      // Open modal silently (it will be behind AI panel), auto-check latest version, auto-send
+      if(typeof openFinalApprovalModal==='function') openFinalApprovalModal(row.rowId);
+      await new Promise(r=>setTimeout(r,600)); // let modal render
+      // Auto-check all version checkboxes
+      document.querySelectorAll('input[name="fam-ver"]').forEach(cb=>cb.checked=true);
+      // Add a note
+      const notesEl=document.getElementById('fam-notes');
+      if(notesEl&&!notesEl.value) notesEl.value='Sent via AI Assist';
+      // Auto-click send
+      await new Promise(r=>setTimeout(r,300));
+      if(typeof sendFinalApprovalEmail==='function') await sendFinalApprovalEmail();
+      // Close modal after send
+      await new Promise(r=>setTimeout(r,2000));
+      if(typeof closeModal==='function') closeModal('final-approval-modal');
+      _addMsg('assistant',`✅ Pricing Revamp sent for <strong>${row.merchantName}</strong>! Abhinav will review.`,true);
+    }catch(e){
+      _addMsg('assistant','❌ Revamp send failed: '+e.message);
+    }
+    _backToCommands();
+  }
+
+  // ── Re-download past PDF ──
+  async function _cmdRedownload(text){
     const rows=(typeof statsAllRows!=='undefined'?statsAllRows:[])
-      .filter(r=>r.driveLink&&(r.statusKey==='downloaded'||r.statusKey==='approved'))
-      .sort((a,b)=>b.timestamp-a.timestamp);
-
-    if(!rows.length){ _addMsg('assistant','No past PDFs found in your activity.'); _backToCommands(); return; }
-
-    // If they named a merchant, try to match
-    const nameHint=text.replace(/re.?download|pdf|past|previous|for|of/gi,'').trim();
-    if(nameHint.length>2){
-      const match=rows.find(r=>r.merchantName?.toLowerCase().includes(nameHint.toLowerCase()));
+      .filter(r=>r.driveLink).sort((a,b)=>b.timestamp-a.timestamp);
+    if(!rows.length){ _addMsg('assistant','No past PDFs found.'); _backToCommands(); return; }
+    const hint=text.replace(/re.?download|pdf|past|previous|for|of|a|the/gi,'').trim();
+    if(hint.length>2){
+      const match=rows.find(r=>r.merchantName?.toLowerCase().includes(hint.toLowerCase()));
       if(match){
-        _addMsg('assistant',`📄 Found: <strong>${match.merchantName}</strong><br><a href="${match.driveLink}" target="_blank" class="text-blue-600 font-semibold underline">Open PDF ↗</a>`,true);
+        _addMsg('assistant',`📄 <strong>${match.merchantName}</strong> — <a href="${match.driveLink}" target="_blank" class="text-blue-600 font-semibold underline">Open PDF ↗</a><br><span class="text-xs text-gray-400">${match.date||''} · ${match.fileName||''}</span>`,true);
         _backToCommands(); return;
       }
     }
-
-    // Show list of recent PDFs as chips
-    const recent=rows.slice(0,6);
-    const listHtml=recent.map(r=>`<div class="flex items-center justify-between py-1.5 border-b border-gray-100 last:border-0"><span class="text-xs font-semibold text-gray-800 truncate max-w-[65%]">${r.merchantName||'—'}</span><a href="${r.driveLink}" target="_blank" class="text-xs text-blue-600 font-semibold hover:underline shrink-0">Open ↗</a></div>`).join('');
-    _addMsg('assistant',`<p class="text-sm font-semibold mb-2">Recent PDFs:</p><div>${listHtml}</div>`,true);
+    const recent=rows.slice(0,8);
+    const html=recent.map(r=>`<div class="flex items-center justify-between py-1.5 border-b border-gray-100 last:border-0 gap-2">
+      <div class="min-w-0"><p class="text-xs font-semibold text-gray-800 truncate">${r.merchantName||'—'}</p><p class="text-[10px] text-gray-400">${r.date||''}</p></div>
+      <a href="${r.driveLink}" target="_blank" class="shrink-0 text-xs text-blue-600 font-semibold hover:underline">Open ↗</a>
+    </div>`).join('');
+    _addMsg('assistant',`<p class="text-sm font-semibold mb-2">📂 Recent PDFs — click to open:</p>${html}`,true);
     _backToCommands();
   }
 
   function _backToCommands(){
-    setTimeout(()=>_chips(['Download PDF','Send for Approval','Pricing Revamp','Re-download a past PDF','Fill calculator details']),800);
+    setTimeout(()=>_chips(['📄 Download PDF','🔒 Send for Approval','📋 Pricing Revamp','🔁 Re-download past PDF','✏️ Fill calculator details']),800);
   }
 
   // ================================================================
@@ -6587,14 +6634,28 @@ function _buildMerchantEmailHtml({merchantName,intro,snap}){
       const resp=await _callClaude([{role:'user',content:`Parse this payment split: "${text}". Map to these METHODS indices: 0=Credit Cards, 1=Debit Card≤2k, 2=Debit Card>2k, 3=RuPay Debit, 8=UPI, 12=Net Banking Major. Return JSON like {"0":30,"8":60,"12":5,"1":5} (percentages, no need to total 100). Only return JSON.`}],'Return only valid JSON object.',150);
       t.remove();
       let parsed={}; try{parsed=JSON.parse(resp.match(/\{[\s\S]*\}/)?.[0]||'{}');}catch(e){}
+      if(!Object.keys(parsed).length){ _addMsg('assistant','Could not parse split, skip and fill manually.'); return; }
+      // Wait for split inputs to exist in DOM (table renders async)
+      await _waitForEl(`c-spl-0`,2000);
       let changed=false;
       Object.entries(parsed).forEach(([idx,pct])=>{
         const el=document.getElementById(`c-spl-${idx}`);
         if(el){ el.value=pct; el.dispatchEvent(new Event('input')); changed=true; }
+        else{ console.warn('AI split: missing c-spl-'+idx); }
       });
       if(changed&&typeof updateOutputs==='function') updateOutputs();
-      if(Object.keys(parsed).length) _addMsg('assistant',`✅ Split applied`,false);
-    }catch(e){t.remove();}
+      _addMsg('assistant',`✅ Split applied: ${Object.entries(parsed).map(([i,v])=>['CC','DC≤2k','DC>2k','RuPay','—','—','—','—','UPI','—','—','—','NB Major','NB Other'][+i]+'='+v+'%').filter(s=>!s.startsWith('—')).join(', ')}`,false);
+    }catch(e){t.remove(); _addMsg('assistant','Split parse error: '+e.message);}
+  }
+
+  // Poll for DOM element existence (table renders after initTable())
+  function _waitForEl(id, timeoutMs=2000){
+    return new Promise(res=>{
+      if(document.getElementById(id)){res();return;}
+      const start=Date.now();
+      const check=()=>{ if(document.getElementById(id)||Date.now()-start>timeoutMs){res();}else{setTimeout(check,80);} };
+      check();
+    });
   }
 
   function _methodIdx(name){
