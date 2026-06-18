@@ -6343,7 +6343,7 @@ function _buildMerchantEmailHtml({merchantName,intro,snap}){
   // BRIEFING MODE — JS-first extraction, Claude only for name disambiguation
   // ================================================================
   async function _handleBriefing(text,img){
-    if(/skip|manual|fill manually/i.test(text)){ _enterCommandMode(); return; }
+    if(/skip|manual|fill manually/i.test(text)&&!_state.briefWaiting){ _enterCommandMode(); return; }
 
     if(!text&&!img){ _briefAskNext(); return; }
 
@@ -6351,6 +6351,28 @@ function _buildMerchantEmailHtml({merchantName,intro,snap}){
       await _handleCompetitionStep(text,img);
       _state.mode='setup'; _state.step=SETUP_STEPS.indexOf('ourRates');
       _briefAskNext(); return;
+    }
+
+    // ── Direct answer to a specific question — no Claude needed ──
+    const waiting=_state.briefWaiting;
+    if(waiting){ _state.briefWaiting=null;
+      if(waiting==='businessName'){
+        _state.data.businessName=text.trim();
+        const el=document.getElementById('merchant-name'); if(el){el.value=text.trim();el.dispatchEvent(new Event('input'));}
+        _addMsg('assistant',`✅ Merchant: <strong>${text.trim()}</strong>`,true);
+        _briefAskNext(); return;
+      }
+      if(waiting==='gmv'){
+        _state.data.gmv=_parseGMV(text);
+        _applyGMV(_state.data.gmv);
+        _addMsg('assistant',`✅ GMV: <strong>${_fmtGMV(_state.data.gmv)}</strong>`,true);
+        _briefAskNext(); return;
+      }
+      if(waiting==='split'){
+        if(!/skip/i.test(text)){ _state.data.split=text; await _applySplitText(text); }
+        else { _state.data.split='skipped'; }
+        _briefAskNext(); return;
+      }
     }
 
     const applied=[];
@@ -6377,27 +6399,24 @@ function _buildMerchantEmailHtml({merchantName,intro,snap}){
       applied.push(`Competition rates: <strong>applied</strong>`);
     }
 
-    // ── Step 2: Names — use Claude only if we have a text with likely names ──
-    const needsName=!_state.data.businessName;
-    if(needsName&&text.trim().length>1){
-      const tp=_typing();
-      try{
-        const ns=`Extract merchant name and POC/contact name from this sales rep message. Reply with ONLY JSON on one line, no markdown: {"business":"name or null","poc":"name or null"}
-Examples: "Reliance Industries Mukesh"→{"business":"Reliance Industries","poc":"Mukesh"}, "Reliance"→{"business":"Reliance","poc":null}, "5 lakh gmv"→{"business":null,"poc":null}`;
-        const nr=await _callClaude([{role:'user',content:text}],ns,100);
-        tp.remove();
-        const nd=JSON.parse(nr.replace(/```.*?```/gs,'').match(/\{[^}]+\}/)?.[0]||'{}');
-        if(nd.business&&nd.business!=='null'){
-          _state.data.businessName=nd.business;
-          const el=document.getElementById('merchant-name'); if(el){el.value=nd.business;el.dispatchEvent(new Event('input'));}
-          applied.push(`Merchant: <strong>${nd.business}</strong>`);
+    // ── Step 2: Names — JS heuristic first, Claude as enhancement ──
+    if(!_state.data.businessName){
+      // Heuristic: split on comma — "Reliance Industries, Abhishek" → business + poc
+      const parts=text.split(',').map(s=>s.trim()).filter(Boolean);
+      const numericOrKeyword=/^\d|^(gmv|upi|cc|dc|nb|split|lakh|crore|cr|skip|no|yes|hey|hi)/i;
+      const nameParts=parts.filter(p=>!numericOrKeyword.test(p)&&p.length>1);
+      if(nameParts.length>=1){
+        const biz=nameParts[0];
+        _state.data.businessName=biz;
+        const el=document.getElementById('merchant-name'); if(el){el.value=biz;el.dispatchEvent(new Event('input'));}
+        applied.push(`Merchant: <strong>${biz}</strong>`);
+        if(nameParts.length>=2&&!_state.data.customerName){
+          const poc=nameParts[1];
+          _state.data.customerName=poc;
+          const el2=document.getElementById('customer-name'); if(el2){el2.value=poc;el2.dispatchEvent(new Event('input'));}
+          applied.push(`POC: <strong>${poc}</strong>`);
         }
-        if(nd.poc&&nd.poc!=='null'&&!_state.data.customerName){
-          _state.data.customerName=nd.poc;
-          const el=document.getElementById('customer-name'); if(el){el.value=nd.poc;el.dispatchEvent(new Event('input'));}
-          applied.push(`POC: <strong>${nd.poc}</strong>`);
-        }
-      }catch(e){ tp.remove(); }
+      }
     }
 
     if(applied.length) _addMsg('assistant',`✅ Got it:<br>${applied.map(a=>`• ${a}`).join('<br>')}`,true);
@@ -6407,9 +6426,10 @@ Examples: "Reliance Industries Mukesh"→{"business":"Reliance Industries","poc"
 
   // Ask for the next missing required field, stay in briefing mode
   function _briefAskNext(){
-    if(!_state.data.businessName){ _ask("What's the merchant / business name?"); return; }
-    if(!_state.data.gmv){ _ask("What's the estimated monthly GMV?",['₹10L','₹50L','₹1Cr','₹5Cr','₹10Cr+']); return; }
-    if(!_state.data.split){ _ask("What's the payment split? (e.g. 60% UPI, 30% CC)",['Skip — no split data']); return; }
+    if(!_state.data.businessName){ _state.briefWaiting='businessName'; _ask("What's the merchant / business name?"); return; }
+    if(!_state.data.gmv){ _state.briefWaiting='gmv'; _ask("What's the estimated monthly GMV?",['₹10L','₹50L','₹1Cr','₹5Cr','₹10Cr+']); return; }
+    if(!_state.data.split){ _state.briefWaiting='split'; _ask("What's the payment split? (e.g. 60% UPI, 30% CC)",['Skip — no split data']); return; }
+    _state.briefWaiting=null;
     _state.mode='setup'; _state.step=SETUP_STEPS.indexOf('ourRates');
     _ask(_md("What rates to **offer this merchant**?\n\nE.g. *\"1.8% CC, 0.05% UPI, 0.9% DC\"*"),['Skip — fill manually']);
   }
