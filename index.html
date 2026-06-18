@@ -6176,7 +6176,7 @@ function _buildMerchantEmailHtml({merchantName,intro,snap}){
 // AI PRICING ASSISTANT  (v4)
 // ================================================================
 (function(){
-  function _isMe(){ return currentUser?.email?.toLowerCase()==='abhinav.b@razorpay.com'; }
+  function _isMe(){ return !!currentUser?.email; } // available to all logged-in users
 
   // ── Open / Close ──
   window.openAiAssist=function(){
