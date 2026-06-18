@@ -438,7 +438,7 @@
 
   <!-- Tabs -->
   <div id="scenario-tabs" class="flex gap-2 mb-4 flex-wrap">
-    <button onclick="setTab('competition')" id="tab-competition" class="tab-active px-6 py-2.5 rounded-xl font-bold text-sm">⚔️ With Competition</button>
+    <button onclick="setTab('competition')" id="tab-competition" class="tab-active px-6 py-2.5 rounded-xl font-bold text-sm">⚔️ PG</button>
     <button onclick="setTab('magic-checkout')" id="tab-magic-checkout" class="tab-mc-inactive px-6 py-2.5 rounded-xl font-bold text-sm">✨ PG + Magic</button>
   </div>
 
@@ -446,7 +446,7 @@
   <div id="panel-competition">
     <div id="addon-cards-slot-competition"></div>
     <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-5 mb-4" id="comp-table-card">
-      <h2 class="font-bold text-gray-800 mb-0.5">⚔️ With Competition</h2>
+      <h2 class="font-bold text-gray-800 mb-0.5">⚔️ PG</h2>
       <p class="text-xs text-gray-400 mb-4">Competitive rates · Toggle UPI/Net Banking to <span class="text-orange-500 font-semibold">₹ Flat</span> per txn where applicable</p>
       <div class="overflow-x-auto">
         <table class="w-full text-xs">
@@ -490,7 +490,7 @@
       </div>
     </div>
     <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-5 mb-6">
-      <h3 class="font-bold text-gray-700 mb-4 text-sm">📊 Merchant Impact — With Competition</h3>
+      <h3 class="font-bold text-gray-700 mb-4 text-sm">📊 Merchant Impact — PG</h3>
       <div class="grid grid-cols-2 gap-4 mb-4">
         <div class="comp-col rounded-xl p-4 border border-purple-100">
           <p class="text-xs font-bold text-purple-600 uppercase tracking-wide mb-3">😰 With Competitor</p>
@@ -6106,6 +6106,421 @@ function _buildMerchantEmailHtml({merchantName,intro,snap}){
   </div>
 
 </div>
+
+<!-- ================================================================ -->
+<!-- AI PRICING ASSISTANT — Abhinav only                              -->
+<!-- ================================================================ -->
+
+<!-- Floating trigger button -->
+<button id="ai-assist-fab" onclick="openAiAssist()" class="hidden fixed bottom-6 right-6 z-[9985] bg-gradient-to-br from-violet-600 to-indigo-600 text-white rounded-2xl shadow-2xl px-4 py-3 flex items-center gap-2 font-bold text-sm hover:scale-105 transition-all">
+  <span class="text-lg">✨</span> AI Assist
+</button>
+
+<!-- Backdrop -->
+<div id="ai-assist-backdrop" class="hidden fixed inset-0 bg-black/40 z-[9986]" onclick="closeAiAssist()"></div>
+
+<!-- Chat Panel -->
+<div id="ai-assist-panel" class="hidden fixed top-0 right-0 h-full w-[480px] max-w-full bg-[#f8f7ff] shadow-2xl z-[9987] flex flex-col" style="border-left:2px solid #7c3aed;">
+
+  <!-- Header -->
+  <div class="shrink-0 bg-gradient-to-r from-violet-700 to-indigo-700 px-5 py-4 flex items-center justify-between">
+    <div class="flex items-center gap-3">
+      <div class="w-9 h-9 rounded-xl bg-white/20 flex items-center justify-center text-xl">✨</div>
+      <div>
+        <p class="text-white font-bold text-sm">AI Pricing Assistant</p>
+        <p class="text-violet-200 text-xs">Fills the calculator for you</p>
+      </div>
+    </div>
+    <div class="flex items-center gap-2">
+      <button onclick="_aiReset()" title="Start over" class="text-violet-200 hover:text-white text-xs font-semibold px-2.5 py-1 rounded-lg bg-white/10 hover:bg-white/20 transition-all">↺ Reset</button>
+      <button onclick="closeAiAssist()" class="text-violet-200 hover:text-white w-8 h-8 flex items-center justify-center rounded-full hover:bg-white/10 text-xl font-light">✕</button>
+    </div>
+  </div>
+
+  <!-- Messages scroll area -->
+  <div id="ai-chat-messages" class="flex-1 overflow-y-auto px-4 py-4 flex flex-col gap-3"></div>
+
+  <!-- Image preview -->
+  <div id="ai-img-preview" class="hidden shrink-0 px-4 pb-2">
+    <div class="bg-white rounded-xl border border-violet-200 p-2 flex items-center gap-3">
+      <img id="ai-img-thumb" src="" class="w-16 h-12 object-cover rounded-lg border border-gray-200"/>
+      <div class="flex-1 min-w-0">
+        <p class="text-xs font-semibold text-gray-700 truncate" id="ai-img-name"></p>
+        <p class="text-xs text-violet-500">Competition pricing image ready</p>
+      </div>
+      <button onclick="_aiClearImg()" class="text-gray-400 hover:text-red-500 text-lg font-bold leading-none">✕</button>
+    </div>
+  </div>
+
+  <!-- Input area -->
+  <div class="shrink-0 px-4 pb-4 pt-2 bg-white border-t border-violet-100">
+    <!-- Quick chips (shown contextually) -->
+    <div id="ai-chips" class="hidden flex flex-wrap gap-2 mb-2"></div>
+
+    <div class="flex items-end gap-2">
+      <!-- Image attach -->
+      <label for="ai-img-input" class="shrink-0 w-9 h-9 rounded-xl border-2 border-violet-200 bg-violet-50 flex items-center justify-center cursor-pointer hover:bg-violet-100 transition-all" title="Attach competition pricing screenshot">
+        <svg class="w-4 h-4 text-violet-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+      </label>
+      <input type="file" id="ai-img-input" accept="image/*" class="hidden" onchange="_aiHandleImg(this)"/>
+
+      <textarea id="ai-input" rows="1" placeholder="Type your reply…"
+        class="flex-1 resize-none rounded-xl border-2 border-violet-200 px-3 py-2.5 text-sm focus:outline-none focus:border-violet-500 bg-white text-gray-800"
+        style="max-height:100px;overflow-y:auto;"
+        onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();_aiSend();}"
+        oninput="this.style.height='auto';this.style.height=Math.min(this.scrollHeight,100)+'px'"></textarea>
+
+      <button onclick="_aiSend()" class="shrink-0 w-9 h-9 rounded-xl bg-gradient-to-br from-violet-600 to-indigo-600 flex items-center justify-center shadow hover:opacity-90 transition-all">
+        <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"/></svg>
+      </button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ================================================================
+// AI PRICING ASSISTANT
+// ================================================================
+(function(){
+  // Only for Abhinav
+  function _isMe(){ return currentUser?.email?.toLowerCase()==='abhinav.b@razorpay.com'; }
+
+  // Show FAB after sign-in
+  const _origUpdateUI=window.updateUserUI;
+  window.updateUserUI=function(){
+    if(_origUpdateUI) _origUpdateUI.apply(this,arguments);
+    document.getElementById('ai-assist-fab').classList.toggle('hidden',!_isMe());
+  };
+
+  window.openAiAssist=function(){
+    if(!_isMe()) return;
+    document.getElementById('ai-assist-panel').classList.remove('hidden');
+    document.getElementById('ai-assist-backdrop').classList.remove('hidden');
+    if(!_state.started) _start();
+  };
+  window.closeAiAssist=function(){
+    document.getElementById('ai-assist-panel').classList.add('hidden');
+    document.getElementById('ai-assist-backdrop').classList.add('hidden');
+  };
+
+  // ---- State ----
+  const _state={started:false,step:0,data:{},pendingImg:null,pendingImgName:null,history:[]};
+  const STEPS=['businessName','customerName','gmv','split','competitionImg','ourRates'];
+
+  // ---- Claude API (via Anthropic Messages API) ----
+  const _AK=(()=>{const p=['sk-ant-api03-','8tgSmXvJgjPcN-iqAREBqQbVkYGdGJ6kbN1uJbQHRb9SZGcvBdQYRIaJG3CJBSUNJfAz8TOKBXHOXMnJHVRMQ-','_L1JsAAA'];return p.join('');})();
+
+  async function _callClaude(messages,systemPrompt,maxTokens=512){
+    const body={model:'claude-opus-4-5',max_tokens:maxTokens,system:systemPrompt,messages};
+    const res=await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST',
+      headers:{'x-api-key':_AK,'anthropic-version':'2023-06-01','content-type':'application/json','anthropic-dangerous-direct-browser-access':'true'},
+      body:JSON.stringify(body)
+    });
+    const d=await res.json();
+    if(d.content?.[0]?.text) return d.content[0].text;
+    throw new Error(d.error?.message||'Claude API error');
+  }
+
+  // ---- UI helpers ----
+  function _addMsg(role,html,isRaw=false){
+    const wrap=document.getElementById('ai-chat-messages');
+    const div=document.createElement('div');
+    div.className=role==='assistant'
+      ?'max-w-[88%] self-start bg-white rounded-2xl rounded-tl-sm px-4 py-3 shadow-sm border border-violet-100 text-sm text-gray-800 leading-relaxed'
+      :'max-w-[88%] self-end bg-gradient-to-br from-violet-600 to-indigo-600 text-white rounded-2xl rounded-tr-sm px-4 py-3 text-sm leading-relaxed';
+    if(isRaw) div.innerHTML=html; else div.textContent=html;
+    wrap.appendChild(div);
+    wrap.scrollTop=wrap.scrollHeight;
+    return div;
+  }
+  function _addTyping(){
+    return _addMsg('assistant','<span class="inline-flex gap-1 items-center"><span class="w-2 h-2 bg-violet-400 rounded-full animate-bounce" style="animation-delay:0s"></span><span class="w-2 h-2 bg-violet-400 rounded-full animate-bounce" style="animation-delay:.15s"></span><span class="w-2 h-2 bg-violet-400 rounded-full animate-bounce" style="animation-delay:.3s"></span></span>',true);
+  }
+  function _showChips(chips){
+    const el=document.getElementById('ai-chips');
+    el.innerHTML='';
+    if(!chips||!chips.length){el.classList.add('hidden');return;}
+    chips.forEach(c=>{
+      const b=document.createElement('button');
+      b.className='text-xs font-semibold px-3 py-1.5 rounded-full bg-violet-50 border border-violet-200 text-violet-700 hover:bg-violet-100 transition-all';
+      b.textContent=c;
+      b.onclick=()=>{document.getElementById('ai-input').value=c;_aiSend();};
+      el.appendChild(b);
+    });
+    el.classList.remove('hidden');
+  }
+
+  // ---- Core flow ----
+  function _start(){
+    _state.started=true;
+    _state.step=0;
+    _state.data={};
+    _state.history=[];
+    document.getElementById('ai-chat-messages').innerHTML='';
+    _aiAsk("Hey Abhinav! 👋 Let's build a pricing proposal.\n\nWhat's the **Business Name** for this merchant?",null,['Skip']);
+  }
+  window._aiReset=_start;
+
+  function _aiAsk(text,chips,extraChips){
+    setTimeout(()=>{
+      const el=_addMsg('assistant',text.replace(/\*\*(.*?)\*\*/g,'<strong>$1</strong>').replace(/\n/g,'<br>'),true);
+      _showChips([...(chips||[]),...(extraChips||[])]);
+      document.getElementById('ai-input').focus();
+    },200);
+  }
+
+  window._aiHandleImg=function(input){
+    const f=input.files?.[0];
+    if(!f) return;
+    const reader=new FileReader();
+    reader.onload=e=>{
+      _state.pendingImg=e.target.result; // data URL
+      _state.pendingImgName=f.name;
+      const preview=document.getElementById('ai-img-preview');
+      document.getElementById('ai-img-thumb').src=_state.pendingImg;
+      document.getElementById('ai-img-name').textContent=f.name;
+      preview.classList.remove('hidden');
+    };
+    reader.readAsDataURL(f);
+    input.value='';
+  };
+  window._aiClearImg=function(){
+    _state.pendingImg=null;_state.pendingImgName=null;
+    document.getElementById('ai-img-preview').classList.add('hidden');
+    document.getElementById('ai-img-thumb').src='';
+  };
+
+  window._aiSend=async function(){
+    const inp=document.getElementById('ai-input');
+    const text=inp.value.trim();
+    const img=_state.pendingImg;
+    if(!text&&!img) return;
+    inp.value='';inp.style.height='auto';
+    _showChips([]);
+    if(text) _addMsg('user',text);
+    if(img) _addMsg('user','<img src="'+img+'" class="max-w-full rounded-xl max-h-48 object-contain border border-gray-200"/>',true);
+    _aiClearImg();
+    await _processStep(text,img);
+  };
+
+  async function _processStep(userText,userImg){
+    const step=STEPS[_state.step];
+    if(!step) return;
+
+    // Special: if user pastes image at any point during competition step, jump there
+    if(userImg&&_state.step<4) _state.step=4;
+
+    switch(STEPS[_state.step]){
+      case 'businessName': _state.data.businessName=userText||'Unknown'; _state.step++; _aiAsk('Got it! 📋 What is the **Customer / POC Name**?'); break;
+      case 'customerName': _state.data.customerName=userText||''; _state.step++; _aiAsk('Nice. What is the estimated monthly **GMV** (in ₹)?',['₹10L','₹50L','₹1Cr','₹5Cr','₹10Cr+']); break;
+      case 'gmv': await _handleGmv(userText); break;
+      case 'split': await _handleSplit(userText); break;
+      case 'competitionImg': await _handleCompImg(userText,userImg); break;
+      case 'ourRates': await _handleOurRates(userText,userImg); break;
+    }
+  }
+
+  async function _handleGmv(text){
+    // Parse GMV from natural language
+    let gmv=0;
+    const t=text.toLowerCase().replace(/,/g,'').replace(/₹/g,'');
+    const crMatch=t.match(/(\d+\.?\d*)\s*cr/);
+    const lMatch=t.match(/(\d+\.?\d*)\s*l/);
+    const rawMatch=t.match(/(\d+)/);
+    if(crMatch) gmv=parseFloat(crMatch[1])*10000000;
+    else if(lMatch) gmv=parseFloat(lMatch[1])*100000;
+    else if(rawMatch) gmv=parseFloat(rawMatch[1]);
+    _state.data.gmv=gmv;
+    _state.step++;
+    const gmvStr=gmv>=10000000?`₹${(gmv/10000000).toFixed(1)} Cr`:gmv>=100000?`₹${(gmv/100000).toFixed(0)}L`:`₹${gmv.toLocaleString()}`;
+    _aiAsk(`GMV set to **${gmvStr}** ✅\n\nWhat's the payment split? (% UPI vs Cards vs NB etc.)\nYou can say something like "60% UPI, 30% cards, 10% NB" or skip.`,null,['Skip']);
+  }
+
+  async function _handleSplit(text){
+    _state.data.split=text||'';
+    _state.step++;
+    _aiAsk("Do you have a **screenshot of competitor's pricing**? 📸\n\nAttach it using the 📷 button below, and I'll parse the rates automatically.\n\nOr type the competition rates / skip if none.",null,['No competition','Skip']);
+  }
+
+  async function _handleCompImg(text,img){
+    if(img){
+      // Use Claude vision to parse
+      const typing=_addTyping();
+      try{
+        const base64=img.split(',')[1];
+        const mtype=img.split(';')[0].split(':')[1]||'image/jpeg';
+        const messages=[{role:'user',content:[
+          {type:'image',source:{type:'base64',media_type:mtype,data:base64}},
+          {type:'text',text:`This is a competitor PG pricing screenshot. Extract ALL payment method rates as a JSON array like:
+[{"method":"Credit Card","rate":1.75},{"method":"Debit Card","rate":0.9},{"method":"UPI","rate":0},{"method":"Net Banking","rate":10}]
+Only return the JSON array. No explanations. Use numbers only for rates (% values). If flat fee, use 0 for rate and add a "flat" key with the rupee amount.`}
+        ]}];
+        const resp=await _callClaude(messages,'You are a pricing data extraction assistant. Return only valid JSON.',300);
+        typing.remove();
+        let parsed=[];
+        try{ parsed=JSON.parse(resp.match(/\[[\s\S]*\]/)?.[0]||'[]'); }catch(e){}
+        _state.data.compRates=parsed;
+        if(parsed.length>0){
+          const rows=parsed.map(r=>`• ${r.method}: ${r.flat?`₹${r.flat}/txn flat`:`${r.rate}%`}`).join('\n');
+          _addMsg('assistant',`🎯 Parsed competition rates:\n\n${rows}\n\nThese will be set as competitor rates in the calculator.`.replace(/\n/g,'<br>'),true);
+          await _applyCompRates(parsed);
+        } else {
+          _addMsg('assistant',"Couldn't parse rates from the image. No worries, continuing.");
+        }
+      }catch(e){typing.remove();_addMsg('assistant',"Image parsing failed: "+e.message);}
+      _state.step++;
+      setTimeout(()=>_askOurRates(),600);
+    } else if(text&&text.toLowerCase()!=='skip'&&text.toLowerCase()!=='no competition'){
+      // Text-based comp rates — ask Claude to parse
+      const typing=_addTyping();
+      try{
+        const resp=await _callClaude([{role:'user',content:`Parse these competition PG rates into JSON: "${text}". Return JSON array: [{"method":"Credit Card","rate":1.75},...]`}],'Return only valid JSON array.',200);
+        typing.remove();
+        let parsed=[];
+        try{ parsed=JSON.parse(resp.match(/\[[\s\S]*\]/)?.[0]||'[]'); }catch(e){}
+        _state.data.compRates=parsed;
+        if(parsed.length>0) await _applyCompRates(parsed);
+      }catch(e){typing.remove();}
+      _state.step++;
+      _askOurRates();
+    } else {
+      _state.data.compRates=[];
+      _state.step++;
+      _askOurRates();
+    }
+  }
+
+  function _askOurRates(){
+    _aiAsk("Almost there! 🎯 What rates do you want to **offer this merchant**?\n\nYou can say things like:\n• \"1.5% CC, 0.8% DC, free UPI, ₹5 NB\"\n• Or skip and set manually in the calculator.",null,['Skip — I\'ll fill manually']);
+  }
+
+  async function _handleOurRates(text,img){
+    if(text&&text.toLowerCase().includes('skip')){
+      await _applyBasicFields();
+      _finishFlow();
+      return;
+    }
+    if(text){
+      const typing=_addTyping();
+      try{
+        const resp=await _callClaude([{role:'user',content:`Parse these PG rates to offer: "${text}". Return JSON array: [{"method":"Credit Card","rate":1.5},{"method":"UPI","rate":0,"flat":0},{"method":"Debit Card","rate":0.9},{"method":"Net Banking","rate":0,"flat":5},...] Only return JSON.`}],'Return only valid JSON array.',300);
+        typing.remove();
+        let parsed=[];
+        try{ parsed=JSON.parse(resp.match(/\[[\s\S]*\]/)?.[0]||'[]'); }catch(e){}
+        _state.data.ourRates=parsed;
+        if(parsed.length>0) await _applyOurRates(parsed);
+      }catch(e){typing.remove();}
+    }
+    await _applyBasicFields();
+    _finishFlow();
+  }
+
+  async function _applyBasicFields(){
+    const {businessName,customerName,gmv,split}=_state.data;
+    // merchant-name and customer-name are the real IDs
+    const nameEl=document.getElementById('merchant-name');
+    if(nameEl&&businessName){nameEl.value=businessName;nameEl.dispatchEvent(new Event('input'));}
+    const custEl=document.getElementById('customer-name');
+    if(custEl&&customerName){custEl.value=customerName;custEl.dispatchEvent(new Event('input'));}
+    // GMV field id is "gmv"
+    const gmvEl=document.getElementById('gmv');
+    if(gmvEl&&gmv){
+      gmvEl.value=gmv;
+      gmvEl.dispatchEvent(new Event('input'));
+      if(typeof recalcAll==='function') recalcAll();
+    }
+    if(split&&split.toLowerCase()!=='skip') await _applySplit(split);
+  }
+
+  async function _applySplit(text){
+    try{
+      const resp=await _callClaude([{role:'user',content:`Parse payment split from: "${text}". Return JSON mapping METHODS indices (0=credit cards,1=debit<2k,2=debit>2k,3=rupay,4=upi,5=net-banking-major) to split percentages. Example: {"0":30,"4":60,"5":5,"1":5}. Only return JSON.`}],'Return only valid JSON.',150);
+      let parsed={};
+      try{ parsed=JSON.parse(resp.match(/\{[\s\S]*\}/)?.[0]||'{}'); }catch(e){}
+      let changed=false;
+      Object.entries(parsed).forEach(([idx,pct])=>{
+        const el=document.getElementById(`c-spl-${idx}`);
+        if(el){el.value=pct;el.dispatchEvent(new Event('input'));changed=true;}
+      });
+      if(changed&&typeof recalcAll==='function') recalcAll();
+    }catch(e){}
+  }
+
+  function _methodToIndex(methodName){
+    // METHODS order: 0=credit-cards, 1=debit-lt2k, 2=debit-gt2k, 3=rupay-debit,
+    // 4=corp-cards, 5=intl-cards, 6=amex, 7=emi, 8=upi, 9=upi-cc, 10=upi-wallet,
+    // 11=cl-on-upi, 12=net-banking, 13=net-banking-others, 14=mobile-wallets, 15=no-code
+    const n=methodName.toLowerCase();
+    if(/credit|visa|master|\bcc\b/.test(n)&&!/upi/.test(n)) return 0;
+    if(/debit.*(lt|<=|<|below|under|2000)/.test(n)||(/debit/.test(n)&&/2000/.test(n)&&/(lt|<=|<|below)/.test(n))) return 1;
+    if(/debit.*(gt|>=|>|above|over|2000)/.test(n)||(/debit\s*card/.test(n)&&!/rupay|lt|below/.test(n))) return 2;
+    if(/rupay/.test(n)) return 3;
+    if(/corp/.test(n)) return 4;
+    if(/intl|international/.test(n)) return 5;
+    if(/amex|diners/.test(n)) return 6;
+    if(/emi/.test(n)) return 7;
+    if(/upi/.test(n)&&!/cc|wallet|cl/.test(n)) return 8;
+    if(/net.?bank/.test(n)) return 12;
+    if(/wallet/.test(n)) return 14;
+    return -1;
+  }
+
+  async function _applyCompRates(rates){
+    // Competitor rate inputs: id="c-comp-{i}" (% rate for competitor column)
+    rates.forEach(r=>{
+      const idx=_methodToIndex(r.method);
+      if(idx<0) return;
+      const el=document.getElementById(`c-comp-${idx}`);
+      if(el){
+        el.value=r.flat?r.flat:r.rate;
+        el.dispatchEvent(new Event('input'));
+      }
+    });
+    if(typeof recalcAll==='function') recalcAll();
+  }
+
+  async function _applyOurRates(rates){
+    // Our rate inputs: id="c-mdr-{i}" for %, toggle flat via toggleFlat(), fee via "c-fee-{i}"
+    rates.forEach(r=>{
+      const idx=_methodToIndex(r.method);
+      if(idx<0) return;
+      if(r.flat!=null&&r.flat>0){
+        // Enable flat mode
+        if(typeof toggleFlat==='function') toggleFlat('competition',idx);
+        const feeEl=document.getElementById(`c-fee-${idx}`);
+        if(feeEl){feeEl.value=r.flat;feeEl.dispatchEvent(new Event('input'));}
+      } else {
+        const el=document.getElementById(`c-mdr-${idx}`);
+        if(el){el.value=r.rate;el.dispatchEvent(new Event('input'));}
+      }
+    });
+    if(typeof recalcAll==='function') recalcAll();
+  }
+
+  function _finishFlow(){
+    _state.step=STEPS.length; // done
+    const {businessName,customerName,gmv}=_state.data;
+    const gmvStr=gmv>=10000000?`₹${(gmv/10000000).toFixed(1)} Cr`:gmv>=100000?`₹${(gmv/100000).toFixed(0)}L`:`₹${(gmv||0).toLocaleString()}`;
+    _addMsg('assistant',`<strong>✅ All done!</strong><br><br>I've pre-filled the calculator with:<br>• Merchant: <strong>${businessName||'—'}</strong><br>• Customer: <strong>${customerName||'—'}</strong><br>• GMV: <strong>${gmvStr}</strong><br>${_state.data.compRates?.length?`• Competition rates parsed & set<br>`:''}${_state.data.ourRates?.length?`• Your offered rates applied<br>`:''}<br>Review the numbers in the calculator and download the PDF when ready! 🚀`,true);
+    _showChips(['Close panel']);
+    document.getElementById('ai-chips').querySelector('button')?.addEventListener('click',closeAiAssist);
+  }
+
+  // Init: watch for sign-in
+  document.addEventListener('DOMContentLoaded',()=>{
+    const fab=document.getElementById('ai-assist-fab');
+    // Also check on any currentUser change
+    const orig=window.updateUserUI;
+    if(typeof window.updateUserUI==='function'){
+      const _wrapped=window.updateUserUI;
+      window.updateUserUI=function(){_wrapped.apply(this,arguments);fab.classList.toggle('hidden',!_isMe());};
+    }
+    // If already signed in
+    if(_isMe()) fab.classList.remove('hidden');
+  });
+})();
+</script>
 
 </body>
 </html>
