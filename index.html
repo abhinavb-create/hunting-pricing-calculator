@@ -6423,49 +6423,67 @@ function _buildMerchantEmailHtml({merchantName,intro,snap}){
     });
   }
 
-  // ── Smart rate parser: context-scan every % in the full text ──
-  // Works with any format: "UPI 0.05%, DC>2k: 0.90%, DC<2k: 0.45%"
-  //   or "1.6% on CC & 0.15% UPI" or "Competition Rates: UPI-0.05% DC>2k:0.9%"
+  // ── Smart rate parser: nearest-keyword approach ──
+  // Finds every % and pairs it with the closest preceding method keyword.
+  // Falls back to closest following keyword for "1.8% CC" style.
   function _parseRatesDirect(text){
     const t=text.toLowerCase();
     const seen=new Map();
 
-    // First pass: flat fees — "NB ₹5 flat" / "₹8 per txn NB"
-    const flatPat=/(?:(?:net.?bank|nb|wallet)[^₹\d]*)?(?:rs\.?|₹)\s*(\d+\.?\d*)\s*(?:flat|\/txn|per\s*txn)?[^₹\d]*(?:net.?bank|nb|wallet)?/gi;
+    // Pass 1: flat fees "NB ₹5" / "₹5 flat NB" / "₹8 per txn"
+    const flatRe=/(?:(net.?bank|nb|wallet)[^₹\d]{0,20}(?:rs\.?|₹)\s*(\d+\.?\d*))|(?:(?:rs\.?|₹)\s*(\d+\.?\d*)[^a-z]{0,20}(net.?bank|nb|wallet))/gi;
     let fm;
-    while((fm=flatPat.exec(t))!==null){
-      const fee=parseFloat(fm[1]); if(!fee) continue;
-      const ctx=fm[0];
-      if(/wallet/.test(ctx))           seen.set('Wallets',{method:'Wallets',rate:0,flat:fee});
-      else if(/net.?bank|nb/.test(ctx)) seen.set('Net Banking',{method:'Net Banking',rate:0,flat:fee});
+    while((fm=flatRe.exec(t))!==null){
+      const fee=parseFloat(fm[2]||fm[3]); if(!fee) continue;
+      const lbl=(fm[1]||fm[4]||'').toLowerCase();
+      if(/wallet/.test(lbl)) seen.set('Wallets',{method:'Wallets',rate:0,flat:fee});
+      else seen.set('Net Banking',{method:'Net Banking',rate:0,flat:fee});
     }
 
-    // Second pass: for every % value, look at ±50 chars around it for method keywords
+    // Pass 2: build ordered list of keyword positions
+    const KW=[
+      [/credit\s*card|\bcc\b/g,'Credit Card',/upi/],
+      [/dc\s*[<≤]\s*2k|debit\s*[<≤]\s*2k|debit\s*(?:lt|below|under)/g,'Debit lt2k'],
+      [/dc\s*[>≥]\s*2k|debit\s*[>≥]\s*2k|debit\s*(?:gt|above|over)/g,'Debit gt2k'],
+      [/rupay/g,'RuPay'],
+      [/corp/g,'Corp Card'],
+      [/intl|international/g,'Intl Card'],
+      [/amex|diners/g,'Amex'],
+      [/\bemi\b/g,'EMI'],
+      [/\bupi\b/g,'UPI',/wallet|upi.?cc/],
+      [/net.?bank.*other|nb.*other/g,'Net Banking Other'],
+      [/net.?bank|\bnb\b/g,'Net Banking'],
+      [/wallet/g,'Wallets'],
+      [/\bdc\b|\bdebit\b/g,'Debit gt2k',/rupay|[<≤]|lt|below|under/], // generic fallback
+    ];
+    const kws=[];
+    KW.forEach(([re,method,neg])=>{
+      re.lastIndex=0; let m;
+      while((m=re.exec(t))!==null){
+        if(neg){const ctx=t.slice(Math.max(0,m.index-8),m.index+m[0].length+8); if(neg.test(ctx)) continue;}
+        kws.push({method,start:m.index,end:m.index+m[0].length});
+      }
+    });
+    kws.sort((a,b)=>a.start-b.start);
+
+    // Pass 3: for each % value, find nearest keyword
     const pctRe=/(\d+\.?\d*)\s*%/g;
     let m;
     while((m=pctRe.exec(t))!==null){
       const val=parseFloat(m[1]);
-      if(val>10) continue; // skip split percentages (MDR rates are 0–10%)
-      const before=t.slice(Math.max(0,m.index-50),m.index);
-      const after=t.slice(m.index+m[0].length,Math.min(t.length,m.index+m[0].length+50));
-      const ctx=before+' '+after;
+      if(val>10) continue; // ignore split percentages
+      const pStart=m.index, pEnd=m.index+m[0].length;
 
-      let method=null;
-      if(/credit|visa|master|\bcc\b/.test(ctx)&&!/upi/.test(ctx))               method='Credit Card';
-      else if(/dc\s*[<≤]\s*2k|debit\s*[<≤]\s*2k|debit.*(lt|below|under|<2k)/.test(ctx))  method='Debit lt2k';
-      else if(/dc\s*[>≥]\s*2k|debit\s*[>≥]\s*2k|debit.*(gt|above|over|>2k)/.test(ctx))   method='Debit gt2k';
-      else if(/rupay/.test(ctx))                                                  method='RuPay';
-      else if(/\bcorp/.test(ctx))                                                 method='Corp Card';
-      else if(/intl|international/.test(ctx))                                     method='Intl Card';
-      else if(/amex|diners/.test(ctx))                                            method='Amex';
-      else if(/\bemi\b/.test(ctx))                                                method='EMI';
-      else if(/\bupi\b/.test(ctx)&&!/wallet|cc/.test(ctx))                        method='UPI';
-      else if(/net.?bank.*other|nb.*other/.test(ctx))                             method='Net Banking Other';
-      else if(/net.?bank|\bnb\b/.test(ctx))                                       method='Net Banking';
-      else if(/wallet/.test(ctx))                                                  method='Wallets';
-      else if(/\bdc\b|\bdebit\b/.test(ctx)&&!/rupay/.test(ctx))                   method='Debit gt2k';
+      let best=null, bestDist=Infinity;
+      kws.forEach(kw=>{
+        let dist;
+        if(kw.end<=pStart)      dist=pStart-kw.end;          // keyword before %
+        else if(kw.start>=pEnd) dist=kw.start-pEnd+60;       // keyword after % (penalised)
+        else return;                                           // overlapping — skip
+        if(dist<bestDist){bestDist=dist; best=kw;}
+      });
 
-      if(method) seen.set(method,{method,rate:val,flat:null});
+      if(best&&bestDist<200) seen.set(best.method,{method:best.method,rate:val,flat:null});
     }
     return [...seen.values()];
   }
