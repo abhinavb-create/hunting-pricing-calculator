@@ -6305,57 +6305,68 @@ function _buildMerchantEmailHtml({merchantName,intro,snap}){
   }
 
   // ================================================================
-  // BRIEFING MODE — Claude extracts everything from free-form input
+  // BRIEFING MODE — Claude extracts everything, stays in briefing for follow-ups
   // ================================================================
   async function _handleBriefing(text,img){
     if(/skip|manual|fill manually/i.test(text)){ _enterCommandMode(); return; }
+    // Empty text = just check what's missing and ask for it (no Claude call needed)
+    if(!text&&!img){
+      if(!_state.data.businessName){ _ask("What's the merchant / business name?"); return; }
+      if(!_state.data.gmv){ _ask("What's the estimated monthly GMV?",['₹10L','₹50L','₹1Cr','₹5Cr','₹10Cr+']); return; }
+      if(!_state.data.split){ _ask("What's the payment split? (e.g. 60% UPI, 30% CC)",['Skip — no split data']); return; }
+      _state.mode='setup'; _state.step=SETUP_STEPS.indexOf('ourRates');
+      _ask(_md("What rates to **offer this merchant**?\n\nE.g. *\"1.8% CC, 0.05% UPI, 0.9% DC\"*"),['Skip — fill manually']);
+      return;
+    }
     if(img){
-      // Image at briefing stage → treat as competition screenshot
-      _state.mode='setup'; _state.step=SETUP_STEPS.indexOf('competitionImg');
       await _handleCompetitionStep(text,img);
+      // After comp step, ask for our rates (still conversational)
+      _state.mode='setup'; _state.step=SETUP_STEPS.indexOf('ourRates');
       return;
     }
 
     const tp=_typing();
-    const briefSys=`You are extracting deal info from a Razorpay sales rep's message. Return ONLY valid JSON:
-{
-  "businessName": "string or null",
-  "customerName": "string or null",
-  "gmv": number_in_rupees_or_null,
-  "split": {"UPI":60,"CC":30} or null,
-  "compRates": [{"method":"UPI","rate":0}] or [],
-  "missing": ["gmv","split","businessName"]
-}
-GMV parsing: "5Cr"=50000000, "5cr"=50000000, "50L"=5000000, "5L"/"5 lakh"=500000, "1Cr"=10000000, "10L"=1000000
-Split: percentage breakdown of transaction types. Keys: "UPI","CC","DC","NB","Wallets"
-Competition rates: if user mentions a competitor name (PhonePe,Cashfree,PayU,Paytm,Stripe,Juspay,CCAvenue) with rates, extract them.
-missing[] = fields that are null/not found. Do NOT include "slab" — that's optional.`;
+
+    // Build context of what we already know
+    const known=[];
+    if(_state.data.businessName) known.push(`businessName already known: "${_state.data.businessName}"`);
+    if(_state.data.customerName) known.push(`customerName already known: "${_state.data.customerName}"`);
+    if(_state.data.gmv)          known.push(`gmv already known: ${_state.data.gmv}`);
+    if(_state.data.split)        known.push(`split already known`);
+
+    const briefSys=`You extract Razorpay deal info from a sales rep's message. ${known.length?'Already known: '+known.join('; ')+'.'  :''}
+Return ONLY valid JSON (no markdown, no explanation):
+{"businessName":string_or_null,"customerName":string_or_null,"gmv":number_or_null,"split":{"UPI":60,"CC":30}_or_null,"compRates":[{"method":"UPI","rate":0}]_or_[]}
+GMV: "5 lakh"/"5L"=500000, "5Cr"/"5cr"=50000000, "50L"=5000000, "1Cr"=10000000, "10L"=1000000, "3L"=300000
+Split keys: UPI, CC, DC, NB, Wallets. Values are percentages (60 not 0.6).
+compRates: only if user mentions a competitor (PhonePe,Cashfree,PayU,Paytm,Stripe,Juspay,CCAvenue,BillDesk) by name with rates.
+For fields not mentioned, return null. DO NOT include "missing" field.`;
 
     let d={};
     try{
-      const resp=await _callClaude([{role:'user',content:`Extract from sales rep message: "${text}"`}],briefSys,500);
+      const resp=await _callClaude([{role:'user',content:text}],briefSys,400);
       tp.remove();
-      d=JSON.parse(resp.match(/\{[\s\S]*\}/)?.[0]||'{}');
-    }catch(e){tp.remove(); d={missing:['businessName','gmv']};}
+      const raw=resp.match(/\{[\s\S]*?\}/)?.[0]||'{}';
+      d=JSON.parse(raw);
+    }catch(e){tp.remove(); d={};}
 
-    // Apply extracted data
+    // Merge into state — only update fields that were newly extracted
     const applied=[];
-    if(d.businessName){
+    if(d.businessName&&!_state.data.businessName){
       _state.data.businessName=d.businessName;
-      const el=document.getElementById('merchant-name'); if(el){el.value=d.businessName; el.dispatchEvent(new Event('input'));}
+      const el=document.getElementById('merchant-name'); if(el){el.value=d.businessName;el.dispatchEvent(new Event('input'));}
       applied.push(`Merchant: <strong>${d.businessName}</strong>`);
     }
-    if(d.customerName){
+    if(d.customerName&&!_state.data.customerName){
       _state.data.customerName=d.customerName;
-      const el=document.getElementById('customer-name'); if(el){el.value=d.customerName; el.dispatchEvent(new Event('input'));}
+      const el=document.getElementById('customer-name'); if(el){el.value=d.customerName;el.dispatchEvent(new Event('input'));}
       applied.push(`POC: <strong>${d.customerName}</strong>`);
     }
-    if(d.gmv){
-      _state.data.gmv=d.gmv;
-      _applyGMV(d.gmv);
+    if(d.gmv&&!_state.data.gmv){
+      _state.data.gmv=d.gmv; _applyGMV(d.gmv);
       applied.push(`GMV: <strong>${_fmtGMV(d.gmv)}</strong>`);
     }
-    if(d.split&&Object.keys(d.split).length){
+    if(d.split&&Object.keys(d.split).length&&!_state.data.split){
       _state.data.split=d.split;
       const splitStr=Object.entries(d.split).map(([k,v])=>`${k} ${v}%`).join(', ');
       await _applySplitText(splitStr);
@@ -6363,34 +6374,23 @@ missing[] = fields that are null/not found. Do NOT include "slab" — that's opt
     }
     if(d.compRates?.length){
       _applyCompRates(d.compRates);
-      const cl=d.compRates.map(r=>`${r.method} ${r.flat?`₹${r.flat}`:r.rate+'%'}`).join(', ');
-      applied.push(`Competition: <strong>${cl}</strong>`);
+      applied.push(`Competition: <strong>${d.compRates.map(r=>`${r.method} ${r.flat?`₹${r.flat}`:r.rate+'%'}`).join(', ')}</strong>`);
     }
+    if(applied.length) _addMsg('assistant',`✅ Got it:<br>${applied.map(a=>`• ${a}`).join('<br>')}`,true);
 
-    if(applied.length){
-      _addMsg('assistant',`✅ Got it:<br>${applied.map(a=>`• ${a}`).join('<br>')}`,true);
+    // Ask for the FIRST missing required field — STAY IN BRIEFING MODE
+    if(!_state.data.businessName){
+      _ask("What's the merchant / business name?"); return;
     }
-
-    const missing=d.missing||[];
-    // Ask for what's still missing — one at a time
-    if(missing.includes('businessName')&&!_state.data.businessName){
-      _state.mode='setup'; _state.step=SETUP_STEPS.indexOf('businessName');
-      _ask(_md("What's the **merchant / business name**?"));
-      return;
+    if(!_state.data.gmv){
+      _ask("What's the estimated monthly GMV?",['₹10L','₹50L','₹1Cr','₹5Cr','₹10Cr+']); return;
     }
-    if(missing.includes('gmv')&&!_state.data.gmv){
-      _state.mode='setup'; _state.step=SETUP_STEPS.indexOf('gmv');
-      _ask(_md("What's the estimated monthly **GMV**?"),['₹10L','₹50L','₹1Cr','₹5Cr','₹10Cr+']);
-      return;
+    if(!_state.data.split){
+      _ask("What's the payment split? (e.g. 60% UPI, 30% CC)",['Skip — no split data']); return;
     }
-    if(missing.includes('split')&&!_state.data.split){
-      _state.mode='setup'; _state.step=SETUP_STEPS.indexOf('split');
-      _ask(_md("What's the **payment split**? (e.g. 60% UPI, 30% CC)"),['Skip']);
-      return;
-    }
-    // Everything we need is set — go straight to rates
+    // All set — move to rates (setup mode only for the rates step)
     _state.mode='setup'; _state.step=SETUP_STEPS.indexOf('ourRates');
-    _ask(_md("What rates do you want to **offer this merchant**?\n\nE.g. *\"1.8% CC, 0.05% UPI, 0.9% DC, ₹5 NB flat\"*"),['Skip — fill manually']);
+    _ask(_md("What rates to **offer this merchant**?\n\nE.g. *\"1.8% CC, 0.05% UPI, 0.9% DC\"*"),['Skip — fill manually']);
   }
 
   // ── Apply GMV to calculator ──
@@ -6419,32 +6419,25 @@ missing[] = fields that are null/not found. Do NOT include "slab" — that's opt
 
     switch(step){
       case 'businessName':
-        _state.data.businessName=text||'';
-        const bnEl=document.getElementById('merchant-name'); if(bnEl){bnEl.value=text;bnEl.dispatchEvent(new Event('input'));}
-        _state.step++;
-        _ask(_md('What is the **Customer / POC Name**?'));
-        break;
+        // Route back to briefing — it handles this better
+        _state.mode='briefing'; await _handleBriefing(text,img); return;
 
       case 'customerName':
-        _state.data.customerName=text||'';
-        const cnEl=document.getElementById('customer-name'); if(cnEl){cnEl.value=text;cnEl.dispatchEvent(new Event('input'));}
-        _state.step++;
-        _ask(_md('What is the estimated monthly **GMV**?'),['₹10L','₹50L','₹1Cr','₹5Cr','₹10Cr+']);
-        break;
+        _state.mode='briefing'; await _handleBriefing(text,img); return;
 
       case 'gmv':
         _state.data.gmv=_parseGMV(text);
         _applyGMV(_state.data.gmv);
-        _state.step++;
-        _ask(_md(`GMV set to **${_fmtGMV(_state.data.gmv)}** ✅\n\nWhat's the **payment split**? (e.g. 60% UPI, 30% CC)`),['Skip']);
-        break;
+        _state.mode='briefing'; // go back to briefing to check what else is needed
+        await _handleBriefing('',img); // empty text = just check missing fields
+        return;
 
       case 'split':
         _state.data.split=text||'';
         if(text&&!/skip/i.test(text)) await _applySplitText(text);
-        _state.step++;
-        _ask(_md("Got a **competitor pricing screenshot or rates**? 📸\n\nAttach, type them, or skip."),['Skip','No competition']);
-        break;
+        _state.mode='briefing';
+        await _handleBriefing('',img);
+        return;
 
       case 'competitionImg':
         await _handleCompetitionStep(text,img);
