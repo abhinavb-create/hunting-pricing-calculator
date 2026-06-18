@@ -6464,80 +6464,196 @@ function _buildMerchantEmailHtml({merchantName,intro,snap}){
   }
 
   // ── Download PDF — suppress all modals/alerts, show everything in chat ──
+  // ================================================================
+  // GUARDRAIL ENGINE
+  // Returns: true=all clear, false=blocked (user revising), 'approval'=send approval only
+  // ================================================================
+  async function _runGuardrails(){
+    const gmv=typeof getGMV==='function'?getGMV():0;
+    const tab=typeof activeTab!=='undefined'?activeTab:'competition';
+    const pfx=tab==='competition'?'c':'mc';
+
+    // ── GUARDRAIL 1: Negative NR (selling below cost) ──
+    const negNR=[];
+    METHODS.forEach((m,i)=>{
+      if(m.locked) return;
+      const splEl=document.getElementById(`${pfx}-spl-${i}`);
+      const spl=splEl?parseFloat(splEl.value)||0:0;
+      if(!spl||spl<=0) return; // skip methods with no split
+      const nr=typeof methodNR==='function'?methodNR(tab,i,gmv*spl/100):0;
+      if(nr<-0.01){
+        const bc=(BANK_COSTS[m.id]||0)*100;
+        const floor=typeof getFloor==='function'?getFloor(m.id,gmv):0;
+        const minRate=Math.max(bc+0.01,floor+0.01).toFixed(2);
+        const mdr=+(document.getElementById(`${pfx}-mdr-${i}`)?.value)||0;
+        negNR.push({label:m.label,idx:i,mdr:mdr.toFixed(2),bc:bc.toFixed(2),floor:floor.toFixed(2),minRate,nrAmt:nr.toFixed(0),spl});
+      }
+    });
+
+    if(negNR.length>0){
+      const totalNR=typeof computePGNR==='function'?computePGNR(tab,gmv):0;
+      const rows=negNR.map(v=>`<tr class="border-b border-white/10"><td class="py-1.5 pr-3 text-white/90 text-xs">${v.label}</td><td class="py-1.5 pr-2 text-red-300 font-bold text-xs">${v.mdr}%</td><td class="py-1.5 pr-2 text-white/50 text-xs">${v.bc}%</td><td class="py-1.5 pr-2 text-amber-300 text-xs">${v.floor}%</td><td class="py-1.5 text-green-300 font-bold text-xs">${v.minRate}%</td></tr>`).join('');
+      _addMsg('assistant',`<div class="font-bold text-red-300 mb-2">🚫 Negative NR — Download Blocked</div>
+<p class="text-xs text-white/70 mb-2">Total NR is <strong class="text-red-300">₹${Math.abs(+totalNR.toFixed(0)).toLocaleString()}/month loss</strong>. These methods are priced below Razorpay's cost:</p>
+<table class="w-full mb-3"><thead><tr class="border-b border-white/20 text-[10px] uppercase text-white/40"><th class="pb-1 text-left pr-3">Method</th><th class="pb-1 text-left pr-2">Offered</th><th class="pb-1 text-left pr-2">Our Cost</th><th class="pb-1 text-left pr-2">Floor</th><th class="pb-1 text-left">Min Viable ✅</th></tr></thead><tbody>${rows}</tbody></table>
+<p class="text-xs text-white/60">💡 Set rates to at least <strong>Min Viable</strong> to break even. These already account for both cost and floor rates.</p>`,true);
+
+      return new Promise(res=>{
+        _chips(['✏️ Auto-fix to minimum rates','✏️ I\'ll revise manually','⚠️ Proceed anyway (needs approval)']);
+        document.getElementById('ai-chips').querySelectorAll('button').forEach(btn=>{
+          btn.onclick=async()=>{
+            _chips([]);
+            const txt=btn.textContent;
+            _addMsg('user',txt);
+            if(txt.includes('Auto-fix')){
+              negNR.forEach(v=>{
+                const el=document.getElementById(`${pfx}-mdr-${v.idx}`);
+                if(el){ el.value=v.minRate; el.dispatchEvent(new Event('input')); }
+              });
+              if(typeof updateOutputs==='function') updateOutputs();
+              _addMsg('assistant',`✅ Auto-set ${negNR.length} method(s) to minimum viable rates. Re-running checks…`);
+              const ok=await _runGuardrails();
+              res(ok);
+            } else if(txt.includes('manually')){
+              const methods=negNR.map(v=>`${v.label} (min ${v.minRate}%)`).join(', ');
+              _state.step=SETUP_STEPS.indexOf('ourRates');
+              _state.mode='setup';
+              _ask(_md(`Please give revised rates for:\n**${methods}**`),['Skip — fill manually']);
+              res(false);
+            } else {
+              _addMsg('assistant','⚠️ Proceeding with negative NR — this will require Abhinav\'s approval.');
+              res(true);
+            }
+          };
+        });
+      });
+    }
+
+    // ── GUARDRAIL 2: Below floor rates ──
+    const violations=typeof getFloorViolations==='function'?getFloorViolations(tab,gmv):[];
+    if(violations.length>0){
+      const rows=violations.map(v=>`<tr class="border-b border-white/10"><td class="py-1.5 pr-3 text-white/90 text-xs">${v.label}</td><td class="py-1.5 pr-3 text-red-300 font-bold text-xs">${v.rate.toFixed(2)}%</td><td class="py-1.5 text-amber-300 text-xs">Floor: ${v.floor.toFixed(2)}%</td></tr>`).join('');
+      _addMsg('assistant',`<div class="font-bold text-amber-300 mb-2">⚠️ Below Floor Rates</div>
+<p class="text-xs text-white/70 mb-2">These rates need Abhinav's approval before sharing with the merchant:</p>
+<table class="w-full mb-3"><thead><tr class="border-b border-white/20 text-[10px] uppercase text-white/40"><th class="pb-1 text-left pr-3">Method</th><th class="pb-1 text-left pr-3">Offered</th><th class="pb-1 text-left">Floor</th></tr></thead><tbody>${rows}</tbody></table>
+<p class="text-xs text-white/60">If you proceed: the approval request goes to Abhinav. The PDF won't download until approved.</p>`,true);
+
+      return new Promise(res=>{
+        _chips(['✅ Auto-set to floor rates','📤 Send for approval (no download yet)']);
+        document.getElementById('ai-chips').querySelectorAll('button').forEach(btn=>{
+          btn.onclick=async()=>{
+            _chips([]);
+            const txt=btn.textContent;
+            _addMsg('user',txt);
+            if(txt.includes('Auto-set')){
+              violations.forEach(v=>{
+                const el=document.getElementById(`${pfx}-mdr-${v.idx}`);
+                if(el){ el.value=v.floor.toFixed(2); el.dispatchEvent(new Event('input')); }
+              });
+              if(typeof updateOutputs==='function') updateOutputs();
+              _addMsg('assistant',`✅ Set ${violations.length} method(s) to floor rates. Re-running checks…`);
+              const ok=await _runGuardrails();
+              res(ok);
+            } else {
+              res('approval');
+            }
+          };
+        });
+      });
+    }
+
+    return true; // all clear ✅
+  }
+
+  // ── Silently pre-fill PDF modal fields ──
+  async function _prefillPdfModal(name,gmv){
+    const cust=document.getElementById('customer-name')?.value.trim()||'';
+    const greeting=cust?`Dear ${cust},`:'Dear Sir/Madam,';
+    const introEl=document.getElementById('pdf-intro-text');
+    if(introEl) introEl.value=`${greeting}\n\nThank you for your interest in Razorpay's payment solutions. We are pleased to present the following commercial proposal tailored for ${name}.\n\nThe rates outlined below are basis your monthly processing volume of ${typeof lakh==='function'?lakh(gmv):gmv}. These are negotiated rates and subject to standard terms and conditions.`;
+    const closingEl=document.getElementById('pdf-closing-text');
+    if(closingEl) closingEl.value=`We look forward to partnering with ${name}.\n\nWarm regards,\nRazorpay Sales Team`;
+    const emailEl=document.getElementById('pdf-requester-email');
+    if(emailEl&&currentUser) emailEl.value=currentUser.email;
+    if(document.querySelectorAll('#pdf-method-checks input[type=checkbox]').length===0){
+      if(typeof _openPdfModal==='function') _openPdfModal();
+      await new Promise(r=>setTimeout(r,300));
+      if(typeof closeModal==='function') closeModal('pdf-modal');
+    }
+    document.querySelectorAll('#pdf-method-checks input[type=checkbox]').forEach(cb=>cb.checked=true);
+    if(typeof resetPdfBtn==='function') resetPdfBtn();
+  }
+
+  // ── Suppress browser modals during PDF generation ──
+  function _suppressModals(){
+    const orig={alert:window.alert,confirm:window.confirm,showModal:window.showModal};
+    window.alert=(m)=>_addMsg('assistant','ℹ️ '+m);
+    window.confirm=()=>true;
+    window.showModal=(id)=>setTimeout(()=>{ const p=document.getElementById('nr-modal-proceed'); if(p&&!p.classList.contains('hidden')) p.click(); else closeModal&&closeModal(id); },120);
+    return ()=>{ window.alert=orig.alert; window.confirm=orig.confirm; window.showModal=orig.showModal; };
+  }
+
   async function _cmdDownloadPDF(){
     const name=document.getElementById('merchant-name')?.value.trim();
     const gmv=typeof getGMV==='function'?getGMV():0;
-    if(!name){ _addMsg('assistant','⚠️ Business Name is empty. Ask me to fill it first — "set merchant name to X"'); _backToCommands(); return; }
-    if(!gmv){ _addMsg('assistant','⚠️ GMV is not set. Tell me the GMV first — "GMV is 2Cr"'); _backToCommands(); return; }
+    if(!name){ _addMsg('assistant','⚠️ Business Name is empty. Tell me the name first.'); _backToCommands(); return; }
+    if(!gmv){ _addMsg('assistant','⚠️ GMV is not set. Tell me the GMV first.'); _backToCommands(); return; }
 
-    // Check floor violations upfront — show in chat
-    const violations=typeof getFloorViolations==='function'?getFloorViolations(activeTab,gmv):[];
-    if(violations.length>0){
-      const rows=violations.map(v=>`<tr><td class="pr-3 py-1 text-white/80">${v.label}</td><td class="pr-3 py-1 text-red-300 font-bold">${v.rate.toFixed(2)}%</td><td class="py-1 text-white/50">floor ${(v.floor||0).toFixed(2)}%</td></tr>`).join('');
-      _addMsg('assistant',`<div class="font-bold text-red-300 mb-2">🚨 Floor Violations</div><table class="text-xs w-full mb-2"><tbody>${rows}</tbody></table><p class="text-xs text-white/60">An approval request will be sent to Abhinav automatically with the PDF.</p>`,true);
+    _addMsg('assistant','🔍 Running guardrails before generating PDF…');
+    _setStatus('Checking guardrails…');
+
+    const result=await _runGuardrails();
+
+    if(result===false){ _setStatus('Ready'); return; } // user is revising
+
+    if(result==='approval'){
+      // Floor violations — send approval request, do NOT download
+      _setStatus('Sending approval…');
+      const restore=_suppressModals();
+      try{
+        await _prefillPdfModal(name,gmv);
+        _addMsg('assistant','⏳ Sending approval request to Abhinav…');
+        await generateAndDownloadPDF();
+        await new Promise(r=>setTimeout(r,2000));
+      }catch(e){ _addMsg('assistant','⚠️ Approval send issue: '+(e.message||e)); }
+      finally{ restore(); _setStatus('Ready'); }
+      _addMsg('assistant',`<strong>📤 Approval request sent to Abhinav!</strong><br><br>The PDF will <strong>not</strong> download until he approves.<br>Once approved, check <strong>Activity Dashboard → Stats</strong> to download your PDF and share with the merchant.`,true);
+      _askNextPricing(); return;
     }
 
-    // Low GMV warning in chat (don't show modal)
-    if(gmv<500000){ _addMsg('assistant','⚠️ GMV below ₹5L — Razorpay typically doesn\'t onboard below this. Proceeding anyway.',false); }
-
-    const t=_typing();
+    // ✅ All clear — generate & download
     _setStatus('Generating PDF…');
-
-    // Suppress alert + showModal + confirm during PDF generation
-    const origAlert=window.alert, origConfirm=window.confirm;
-    const origShowModal=window.showModal;
-    window.alert=(msg)=>_addMsg('assistant','ℹ️ '+msg,false);
-    window.confirm=()=>true; // auto-proceed all confirms
-    window.showModal=(id)=>{
-      // Auto-proceed nr-warn-modal and lock-modal — click the proceed button
-      setTimeout(()=>{
-        const proceed=document.getElementById('nr-modal-proceed');
-        if(proceed&&!proceed.classList.contains('hidden')) proceed.click();
-        else if(id==='lock-modal') closeModal&&closeModal(id);
-      },100);
-    };
-
+    const restore=_suppressModals();
+    const t=_typing();
     try{
-      // Pre-fill modal fields silently
-      const customerName=document.getElementById('customer-name')?.value.trim()||'';
-      const greeting=customerName?`Dear ${customerName},`:'Dear Sir/Madam,';
-      const introEl=document.getElementById('pdf-intro-text');
-      if(introEl) introEl.value=`${greeting}\n\nThank you for your interest in Razorpay's payment solutions. We are pleased to present the following commercial proposal tailored for ${name}.\n\nThe rates outlined below are basis your monthly processing volume of ${typeof lakh==='function'?lakh(gmv):gmv}. These are negotiated rates and are subject to Razorpay's standard terms and conditions.`;
-      const closingEl=document.getElementById('pdf-closing-text');
-      if(closingEl) closingEl.value=`We look forward to partnering with ${name}. Please feel free to reach out for any clarifications.\n\nWarm regards,\nRazorpay Sales Team`;
-      const emailEl=document.getElementById('pdf-requester-email');
-      if(emailEl&&currentUser) emailEl.value=currentUser.email;
-      // Select all methods
-      if(document.querySelectorAll('#pdf-method-checks input[type=checkbox]').length===0){
-        // Modal not rendered yet — open it hidden to populate checkboxes
-        if(typeof _openPdfModal==='function') _openPdfModal();
-        await new Promise(r=>setTimeout(r,300));
-        if(typeof closeModal==='function') closeModal('pdf-modal');
-      }
-      document.querySelectorAll('#pdf-method-checks input[type=checkbox]').forEach(cb=>cb.checked=true);
-      if(typeof resetPdfBtn==='function') resetPdfBtn();
-
+      await _prefillPdfModal(name,gmv);
       t.remove();
-      _addMsg('assistant','⏳ Generating & uploading PDF…');
+      _addMsg('assistant','⏳ Generating & uploading PDF to Drive…');
       await generateAndDownloadPDF();
-
-      // Track the new row
       await new Promise(r=>setTimeout(r,2500));
       const latest=(typeof statsAllRows!=='undefined'?statsAllRows:[])
         .filter(r=>r.merchantName===name).sort((a,b)=>b.timestamp-a.timestamp)[0];
       if(latest) _state.data._currentRowId=latest.rowId;
-
-      _addMsg('assistant', violations.length>0
-        ? '✅ PDF downloaded & approval request sent to Abhinav automatically!'
-        : '✅ PDF downloaded successfully!');
+      _addMsg('assistant','✅ PDF downloaded successfully and saved to Drive!');
     }catch(e){
-      t.remove();
-      _addMsg('assistant','❌ PDF generation failed: '+(e.message||String(e)));
-    }finally{
-      window.alert=origAlert; window.confirm=origConfirm; window.showModal=origShowModal;
-      _setStatus('Ready');
-    }
-    _backToCommands();
+      t?.remove();
+      _addMsg('assistant','❌ PDF generation failed: '+(e.message||e));
+    }finally{ restore(); _setStatus('Ready'); }
+    _askNextPricing();
+  }
+
+  function _askNextPricing(){
+    setTimeout(()=>{
+      _addMsg('assistant','Would you like help with another pricing proposal? 🚀');
+      _chips(['✅ Yes, new pricing','👋 No, I\'m done']);
+      document.getElementById('ai-chips').querySelectorAll('button').forEach(btn=>{
+        btn.onclick=()=>{
+          _chips([]); _addMsg('user',btn.textContent);
+          if(btn.textContent.includes('Yes')){ _state.mode='setup'; _state.step=0; _state.data={}; _start(); }
+          else{ _addMsg('assistant','Got it! Let me know whenever you need help. 👋'); _backToCommands(); }
+        };
+      });
+    },600);
   }
 
   // ── Pricing Revamp — silently opens modal, auto-selects, auto-sends ──
