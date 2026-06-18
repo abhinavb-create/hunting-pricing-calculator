@@ -6341,6 +6341,24 @@ function _buildMerchantEmailHtml({merchantName,intro,snap}){
     }
   }
 
+  // ── Shared Claude rates extractor ──
+  const _RATES_SYSTEM=`You are a Razorpay sales tool. Extract PG payment rates from a sales rep's message.
+Return ONLY valid JSON: {"rates":[{"method":"Credit Card","rate":1.8},{"method":"UPI","rate":0.05},{"method":"Net Banking","flat":5}]}
+Rules:
+- method names: "Credit Card", "Debit Card lt2k", "Debit Card gt2k", "UPI", "Net Banking", "RuPay", "Wallets", "EMI", "Intl Card"
+- rate = MDR % as a number (e.g. 1.8 for 1.8%). Use flat for flat-fee methods.
+- "free UPI" or "0% UPI" = {"method":"UPI","rate":0}
+- Split percentages like "60% UPI" are NOT rates — ignore them
+- If no rates found, return {"rates":[]}`;
+
+  async function _claudeExtractRates(text){
+    try{
+      const resp=await _callClaude([{role:'user',content:`Extract payment rates from: "${text}"`}],_RATES_SYSTEM,300);
+      const parsed=JSON.parse(resp.match(/\{[\s\S]*\}/)?.[0]||'{}');
+      return parsed.rates||[];
+    }catch(e){return [];}
+  }
+
   // ── Competition rates step ──
   async function _handleCompetitionStep(text,img){
     if(img){
@@ -6349,24 +6367,23 @@ function _buildMerchantEmailHtml({merchantName,intro,snap}){
         const b64=img.split(',')[1], mtype=img.split(';')[0].split(':')[1]||'image/jpeg';
         const resp=await _callClaude([{role:'user',content:[
           {type:'image',source:{type:'base64',media_type:mtype,data:b64}},
-          {type:'text',text:'This is a competitor PG pricing screenshot. Extract all payment method rates as JSON array: [{"method":"Credit Card","rate":1.75},{"method":"UPI","rate":0,"flat":0},{"method":"Net Banking","rate":0,"flat":10}]. Only return the JSON array.'}
-        ]}],'Return only valid JSON array.',300);
+          {type:'text',text:'This is a competitor PG pricing screenshot. Extract all payment method rates as JSON: {"rates":[{"method":"Credit Card","rate":1.75},{"method":"UPI","rate":0},{"method":"Net Banking","flat":10}]}. Return JSON only.'}
+        ]}],_RATES_SYSTEM,300);
         t.remove();
-        let parsed=[]; try{parsed=JSON.parse(resp.match(/\[[\s\S]*\]/)?.[0]||'[]');}catch(e){}
+        let parsed=[]; try{const d=JSON.parse(resp.match(/\{[\s\S]*\}/)?.[0]||'{}'); parsed=d.rates||[];}catch(e){}
         if(parsed.length>0){
-          _state.data.compRates=parsed;
-          _applyCompRates(parsed);
-          const rows=parsed.map(r=>`<li>${r.method}: <strong>${r.flat?`₹${r.flat}/txn`:`${r.rate}%`}</strong></li>`).join('');
-          _addMsg('assistant',`🎯 Parsed & applied competitor rates:<ul class="mt-1 ml-2 space-y-0.5">${rows}</ul>`,true);
-        } else { _addMsg('assistant',"Couldn't extract rates from image — continuing."); }
+          _state.data.compRates=parsed; _applyCompRates(parsed);
+          const lines=parsed.map(r=>`${r.method}: <strong>${r.flat?`₹${r.flat}/txn`:`${r.rate}%`}</strong>`).join(' · ');
+          _addMsg('assistant',`🎯 Competitor rates applied: ${lines}`,true);
+        } else { _addMsg('assistant',"Couldn't read rates from image — continuing."); }
       }catch(e){t.remove(); _addMsg('assistant','Image parse error: '+e.message);}
     } else if(text&&!/^\s*no\b|skip|no comp|none/i.test(text)){
-      // Use same smart rate parser for competitor rates
-      const compParsed=_parseRatesDirect(text);
+      const t=_typing();
+      const compParsed=await _claudeExtractRates(text);
+      t.remove();
       if(compParsed.length>0){
-        _state.data.compRates=compParsed;
-        _applyCompRates(compParsed);
-        const lines=compParsed.map(r=>`${r.method}: <strong>${r.flat!=null&&r.flat>0?`₹${r.flat}/txn`:`${r.rate}%`}</strong>`).join(' · ');
+        _state.data.compRates=compParsed; _applyCompRates(compParsed);
+        const lines=compParsed.map(r=>`${r.method}: <strong>${r.flat?`₹${r.flat}/txn`:`${r.rate}%`}</strong>`).join(' · ');
         _addMsg('assistant',`🎯 Competitor rates applied: ${lines}`,true);
       }
     }
@@ -6488,58 +6505,89 @@ function _buildMerchantEmailHtml({merchantName,intro,snap}){
     return [...seen.values()];
   }
 
-  // ── Our rates step + floor guardrail ──
+  // ── Our rates step — Claude understands any phrasing or intent ──
   async function _handleOurRatesStep(text){
     if(/skip|manual/i.test(text)){ _applyBasicFields(); _finishSetup(false); return; }
 
-    // Check if user accidentally entered split values (high %) instead of MDR rates
-    const highPct=text.match(/(\d+)\s*%/g);
-    if(highPct&&highPct.every(p=>parseFloat(p)>10)){
-      _addMsg('assistant',`<div class="font-bold text-amber-300 mb-1">⚠️ Those look like split percentages, not MDR rates</div>
-<p class="text-xs text-white/70">MDR rates are typically <strong>0.1%–3%</strong> (e.g. "1.85% CC, 0.03% UPI, 0.9% DC").<br>Split percentages (like 70%, 20%) tell how transactions are distributed — those were already set.</p>
-<p class="text-xs text-white/60 mt-1">Please enter the rates you want to <strong>charge the merchant</strong>.</p>`,true);
-      _ask(_md('What MDR rates do you want to offer?\n\nE.g. "1.85% CC, 0.03% UPI, 0.9% DC, ₹5 NB flat"'),['Skip — fill manually']);
+    const tp=_typing();
+
+    // Ask Claude to understand intent + extract rates in one shot
+    const intentSystem=`You are a Razorpay sales assistant. A sales rep is filling in a pricing proposal.
+We asked: "What rates do you want to OFFER this merchant?"
+The rep replied. Figure out:
+1. Did they accidentally give COMPETITION/COMPETITOR rates instead of their own? (look for words like "competition", "competitor", "comp", "their rates", "PhonePe", "Cashfree", "PayU", "Paytm", "Stripe" etc.)
+2. Extract the actual rates.
+
+Return ONLY valid JSON:
+{
+  "intent": "our_rates" | "competition_rates" | "both",
+  "our_rates": [{"method":"Credit Card","rate":1.8}, {"method":"UPI","rate":0.05}],
+  "comp_rates": [],
+  "note": "optional short explanation if something was unclear"
+}
+Method names to use: "Credit Card", "Debit Card lt2k", "Debit Card gt2k", "UPI", "Net Banking", "RuPay", "Wallets", "EMI", "Intl Card"
+rate = MDR percentage as a plain number. Use flat (not rate) for flat-fee methods.
+Ignore split percentages (70%, 60% etc.) — those are transaction share, not MDR rates.
+If rates are 0 ("free UPI") use rate:0.`;
+
+    let result={intent:'our_rates',our_rates:[],comp_rates:[]};
+    try{
+      const resp=await _callClaude([{role:'user',content:`Rep said: "${text}"`}],intentSystem,400);
+      tp.remove();
+      result=JSON.parse(resp.match(/\{[\s\S]*\}/)?.[0]||'{}');
+      result.our_rates=result.our_rates||[]; result.comp_rates=result.comp_rates||[];
+    }catch(e){tp.remove();}
+
+    // If it was competition rates — apply them and re-ask for our rates
+    if(result.intent==='competition_rates'||result.intent==='both'){
+      if(result.comp_rates.length){
+        _state.data.compRates=result.comp_rates; _applyCompRates(result.comp_rates);
+        const lines=result.comp_rates.map(r=>`${r.method}: <strong>${r.flat?`₹${r.flat}/txn`:`${r.rate}%`}</strong>`).join(' · ');
+        _addMsg('assistant',`🎯 Got it — applied as <strong>competition rates</strong>: ${lines}`,true);
+      }
+      if(result.intent==='competition_rates'){
+        // Still need our rates
+        _state.step=SETUP_STEPS.indexOf('ourRates'); // stay on this step
+        _ask(_md('Now, what rates do you want to **offer this merchant**?\n\nE.g. "1.8% CC, 0.05% UPI, 0.9% DC"'),['Skip — fill manually']);
+        return;
+      }
+    }
+
+    const parsed=result.intent==='both'?result.our_rates:result.our_rates;
+    if(!parsed.length){
+      _addMsg('assistant',"I couldn't find any MDR rates in that. Rates are like 1.8% CC, 0.05% UPI, ₹5 NB flat.",true);
+      _ask('Try again — what rates to offer the merchant?',['Skip — fill manually']);
+      _state.step=SETUP_STEPS.indexOf('ourRates');
       return;
     }
 
-    const parsed=_parseRatesDirect(text);
-    if(!parsed.length){ await _confirmRates([],false); return; }
+    _applyOurRates(parsed); _state.data.ourRates=parsed;
 
-    // ── Apply rates first ──
-    _applyOurRates(parsed);
-    _state.data.ourRates=parsed;
-
-    // ── GUARDRAIL CHECK on parsed rates ──
+    // Floor guardrail
     const gmv=_state.data.gmv||0;
     const violations=_checkFloors(parsed,gmv);
     if(violations.length>0){
       const rows=violations.map(v=>`<tr><td class="pr-3 py-1 text-white/90 text-xs font-semibold">${v.method}</td><td class="pr-3 py-1 text-red-400 font-bold text-xs">${v.offered}%</td><td class="pr-2 py-1 text-white/50 text-xs">floor ${v.floor}%</td><td class="py-1 text-red-400 text-xs">-${v.diff}%</td></tr>`).join('');
-      _addMsg('assistant',`<div class="flex gap-2 items-center mb-2"><span class="text-lg">🚨</span><strong class="text-red-400">Floor Rate Violations</strong></div>
-<table class="w-full text-xs mb-3"><thead><tr class="border-b border-white/20 text-[10px] uppercase text-white/40"><th class="pr-3 pb-1 text-left">Method</th><th class="pr-3 pb-1 text-left">Offered</th><th class="pr-2 pb-1 text-left">Floor</th><th class="pb-1 text-left">Gap</th></tr></thead><tbody>${rows}</tbody></table>
-<p class="text-xs text-white/60">What would you like to do?</p>`,true);
+      _addMsg('assistant',`<div class="font-bold text-red-400 mb-2">🚨 Below Floor Rates</div>
+<table class="w-full text-xs mb-3"><thead><tr class="border-b border-white/20 text-[10px] uppercase text-white/40"><th class="pr-3 pb-1 text-left">Method</th><th class="pr-3 pb-1 text-left">Offered</th><th class="pr-2 pb-1 text-left">Floor</th><th class="pb-1 text-left">Gap</th></tr></thead><tbody>${rows}</tbody></table>`,true);
       _state.data._pendingRates=parsed; _state.data._pendingViolations=violations;
       _chips(['✏️ Revise rates','⚠️ Proceed & request approval']);
       document.getElementById('ai-chips').querySelectorAll('button').forEach(btn=>{
         btn.onclick=async()=>{
-          _chips([]);
+          _chips([]); _addMsg('user',btn.textContent);
           if(btn.textContent.includes('Revise')){
-            _addMsg('user','Revise rates');
             _state.step=SETUP_STEPS.indexOf('ourRates');
-            const methods=violations.map(v=>v.method).join(', ');
-            _ask(_md(`Please re-enter rates for: **${methods}**`),['Skip — fill manually']);
+            _ask(_md(`Re-enter rates for: **${violations.map(v=>v.method).join(', ')}**`),['Skip — fill manually']);
           } else {
-            _addMsg('user','Proceed & request approval');
-            _state.data.ourRates=_state.data._pendingRates;
-            _state.data.floorViolations=violations;
-            _applyOurRates(_state.data.ourRates);
+            _state.data.ourRates=parsed; _state.data.floorViolations=violations;
             _flagViolations(violations);
-            await _confirmRates(_state.data._pendingRates, true);
+            await _confirmRates(parsed,true);
           }
         };
       });
       return;
     }
-    await _confirmRates(parsed, false);
+    await _confirmRates(parsed,false);
   }
 
   function _finishSetup(hasViolations){
