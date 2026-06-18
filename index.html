@@ -6656,7 +6656,8 @@ function _buildMerchantEmailHtml({merchantName,intro,snap}){
     });
     kws.sort((a,b)=>a.start-b.start);
 
-    // Pass 3: for each % value, find nearest keyword
+    // Pass 3: for each % value, find nearest UNASSIGNED keyword
+    // Processes left-to-right; skips keywords already matched to avoid overwriting
     const pctRe=/(\d+\.?\d*)\s*%/g;
     let m;
     while((m=pctRe.exec(t))!==null){
@@ -6666,6 +6667,7 @@ function _buildMerchantEmailHtml({merchantName,intro,snap}){
 
       let best=null, bestDist=Infinity;
       kws.forEach(kw=>{
+        if(seen.has(kw.method)) return; // skip already-assigned methods
         let dist;
         if(kw.end<=pStart)      dist=pStart-kw.end;          // keyword before %
         else if(kw.start>=pEnd) dist=kw.start-pEnd+60;       // keyword after % (penalised)
@@ -7153,7 +7155,7 @@ function _buildMerchantEmailHtml({merchantName,intro,snap}){
       else if(/credit|visa|master|\bcc\b/.test(s))          result[0]=pct;
       else if(/debit.*(<=|lt|below|under|2k|2000)/.test(s)) result[1]=pct;
       else if(/debit.*(>=|gt|above|over|2k|2000)/.test(s))  result[2]=pct;
-      else if(/debit|\bdc\b/.test(s))                        result[2]=pct; // generic debit → gt2k
+      else if(/debit|\bdc\b/.test(s))                        { result[1]=pct; result[2]=pct; } // generic DC → both slabs
       else if(/\bemi\b/.test(s))                             result[7]=pct;
     });
     return result;
