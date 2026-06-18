@@ -6395,6 +6395,45 @@ Only return the JSON array. No explanations. Use numbers only for rates (% value
     _aiAsk("Almost there! 🎯 What rates do you want to **offer this merchant**?\n\nYou can say things like:\n• \"1.5% CC, 0.8% DC, free UPI, ₹5 NB\"\n• Or skip and set manually in the calculator.",null,['Skip — I\'ll fill manually']);
   }
 
+  // Map method name string → METHODS id string
+  function _methodNameToId(methodName){
+    const n=methodName.toLowerCase();
+    if(/credit|visa|master|\bcc\b/.test(n)&&!/upi/.test(n)) return 'credit-cards';
+    if(/debit.*(lt|<=|<|below|under)/.test(n)||(/debit/.test(n)&&/<=|lt|below/.test(n))) return 'debit-lt2k';
+    if(/debit.*(gt|>=|>|above|over)/.test(n)||(/debit\s*card/.test(n)&&!/rupay|lt|below/.test(n))) return 'debit-gt2k';
+    if(/rupay/.test(n)) return 'rupay-debit';
+    if(/corp/.test(n)) return 'corp-cards';
+    if(/intl|international/.test(n)) return 'intl-cards';
+    if(/amex|diners/.test(n)) return 'amex';
+    if(/emi/.test(n)) return 'emi';
+    if(/upi/.test(n)&&!/cc|wallet|cl/.test(n)) return 'upi';
+    if(/net.?bank.*other/.test(n)) return 'net-banking-others';
+    if(/net.?bank/.test(n)) return 'net-banking';
+    if(/wallet/.test(n)) return 'mobile-wallets';
+    return null;
+  }
+
+  function _checkRatesAgainstFloors(rates, gmv){
+    // Returns array of violations: {method, label, offered, floor, diff}
+    const violations=[];
+    rates.forEach(r=>{
+      if(r.flat!=null&&r.flat>0) return; // flat fee — skip floor check (floor is % based)
+      const methodId=_methodNameToId(r.method);
+      if(!methodId) return;
+      const floor=getFloor(methodId, gmv||0);
+      if(floor>0 && r.rate<floor){
+        violations.push({
+          method:r.method,
+          methodId,
+          offered:r.rate,
+          floor,
+          diff:(floor-r.rate).toFixed(2)
+        });
+      }
+    });
+    return violations;
+  }
+
   async function _handleOurRates(text,img){
     if(text&&text.toLowerCase().includes('skip')){
       await _applyBasicFields();
@@ -6403,17 +6442,86 @@ Only return the JSON array. No explanations. Use numbers only for rates (% value
     }
     if(text){
       const typing=_addTyping();
+      let parsed=[];
       try{
         const resp=await _callClaude([{role:'user',content:`Parse these PG rates to offer: "${text}". Return JSON array: [{"method":"Credit Card","rate":1.5},{"method":"UPI","rate":0,"flat":0},{"method":"Debit Card","rate":0.9},{"method":"Net Banking","rate":0,"flat":5},...] Only return JSON.`}],'Return only valid JSON array.',300);
         typing.remove();
-        let parsed=[];
         try{ parsed=JSON.parse(resp.match(/\[[\s\S]*\]/)?.[0]||'[]'); }catch(e){}
-        _state.data.ourRates=parsed;
-        if(parsed.length>0) await _applyOurRates(parsed);
       }catch(e){typing.remove();}
+
+      if(parsed.length>0){
+        // ── GUARDRAIL: check every rate against floor ──
+        const gmv=_state.data.gmv||0;
+        const violations=_checkRatesAgainstFloors(parsed, gmv);
+
+        if(violations.length>0){
+          // Show violations in chat — block proceed until user decides
+          const rows=violations.map(v=>
+            `<tr><td class="pr-3 py-1 font-semibold text-gray-800">${v.method}</td><td class="pr-3 py-1 text-red-600 font-bold">${v.offered}%</td><td class="pr-3 py-1 text-gray-500">Floor: ${v.floor}%</td><td class="py-1 text-red-500 font-semibold">-${v.diff}%</td></tr>`
+          ).join('');
+          _addMsg('assistant',`<div class="flex items-center gap-2 mb-3"><span class="text-xl">🚨</span><strong class="text-red-700">Floor Rate Violation Detected</strong></div>
+<p class="text-sm text-gray-600 mb-3">The following rates are <strong>below Razorpay's floor</strong> for this GMV slab:</p>
+<table class="w-full text-xs mb-3 border-collapse">
+  <thead><tr class="border-b border-gray-200 text-gray-400 uppercase text-[10px]"><th class="pr-3 pb-1 text-left">Method</th><th class="pr-3 pb-1 text-left">Offered</th><th class="pr-3 pb-1 text-left">Minimum</th><th class="pb-1 text-left">Gap</th></tr></thead>
+  <tbody>${rows}</tbody>
+</table>
+<p class="text-xs text-gray-500">What would you like to do?</p>`,true);
+          _state.data._pendingRates=parsed;
+          _state.data._pendingViolations=violations;
+          _state.step=STEPS.length; // pause flow
+          _showChips(['Revise rates','Proceed & request approval']);
+          // Handle chip clicks
+          const chips=document.getElementById('ai-chips');
+          chips.querySelectorAll('button').forEach(btn=>{
+            btn.onclick=async()=>{
+              _showChips([]);
+              if(btn.textContent.includes('Revise')){
+                _addMsg('user','Revise rates');
+                // List only the violating methods for quick re-entry
+                const methods=violations.map(v=>v.method).join(', ');
+                _state.data._pendingRates=null;
+                _state.step=STEPS.indexOf('ourRates');
+                _aiAsk(`Sure! Please give revised rates for: <strong>${methods}</strong>\n\nOr retype all rates again.`,null,['Skip — fill manually']);
+              } else {
+                _addMsg('user','Proceed & request approval');
+                // Apply rates anyway, mark violations for approval tracking
+                _state.data.ourRates=_state.data._pendingRates;
+                _state.data.floorViolations=_state.data._pendingViolations;
+                await _applyOurRates(_state.data.ourRates);
+                await _applyBasicFields();
+                // Store violation in localStorage so sync-reply guardrail is also aware
+                _flagAiAssistViolations(_state.data._pendingViolations);
+                _finishFlow(true);
+              }
+            };
+          });
+          return; // don't fall through
+        }
+
+        // No violations — all clear
+        _addMsg('assistant','<span class="text-green-600 font-bold">✅ All rates are above floor</span> — good to go!',true);
+        _state.data.ourRates=parsed;
+        await _applyOurRates(parsed);
+      }
     }
     await _applyBasicFields();
-    _finishFlow();
+    _finishFlow(false);
+  }
+
+  function _flagAiAssistViolations(violations){
+    // Store in localStorage so the revamp button knows approval is needed
+    try{
+      const key='rzp_ai_floor_violations';
+      const existing=JSON.parse(localStorage.getItem(key)||'[]');
+      existing.push({
+        merchant:_state.data.businessName,
+        gmv:_state.data.gmv,
+        violations,
+        ts:Date.now(),
+        status:'pending'
+      });
+      localStorage.setItem(key,JSON.stringify(existing));
+    }catch(e){}
   }
 
   async function _applyBasicFields(){
@@ -6498,11 +6606,14 @@ Only return the JSON array. No explanations. Use numbers only for rates (% value
     if(typeof recalcAll==='function') recalcAll();
   }
 
-  function _finishFlow(){
-    _state.step=STEPS.length; // done
+  function _finishFlow(hasViolations){
+    _state.step=STEPS.length;
     const {businessName,customerName,gmv}=_state.data;
     const gmvStr=gmv>=10000000?`₹${(gmv/10000000).toFixed(1)} Cr`:gmv>=100000?`₹${(gmv/100000).toFixed(0)}L`:`₹${(gmv||0).toLocaleString()}`;
-    _addMsg('assistant',`<strong>✅ All done!</strong><br><br>I've pre-filled the calculator with:<br>• Merchant: <strong>${businessName||'—'}</strong><br>• Customer: <strong>${customerName||'—'}</strong><br>• GMV: <strong>${gmvStr}</strong><br>${_state.data.compRates?.length?`• Competition rates parsed & set<br>`:''}${_state.data.ourRates?.length?`• Your offered rates applied<br>`:''}<br>Review the numbers in the calculator and download the PDF when ready! 🚀`,true);
+    const violationNote=hasViolations
+      ?`<div class="mt-3 p-2.5 bg-amber-50 border border-amber-200 rounded-xl text-xs text-amber-800"><strong>⚠️ Approval required</strong> — floor violations were applied. The <em>Pricing Revamp</em> button will be blocked until Abhinav approves. A flag has been saved locally.</div>`
+      :'';
+    _addMsg('assistant',`<strong>${hasViolations?'⚠️ Done with caveats':'✅ All done!'}</strong><br><br>Pre-filled the calculator:<br>• Merchant: <strong>${businessName||'—'}</strong><br>• Customer: <strong>${customerName||'—'}</strong><br>• GMV: <strong>${gmvStr}</strong><br>${_state.data.compRates?.length?`• Competition rates parsed & set<br>`:''}${_state.data.ourRates?.length?`• Your offered rates applied<br>`:''}${violationNote}<br>Review the numbers and download PDF when ready! 🚀`,true);
     _showChips(['Close panel']);
     document.getElementById('ai-chips').querySelector('button')?.addEventListener('click',closeAiAssist);
   }
