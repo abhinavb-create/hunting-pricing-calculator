@@ -6373,6 +6373,63 @@ function _buildMerchantEmailHtml({merchantName,intro,snap}){
     _ask(_md("Last step! 🎯 What rates do you want to **offer this merchant**?\n\nE.g. \"1.8% CC, 0.9% DC, free UPI, ₹5 NB flat\""),['Skip — fill manually']);
   }
 
+  // ── Read all current rates from calculator DOM ──
+  function _readAllRates(){
+    const tab=typeof activeTab!=='undefined'?activeTab:'competition';
+    const pfx=tab==='competition'?'c':'mc';
+    const result=[];
+    const labels=['Credit Card','DC ≤2k','DC >2k','RuPay DC','Corp Card','Intl Card','Amex/Diners','EMI','UPI','UPI-CC','UPI Wallet','CL on UPI','Net Banking','NB Others','Wallets','No-Code'];
+    METHODS.forEach((m,i)=>{
+      if(m.locked) return;
+      const pctDiv=document.getElementById(`${pfx}-pct-${i}`);
+      const flatDiv=document.getElementById(`${pfx}-flat-${i}`);
+      const isFlat=pctDiv&&flatDiv&&pctDiv.style.display==='none';
+      if(isFlat){
+        const fee=parseFloat(document.getElementById(`${pfx}-fee-${i}`)?.value)||0;
+        if(fee>0) result.push({label:labels[i]||m.label,rate:null,flat:fee});
+      } else {
+        const rate=parseFloat(document.getElementById(`${pfx}-mdr-${i}`)?.value)||0;
+        if(rate>0) result.push({label:labels[i]||m.label,rate,flat:null});
+      }
+    });
+    return result;
+  }
+
+  // ── Show rate confirmation table + ask proceed/add more ──
+  async function _confirmRates(hasViolations){
+    const allRates=_readAllRates();
+    if(!allRates.length){ _finishSetup(hasViolations); return; }
+    const rows=allRates.map(r=>`<tr class="border-b border-white/10"><td class="py-1.5 pr-3 text-white/90 text-xs">${r.label}</td><td class="py-1.5 text-${r.rate!=null&&r.rate>0?'green':'amber'}-300 font-bold text-xs">${r.flat!=null?`₹${r.flat}/txn`:`${r.rate}%`}</td></tr>`).join('');
+    _addMsg('assistant',`<div class="font-bold text-white mb-2">📋 Rates going into PDF</div>
+<p class="text-[11px] text-white/50 mb-2">Review all rates that will appear in the proposal:</p>
+<table class="w-full mb-3"><thead><tr class="border-b border-white/20 text-[10px] uppercase text-white/40"><th class="pb-1 text-left pr-3">Method</th><th class="pb-1 text-left">Rate</th></tr></thead><tbody>${rows}</tbody></table>
+<p class="text-xs text-white/60">Confirm these are correct, or add/correct any rates.</p>`,true);
+    await new Promise(res=>{
+      _chips(['✅ Confirm & proceed','➕ Add / fix a rate','✏️ Fill manually on calculator']);
+      document.getElementById('ai-chips').querySelectorAll('button').forEach(btn=>{
+        btn.onclick=async()=>{
+          _chips([]);
+          _addMsg('user',btn.textContent);
+          const txt=btn.textContent;
+          if(txt.includes('Confirm')){
+            _applyBasicFields();
+            _finishSetup(hasViolations);
+            res();
+          } else if(txt.includes('Add')){
+            _ask(_md('Which rate(s) do you want to add or correct?\n\nE.g. "DC 0.85%, NB ₹8 flat, Wallets 1.2%"'),['Skip — done']);
+            // Override next input back into this step
+            _state.step=SETUP_STEPS.indexOf('ourRates');
+            res();
+          } else {
+            _applyBasicFields();
+            _finishSetup(false);
+            res();
+          }
+        };
+      });
+    });
+  }
+
   // ── Our rates step + floor guardrail ──
   async function _handleOurRatesStep(text){
     if(/skip|manual/i.test(text)){ _applyBasicFields(); _finishSetup(false); return; }
@@ -6384,18 +6441,22 @@ function _buildMerchantEmailHtml({merchantName,intro,snap}){
       try{parsed=JSON.parse(resp.match(/\[[\s\S]*\]/)?.[0]||'[]');}catch(e){}
     }catch(e){t.remove();}
 
-    if(!parsed.length){ _applyBasicFields(); _finishSetup(false); return; }
+    if(!parsed.length){ await _confirmRates(false); return; }
 
-    // ── GUARDRAIL CHECK ──
+    // ── Apply rates first ──
+    _applyOurRates(parsed);
+    _state.data.ourRates=parsed;
+
+    // ── GUARDRAIL CHECK on parsed rates ──
     const gmv=_state.data.gmv||0;
     const violations=_checkFloors(parsed,gmv);
     if(violations.length>0){
-      const rows=violations.map(v=>`<tr><td class="pr-3 py-1 font-semibold">${v.method}</td><td class="pr-3 py-1 text-red-600 font-bold">${v.offered}%</td><td class="pr-2 py-1 text-gray-400">floor ${v.floor}%</td><td class="py-1 text-red-500">-${v.diff}%</td></tr>`).join('');
-      _addMsg('assistant',`<div class="flex gap-2 items-center mb-2"><span class="text-lg">🚨</span><strong class="text-red-700">Floor Rate Violations</strong></div>
-<table class="w-full text-xs mb-3"><thead><tr class="text-gray-400 text-[10px] uppercase border-b border-gray-100"><th class="pr-3 pb-1 text-left">Method</th><th class="pr-3 pb-1 text-left">Offered</th><th class="pr-2 pb-1 text-left">Floor</th><th class="pb-1 text-left">Gap</th></tr></thead><tbody>${rows}</tbody></table>
-<p class="text-xs text-gray-500">What would you like to do?</p>`,true);
+      const rows=violations.map(v=>`<tr><td class="pr-3 py-1 text-white/90 text-xs font-semibold">${v.method}</td><td class="pr-3 py-1 text-red-400 font-bold text-xs">${v.offered}%</td><td class="pr-2 py-1 text-white/50 text-xs">floor ${v.floor}%</td><td class="py-1 text-red-400 text-xs">-${v.diff}%</td></tr>`).join('');
+      _addMsg('assistant',`<div class="flex gap-2 items-center mb-2"><span class="text-lg">🚨</span><strong class="text-red-400">Floor Rate Violations</strong></div>
+<table class="w-full text-xs mb-3"><thead><tr class="border-b border-white/20 text-[10px] uppercase text-white/40"><th class="pr-3 pb-1 text-left">Method</th><th class="pr-3 pb-1 text-left">Offered</th><th class="pr-2 pb-1 text-left">Floor</th><th class="pb-1 text-left">Gap</th></tr></thead><tbody>${rows}</tbody></table>
+<p class="text-xs text-white/60">What would you like to do?</p>`,true);
       _state.data._pendingRates=parsed; _state.data._pendingViolations=violations;
-      _chips(['Revise rates','Proceed & request approval']);
+      _chips(['✏️ Revise rates','⚠️ Proceed & request approval']);
       document.getElementById('ai-chips').querySelectorAll('button').forEach(btn=>{
         btn.onclick=async()=>{
           _chips([]);
@@ -6410,18 +6471,14 @@ function _buildMerchantEmailHtml({merchantName,intro,snap}){
             _state.data.floorViolations=violations;
             _applyOurRates(_state.data.ourRates);
             _flagViolations(violations);
-            _applyBasicFields();
-            _finishSetup(true);
+            await _confirmRates(true);
           }
         };
       });
       return;
     }
-    _addMsg('assistant','<span class="text-green-600 font-bold">✅ All rates above floor</span>',true);
-    _state.data.ourRates=parsed;
-    _applyOurRates(parsed);
-    _applyBasicFields();
-    _finishSetup(false);
+    _addMsg('assistant','<span class="text-green-400 font-bold">✅ All specified rates above floor</span>',true);
+    await _confirmRates(false);
   }
 
   function _finishSetup(hasViolations){
