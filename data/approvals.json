@@ -355,5 +355,20 @@
     "teamGroup": "Competition Hunting",
     "versionGroup": "dl_1781161716358",
     "timestamp": 1781599584442
+  },
+  {
+    "requestId": "mqj0iiplu7i8bg",
+    "fileName": "BILLION AGI PRIVATE LIMITED-Razorpay-Proposal.pdf",
+    "requesterEmail": "suman.dash@razorpay.com",
+    "merchantName": "BILLION AGI PRIVATE LIMITED",
+    "status": "pending",
+    "resolvedAt": "",
+    "gmv": 2000000,
+    "slabLabel": "Upto 25 Lakhs",
+    "driveLink": "https://drive.google.com/file/d/1oDZJNeEuo2PtAkTWJ1BrHumIqS3KOxrd/view",
+    "violations": "Credit Cards (Visa / MC / RuPay): 1.90%; Debit Card (Txn <= Rs.2,000): 0.45%; Debit Card (Txn > Rs.2,000): 0.85%; UPI: 0.06%; Net Banking - Other Banks: 1.40%; Mobile Wallets: 1.70%",
+    "teamGroup": "Startup Hunting",
+    "versionGroup": null,
+    "timestamp": 1781757676741
   }
 ]
