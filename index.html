@@ -7135,22 +7135,26 @@ function _buildMerchantEmailHtml({merchantName,intro,snap}){
     // METHODS indices: 0=CC, 1=DC≤2k, 2=DC>2k, 3=RuPay, 4=Corp, 5=Intl, 6=Amex, 7=EMI,
     //                  8=UPI, 9=UPI-CC, 12=NB Major, 13=NB Others, 14=Wallets
     const result={};
-    const segments=text.split(/[,;\/\n&]+|\band\b/i);
+    // Split on common delimiters including & and "and"
+    const segments=text.split(/[,;\/\n&+]+|\band\b/i);
     segments.forEach(seg=>{
-      const pctMatch=seg.match(/(\d+\.?\d*)\s*%?/);
+      // Find the first number in this segment
+      const pctMatch=seg.match(/(\d+(?:\.\d+)?)\s*%?/);
       if(!pctMatch) return;
       const pct=parseFloat(pctMatch[1]);
+      if(pct<=0||pct>100) return; // ignore 0% or clearly wrong values
       const s=seg.toLowerCase();
-      if(/\bupi\b/.test(s)&&!/wallet|cc/.test(s))          result[8]=pct;
+      // Order matters: most specific first
+      if(/rupay/.test(s))                                    result[3]=pct;
+      else if(/net.?bank.*other|nbo\b/.test(s))              result[13]=pct;
+      else if(/net.?bank|\bnb\b/.test(s))                    result[12]=pct;
+      else if(/wallet/.test(s))                              result[14]=pct;
+      else if(/\bupi\b/.test(s)&&!/wallet/.test(s))         result[8]=pct;  // removed !/cc/ guard
       else if(/credit|visa|master|\bcc\b/.test(s))          result[0]=pct;
       else if(/debit.*(<=|lt|below|under|2k|2000)/.test(s)) result[1]=pct;
       else if(/debit.*(>=|gt|above|over|2k|2000)/.test(s))  result[2]=pct;
-      else if(/debit|dc\b/.test(s)&&!/rupay/.test(s))       result[2]=pct; // default debit → gt2k
-      else if(/rupay/.test(s))                               result[3]=pct;
-      else if(/net.?bank.*other/.test(s))                    result[13]=pct;
-      else if(/net.?bank|nb\b/.test(s))                      result[12]=pct;
-      else if(/wallet/.test(s))                              result[14]=pct;
-      else if(/emi/.test(s))                                 result[7]=pct;
+      else if(/debit|\bdc\b/.test(s))                        result[2]=pct; // generic debit → gt2k
+      else if(/\bemi\b/.test(s))                             result[7]=pct;
     });
     return result;
   }
