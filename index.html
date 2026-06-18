@@ -6193,7 +6193,7 @@ function _buildMerchantEmailHtml({merchantName,intro,snap}){
   // ── State ──
   // mode: 'setup' = filling calculator details, 'command' = action commands
   const _state={started:false,step:0,mode:'setup',data:{},pendingImg:null};
-  const SETUP_STEPS=['businessName','customerName','gmv','slab','split','competitionImg','ourRates'];
+  const SETUP_STEPS=['businessName','customerName','gmv','split','competitionImg','ourRates'];
 
   // ── Claude API ──
   const _AK=(()=>{const p=['sk-ant-api03-','8tgSmXvJgjPcN-iqAREBqQbVkYGdGJ6kbN1uJbQHRb9SZGcvBdQYRIaJG3CJBSUNJfAz8TOKBXHOXMnJHVRMQ-','_L1JsAAA'];return p.join('');})();
@@ -6246,9 +6246,10 @@ function _buildMerchantEmailHtml({merchantName,intro,snap}){
 
   // ── Entry / reset ──
   function _start(){
-    _state.started=true; _state.step=0; _state.mode='setup'; _state.data={};
+    _state.started=true; _state.step=0; _state.mode='intent'; _state.data={};
     document.getElementById('ai-chat-messages').innerHTML='';
-    _ask(_md("Hey Abhinav! 👋 Let's set up the calculator.\n\nWhat's the **Business Name**?"),['Skip setup']);
+    _setStatus('Ready');
+    _ask(_md("Hey Abhinav! 👋 What do you need help with?"),['📄 New pricing proposal','🔁 Re-download a past PDF','📤 Request pricing revamp','🔒 Send for approval']);
   }
   window._aiReset=_start;
 
@@ -6279,56 +6280,170 @@ function _buildMerchantEmailHtml({merchantName,intro,snap}){
     if(text) _addMsg('user',text);
     if(img){ _addMsg('user','<img src="'+img+'" class="max-w-full rounded-xl max-h-48 object-contain border border-gray-200"/>',true); }
     _aiClearImg();
-    if(_state.mode==='setup') await _handleSetup(text,img);
-    else await _handleCommand(text,img);
+    const m=_state.mode;
+    if(m==='intent')          await _handleIntent(text,img);
+    else if(m==='briefing')   await _handleBriefing(text,img);
+    else if(m==='setup')      await _handleSetup(text,img);
+    else                      await _handleCommand(text,img);
   };
 
   // ================================================================
-  // SETUP FLOW
+  // INTENT MODE — what does the user want to do?
+  // ================================================================
+  async function _handleIntent(text,img){
+    if(/re.?download|past pdf|old pdf|previous/i.test(text)){ await _cmdRedownload(text); return; }
+    if(/revamp/i.test(text)){ await _cmdPricingRevamp(); return; }
+    if(/approv/i.test(text)&&!/new pricing/i.test(text)){ await _cmdDownloadPDF(false); return; }
+    if(/new pricing|new proposal|pricing|proposal|deal/i.test(text)||img){
+      _state.mode='briefing'; _state.data={};
+      _ask(_md("Let's do it! Give me the deal details in one shot:\n\n**Merchant name, POC name, GMV, split, competition?**\n\nE.g. *\"HDFC Life, Priya Sharma, 5Cr GMV, 60% UPI 30% CC, PhonePe giving UPI free DC 1%\"*\n\nOr just start with what you know — I'll ask for the rest."),['Skip — fill manually on calculator']);
+      return;
+    }
+    // Fallback: ask again
+    _addMsg('assistant',"I can help with new pricing, re-downloading a past PDF, pricing revamp, or sending for approval. What do you need?",true);
+    _chips(['📄 New pricing proposal','🔁 Re-download a past PDF','📤 Request pricing revamp','🔒 Send for approval']);
+  }
+
+  // ================================================================
+  // BRIEFING MODE — Claude extracts everything from free-form input
+  // ================================================================
+  async function _handleBriefing(text,img){
+    if(/skip|manual|fill manually/i.test(text)){ _enterCommandMode(); return; }
+    if(img){
+      // Image at briefing stage → treat as competition screenshot
+      _state.mode='setup'; _state.step=SETUP_STEPS.indexOf('competitionImg');
+      await _handleCompetitionStep(text,img);
+      return;
+    }
+
+    const tp=_typing();
+    const briefSys=`You are extracting deal info from a Razorpay sales rep's message. Return ONLY valid JSON:
+{
+  "businessName": "string or null",
+  "customerName": "string or null",
+  "gmv": number_in_rupees_or_null,
+  "split": {"UPI":60,"CC":30} or null,
+  "compRates": [{"method":"UPI","rate":0}] or [],
+  "missing": ["gmv","split","businessName"]
+}
+GMV parsing: "5Cr"=50000000, "5cr"=50000000, "50L"=5000000, "5L"/"5 lakh"=500000, "1Cr"=10000000, "10L"=1000000
+Split: percentage breakdown of transaction types. Keys: "UPI","CC","DC","NB","Wallets"
+Competition rates: if user mentions a competitor name (PhonePe,Cashfree,PayU,Paytm,Stripe,Juspay,CCAvenue) with rates, extract them.
+missing[] = fields that are null/not found. Do NOT include "slab" — that's optional.`;
+
+    let d={};
+    try{
+      const resp=await _callClaude([{role:'user',content:`Extract from sales rep message: "${text}"`}],briefSys,500);
+      tp.remove();
+      d=JSON.parse(resp.match(/\{[\s\S]*\}/)?.[0]||'{}');
+    }catch(e){tp.remove(); d={missing:['businessName','gmv']};}
+
+    // Apply extracted data
+    const applied=[];
+    if(d.businessName){
+      _state.data.businessName=d.businessName;
+      const el=document.getElementById('merchant-name'); if(el){el.value=d.businessName; el.dispatchEvent(new Event('input'));}
+      applied.push(`Merchant: <strong>${d.businessName}</strong>`);
+    }
+    if(d.customerName){
+      _state.data.customerName=d.customerName;
+      const el=document.getElementById('customer-name'); if(el){el.value=d.customerName; el.dispatchEvent(new Event('input'));}
+      applied.push(`POC: <strong>${d.customerName}</strong>`);
+    }
+    if(d.gmv){
+      _state.data.gmv=d.gmv;
+      _applyGMV(d.gmv);
+      applied.push(`GMV: <strong>${_fmtGMV(d.gmv)}</strong>`);
+    }
+    if(d.split&&Object.keys(d.split).length){
+      _state.data.split=d.split;
+      const splitStr=Object.entries(d.split).map(([k,v])=>`${k} ${v}%`).join(', ');
+      await _applySplitText(splitStr);
+      applied.push(`Split: <strong>${splitStr}</strong>`);
+    }
+    if(d.compRates?.length){
+      _applyCompRates(d.compRates);
+      const cl=d.compRates.map(r=>`${r.method} ${r.flat?`₹${r.flat}`:r.rate+'%'}`).join(', ');
+      applied.push(`Competition: <strong>${cl}</strong>`);
+    }
+
+    if(applied.length){
+      _addMsg('assistant',`✅ Got it:<br>${applied.map(a=>`• ${a}`).join('<br>')}`,true);
+    }
+
+    const missing=d.missing||[];
+    // Ask for what's still missing — one at a time
+    if(missing.includes('businessName')&&!_state.data.businessName){
+      _state.mode='setup'; _state.step=SETUP_STEPS.indexOf('businessName');
+      _ask(_md("What's the **merchant / business name**?"));
+      return;
+    }
+    if(missing.includes('gmv')&&!_state.data.gmv){
+      _state.mode='setup'; _state.step=SETUP_STEPS.indexOf('gmv');
+      _ask(_md("What's the estimated monthly **GMV**?"),['₹10L','₹50L','₹1Cr','₹5Cr','₹10Cr+']);
+      return;
+    }
+    if(missing.includes('split')&&!_state.data.split){
+      _state.mode='setup'; _state.step=SETUP_STEPS.indexOf('split');
+      _ask(_md("What's the **payment split**? (e.g. 60% UPI, 30% CC)"),['Skip']);
+      return;
+    }
+    // Everything we need is set — go straight to rates
+    _state.mode='setup'; _state.step=SETUP_STEPS.indexOf('ourRates');
+    _ask(_md("What rates do you want to **offer this merchant**?\n\nE.g. *\"1.8% CC, 0.05% UPI, 0.9% DC, ₹5 NB flat\"*"),['Skip — fill manually']);
+  }
+
+  // ── Apply GMV to calculator ──
+  function _applyGMV(gmv){
+    const el=document.getElementById('gmv-input')||document.getElementById('gmv');
+    if(el){ el.value=gmv; el.dispatchEvent(new Event('input')); }
+    if(typeof updateOutputs==='function') updateOutputs();
+  }
+
+  // ================================================================
+  // SETUP FLOW — handles individual follow-up questions
   // ================================================================
   async function _handleSetup(text,img){
-    // Allow escape to command mode at any point
+    // At any point, if user types something that seems like a correction or new intent, be smart
     if(/^(skip setup|done|command|help)/i.test(text)){ _enterCommandMode(); return; }
-    // Image mid-flow → jump to competition step
     if(img && _state.step < SETUP_STEPS.indexOf('competitionImg')) _state.step=SETUP_STEPS.indexOf('competitionImg');
 
     const step=SETUP_STEPS[_state.step];
+
+    // Smart correction: if user says "sorry, X" or "actually X" — re-interpret with Claude
+    if(/^(sorry|oops|wait|actually|no,|correction)/i.test(text)){
+      _state.mode='briefing';
+      await _handleBriefing(text,img);
+      return;
+    }
+
     switch(step){
       case 'businessName':
         _state.data.businessName=text||'';
+        const bnEl=document.getElementById('merchant-name'); if(bnEl){bnEl.value=text;bnEl.dispatchEvent(new Event('input'));}
         _state.step++;
         _ask(_md('What is the **Customer / POC Name**?'));
         break;
 
       case 'customerName':
         _state.data.customerName=text||'';
+        const cnEl=document.getElementById('customer-name'); if(cnEl){cnEl.value=text;cnEl.dispatchEvent(new Event('input'));}
         _state.step++;
         _ask(_md('What is the estimated monthly **GMV**?'),['₹10L','₹50L','₹1Cr','₹5Cr','₹10Cr+']);
         break;
 
       case 'gmv':
         _state.data.gmv=_parseGMV(text);
+        _applyGMV(_state.data.gmv);
         _state.step++;
-        const gmvStr=_fmtGMV(_state.data.gmv);
-        // Determine relevant slab label for this GMV
-        const slabIdx=typeof getSlabIndex==='function'?getSlabIndex(_state.data.gmv):null;
-        const slabLabel=slabIdx!=null&&FLOOR_RATES?.slabs?.[slabIdx]?.label||'';
-        _ask(_md(`GMV set to **${gmvStr}** ✅  _(${slabLabel})_\n\nWant to apply a **pricing slab** (standard rate template)?`),['Slab 1 — Standard','Slab 2 — Mid-tier','Slab 3 — Enterprise','No slab — custom rates']);
-        break;
-
-      case 'slab':
-        if(/slab\s*1|standard/i.test(text)){_applySlab('1');_addMsg('assistant','✅ Slab 1 (Standard) applied',false);}
-        else if(/slab\s*2|mid/i.test(text)){_applySlab('2');_addMsg('assistant','✅ Slab 2 (Mid-tier) applied',false);}
-        else if(/slab\s*3|enterprise/i.test(text)){_applySlab('3');_addMsg('assistant','✅ Slab 3 (Enterprise) applied',false);}
-        _state.step++;
-        _ask(_md("What's the **payment split**?\nE.g. \"60% UPI, 30% CC, 10% NB\" — or skip."),['Skip']);
+        _ask(_md(`GMV set to **${_fmtGMV(_state.data.gmv)}** ✅\n\nWhat's the **payment split**? (e.g. 60% UPI, 30% CC)`),['Skip']);
         break;
 
       case 'split':
         _state.data.split=text||'';
         if(text&&!/skip/i.test(text)) await _applySplitText(text);
         _state.step++;
-        _ask(_md("Got a **competitor pricing screenshot**? 📸\n\nAttach with the 📷 button, or type the rates, or skip."),['Skip','No competition']);
+        _ask(_md("Got a **competitor pricing screenshot or rates**? 📸\n\nAttach, type them, or skip."),['Skip','No competition']);
         break;
 
       case 'competitionImg':
@@ -6338,6 +6453,11 @@ function _buildMerchantEmailHtml({merchantName,intro,snap}){
       case 'ourRates':
         await _handleOurRatesStep(text);
         break;
+
+      default:
+        // Unknown step — go to rates
+        _state.step=SETUP_STEPS.indexOf('ourRates');
+        _ask(_md("What rates do you want to offer the merchant?"),['Skip — fill manually']);
     }
   }
 
