@@ -6291,8 +6291,15 @@ function _buildMerchantEmailHtml({merchantName,intro,snap}){
         _briefAskNext(); return;
       }
       if(w==='gmv'){
-        _state.data.gmv=_parseGMV(text); _applyGMV(_state.data.gmv);
-        _addMsg('assistant',`✅ GMV: <strong>${_fmtGMV(_state.data.gmv)}</strong>`,true);
+        const g=_parseGMV(text);
+        if(!g){
+          // Couldn't parse — re-ask (put briefWaiting back)
+          _state.briefWaiting='gmv';
+          _addMsg('assistant',"Couldn't read that as a GMV — try something like **₹5L**, **2Cr**, **50 lakh**",true);
+          _chips(['₹10L','₹50L','₹1Cr','₹5Cr','₹10Cr+']); return;
+        }
+        _state.data.gmv=g; _applyGMV(g);
+        _addMsg('assistant',`✅ GMV: <strong>${_fmtGMV(g)}</strong>`,true);
         _briefAskNext(); return;
       }
       if(w==='split'){
@@ -6345,7 +6352,7 @@ function _buildMerchantEmailHtml({merchantName,intro,snap}){
     const out={};
 
     // GMV — regex is 100% reliable for this
-    const gmvRe=/(\d+\.?\d*)\s*(cr(?:ore)?s?|lakh?s?|\bl\b)/gi;
+    const gmvRe=/(\d+\.?\d*)\s*(cr(?:ore)?s?|lakh?s?|l(?!\w))/gi;
     let gm; while((gm=gmvRe.exec(tl))!==null){
       const n=parseFloat(gm[1]), u=gm[2];
       if(/cr/.test(u)) out.gmv=Math.round(n*10000000);
@@ -6524,46 +6531,29 @@ function _buildMerchantEmailHtml({merchantName,intro,snap}){
     }
   }
 
-  // ── Shared Claude rates extractor ──
-  const _RATES_SYSTEM=`You are a Razorpay sales tool. Extract PG payment rates from a sales rep's message.
-Return ONLY valid JSON: {"rates":[{"method":"Credit Card","rate":1.8},{"method":"UPI","rate":0.05},{"method":"Net Banking","flat":5}]}
-Rules:
-- method names: "Credit Card", "Debit Card lt2k", "Debit Card gt2k", "UPI", "Net Banking", "RuPay", "Wallets", "EMI", "Intl Card"
-- rate = MDR % as a number (e.g. 1.8 for 1.8%). Use flat for flat-fee methods.
-- "free UPI" or "0% UPI" = {"method":"UPI","rate":0}
-- Split percentages like "60% UPI" are NOT rates — ignore them
-- If no rates found, return {"rates":[]}`;
-
-  async function _claudeExtractRates(text){
-    try{
-      const resp=await _callClaude([{role:'user',content:`Extract payment rates from: "${text}"`}],_RATES_SYSTEM,300);
-      const parsed=JSON.parse(resp.match(/\{[\s\S]*\}/)?.[0]||'{}');
-      return parsed.rates||[];
-    }catch(e){return [];}
-  }
-
   // ── Competition rates step ──
   async function _handleCompetitionStep(text,img){
     if(img){
+      // Image → Claude (only legitimate use — can't parse images with regex)
       const t=_typing();
       try{
         const b64=img.split(',')[1], mtype=img.split(';')[0].split(':')[1]||'image/jpeg';
+        const imgSystem=`Extract payment method rates from a competitor PG pricing screenshot. Return ONLY valid JSON: {"rates":[{"method":"Credit Card","rate":1.75},{"method":"UPI","rate":0},{"method":"Net Banking","flat":10}]}. Method names: "Credit Card","Debit Card lt2k","Debit Card gt2k","UPI","Net Banking","RuPay","Wallets","EMI","Intl Card". rate=MDR % as number. flat=flat fee in ₹.`;
         const resp=await _callClaude([{role:'user',content:[
           {type:'image',source:{type:'base64',media_type:mtype,data:b64}},
-          {type:'text',text:'This is a competitor PG pricing screenshot. Extract all payment method rates as JSON: {"rates":[{"method":"Credit Card","rate":1.75},{"method":"UPI","rate":0},{"method":"Net Banking","flat":10}]}. Return JSON only.'}
-        ]}],_RATES_SYSTEM,300);
+          {type:'text',text:'Extract all payment method rates from this competitor pricing screenshot.'}
+        ]}],imgSystem,300);
         t.remove();
         let parsed=[]; try{const d=JSON.parse(resp.match(/\{[\s\S]*\}/)?.[0]||'{}'); parsed=d.rates||[];}catch(e){}
         if(parsed.length>0){
           _state.data.compRates=parsed; _applyCompRates(parsed);
           const lines=parsed.map(r=>`${r.method}: <strong>${r.flat?`₹${r.flat}/txn`:`${r.rate}%`}</strong>`).join(' · ');
           _addMsg('assistant',`🎯 Competitor rates applied: ${lines}`,true);
-        } else { _addMsg('assistant',"Couldn't read rates from image — continuing."); }
-      }catch(e){t.remove(); _addMsg('assistant','Image parse error: '+e.message);}
+        } else { _addMsg('assistant',"Couldn't read rates from image — enter them manually if needed.",true); }
+      }catch(e){t.remove(); _addMsg('assistant',"Image couldn't be parsed — skip and enter rates manually.",true);}
     } else if(text&&!/^\s*no\b|skip|no comp|none/i.test(text)){
-      const t=_typing();
-      const compParsed=await _claudeExtractRates(text);
-      t.remove();
+      // Text → JS parser (fast, no API)
+      const compParsed=_parseRatesDirect(text);
       if(compParsed.length>0){
         _state.data.compRates=compParsed; _applyCompRates(compParsed);
         const lines=compParsed.map(r=>`${r.method}: <strong>${r.flat?`₹${r.flat}/txn`:`${r.rate}%`}</strong>`).join(' · ');
@@ -6692,67 +6682,24 @@ Rules:
   async function _handleOurRatesStep(text){
     if(/skip|manual/i.test(text)){ _applyBasicFields(); _finishSetup(false); return; }
 
-    const tp=_typing();
-
-    // Ask Claude to understand intent + extract rates in one shot
-    const intentSystem=`You are a Razorpay sales assistant. A sales rep is filling in a pricing proposal.
-We asked: "What rates do you want to OFFER this merchant?"
-The rep replied. Figure out:
-1. Did they accidentally give COMPETITION/COMPETITOR rates instead of their own? (look for words like "competition", "competitor", "comp", "their rates", "PhonePe", "Cashfree", "PayU", "Paytm", "Stripe" etc.)
-2. Extract the actual rates.
-
-Return ONLY valid JSON:
-{
-  "intent": "our_rates" | "competition_rates" | "both",
-  "our_rates": [{"method":"Credit Card","rate":1.8}, {"method":"UPI","rate":0.05}],
-  "comp_rates": [],
-  "note": "optional short explanation if something was unclear"
-}
-Method names to use: "Credit Card", "Debit Card lt2k", "Debit Card gt2k", "UPI", "Net Banking", "RuPay", "Wallets", "EMI", "Intl Card"
-rate = MDR percentage as a plain number. Use flat (not rate) for flat-fee methods.
-Ignore split percentages (70%, 60% etc.) — those are transaction share, not MDR rates.
-If rates are 0 ("free UPI") use rate:0.`;
-
-    // ── Step 1: JS-first parsing (always works, no API needed) ──
-    const compKeywords=/cashfree|payu|paytm|phonepe|juspay|ccavenue|billdesk|stripe|competition|competitor|their rates|comp rates/i;
+    // ── Pure JS parsing — no API calls ──
+    // Detect if user accidentally gave competitor rates
+    const compKeywords=/cashfree|payu|paytm|phonepe|juspay|ccavenue|billdesk|stripe|\bcomp(?:etition|etitor)?\b|\btheir rates\b/i;
     const isComp=compKeywords.test(text);
 
-    // Parse rates with the local regex engine
     const jsParsed=_parseRatesDirect(text);
 
-    let result={intent:'our_rates',our_rates:jsParsed,comp_rates:[]};
-
-    // ── Step 2: Try Claude only when JS found rates (to detect intent) OR JS found nothing ──
-    if(isComp||!jsParsed.length){
-      try{
-        const resp=await _callClaude([{role:'user',content:`Rep said: "${text}"`}],intentSystem,400);
-        tp.remove();
-        const parsed=JSON.parse(resp.match(/\{[\s\S]*\}/)?.[0]||'{}');
-        parsed.our_rates=parsed.our_rates||[]; parsed.comp_rates=parsed.comp_rates||[];
-        // Merge: prefer Claude result but fall back to JS if Claude returned nothing
-        result.intent=parsed.intent||'our_rates';
-        result.our_rates=parsed.our_rates.length?parsed.our_rates:jsParsed;
-        result.comp_rates=parsed.comp_rates;
-      }catch(e){ tp.remove(); /* use JS result */ }
-    } else {
-      tp.remove();
+    if(isComp&&jsParsed.length){
+      // User gave comp rates — apply and re-ask
+      _state.data.compRates=jsParsed; _applyCompRates(jsParsed);
+      const lines=jsParsed.map(r=>`${r.method}: <strong>${r.flat?`₹${r.flat}/txn`:`${r.rate}%`}</strong>`).join(' · ');
+      _addMsg('assistant',`🎯 Applied as <strong>competition rates</strong>: ${lines}`,true);
+      _state.step=SETUP_STEPS.indexOf('ourRates');
+      _ask(_md('Now, what rates do you want to **offer this merchant**?\n\nE.g. "1.8% CC, 0.05% UPI, 0.9% DC"'),['Skip — fill manually']);
+      return;
     }
 
-    // If it was competition rates — apply them and re-ask for our rates
-    if(result.intent==='competition_rates'||result.intent==='both'){
-      if(result.comp_rates.length){
-        _state.data.compRates=result.comp_rates; _applyCompRates(result.comp_rates);
-        const lines=result.comp_rates.map(r=>`${r.method}: <strong>${r.flat?`₹${r.flat}/txn`:`${r.rate}%`}</strong>`).join(' · ');
-        _addMsg('assistant',`🎯 Got it — applied as <strong>competition rates</strong>: ${lines}`,true);
-      }
-      if(result.intent==='competition_rates'){
-        _state.step=SETUP_STEPS.indexOf('ourRates');
-        _ask(_md('Now, what rates do you want to **offer this merchant**?\n\nE.g. "1.8% CC, 0.05% UPI, 0.9% DC"'),['Skip — fill manually']);
-        return;
-      }
-    }
-
-    const parsed=result.our_rates;
+    const parsed=jsParsed;
     if(!parsed.length){
       _addMsg('assistant',"Hmm, I couldn't parse rates from that. Try something like: **1.8% CC, 0.05% UPI, 0.9% DC, ₹5 NB**",true);
       _ask('Try again — what rates to offer the merchant?',['Skip — fill manually']);
@@ -6852,18 +6799,10 @@ If rates are 0 ("free UPI") use rate:0.`;
     if(/download|pdf/i.test(t)&&!/re.?download|past|previous/i.test(t)){ await _cmdDownloadPDF(false); return; }
     if(/approv/i.test(t)&&!/revamp/i.test(t)){ await _cmdDownloadPDF(false); return; } // approval is triggered by generateAndDownloadPDF if violations exist
     if(/revamp/i.test(t)){ await _cmdPricingRevamp(); return; }
-    // Claude classify fallback
-    const tp=_typing();
-    try{
-      const resp=await _callClaude([{role:'user',content:`User message: "${text}". They're on a pricing calculator. Classify intent: DOWNLOAD_PDF, PRICING_REVAMP, REDOWNLOAD, FILL_CALCULATOR. Return one word only.`}],'Return one word only.',30);
-      tp.remove();
-      const code=resp.trim().toUpperCase();
-      if(code==='DOWNLOAD_PDF'){ await _cmdDownloadPDF(false); }
-      else if(code==='PRICING_REVAMP'){ await _cmdPricingRevamp(); }
-      else if(code==='REDOWNLOAD'){ await _cmdRedownload(t); }
-      else if(code==='FILL_CALCULATOR'){ _state.mode='setup'; _state.step=0; _start(); }
-      else{ _addMsg('assistant','I can help with: Download PDF, Send for Approval, Pricing Revamp, or Re-download a past PDF.'); _backToCommands(); }
-    }catch(e){tp.remove(); _addMsg('assistant','Not sure what you need — pick from below.'); _backToCommands();}
+    // JS fallback — broader keyword matching
+    if(/download|pdf|print/i.test(t)){ await _cmdDownloadPDF(false); return; }
+    if(/new|reset|fresh|another|start/i.test(t)){ _state.mode='setup'; _state.step=0; _start(); return; }
+    _addMsg('assistant','Not sure what you need — pick from below.',true); _backToCommands();
   }
 
   // ── Download PDF — suppress all modals/alerts, show everything in chat ──
@@ -7161,10 +7100,14 @@ If rates are 0 ("free UPI") use rate:0.`;
   // APPLY HELPERS — Fixed to use real IDs and updateOutputs()
   // ================================================================
   function _parseGMV(text){
-    const t=(text||'').toLowerCase().replace(/,/g,'').replace(/₹/g,'');
-    const cr=t.match(/(\d+\.?\d*)\s*cr/); if(cr) return parseFloat(cr[1])*10000000;
-    const l=t.match(/(\d+\.?\d*)\s*l/); if(l) return parseFloat(l[1])*100000;
-    const r=t.match(/(\d+\.?\d*)/); if(r) return parseFloat(r[1]);
+    const t=(text||'').toLowerCase().replace(/,/g,'').replace(/₹/g,'').replace(/rs\.?/g,'');
+    // Must have explicit unit (cr/lakh/l/k) OR be a large raw number (>=10000)
+    const cr=t.match(/(\d+\.?\d*)\s*cr(?:ore)?s?/); if(cr) return parseFloat(cr[1])*10000000;
+    const lk=t.match(/(\d+\.?\d*)\s*(?:lakh?s?|lac)/); if(lk) return parseFloat(lk[1])*100000;
+    const lShort=t.match(/(\d+\.?\d*)\s*l(?!\w)/); if(lShort) return parseFloat(lShort[1])*100000;
+    const k=t.match(/(\d+\.?\d*)\s*k(?!\w)/); if(k) return parseFloat(k[1])*1000;
+    // Raw number — only accept if large enough to be a GMV (>=10000)
+    const r=t.match(/(\d{5,})/); if(r) return parseFloat(r[1]);
     return 0;
   }
   function _fmtGMV(g){ return g>=10000000?`₹${(g/10000000).toFixed(1)} Cr`:g>=100000?`₹${(g/100000).toFixed(0)}L`:`₹${(g||0).toLocaleString()}`; }
@@ -7192,7 +7135,7 @@ If rates are 0 ("free UPI") use rate:0.`;
     // METHODS indices: 0=CC, 1=DC≤2k, 2=DC>2k, 3=RuPay, 4=Corp, 5=Intl, 6=Amex, 7=EMI,
     //                  8=UPI, 9=UPI-CC, 12=NB Major, 13=NB Others, 14=Wallets
     const result={};
-    const segments=text.split(/[,;\/\n]+/);
+    const segments=text.split(/[,;\/\n&]+|\band\b/i);
     segments.forEach(seg=>{
       const pctMatch=seg.match(/(\d+\.?\d*)\s*%?/);
       if(!pctMatch) return;
