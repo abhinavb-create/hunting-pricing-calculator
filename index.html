@@ -6360,14 +6360,15 @@ function _buildMerchantEmailHtml({merchantName,intro,snap}){
           _addMsg('assistant',`🎯 Parsed & applied competitor rates:<ul class="mt-1 ml-2 space-y-0.5">${rows}</ul>`,true);
         } else { _addMsg('assistant',"Couldn't extract rates from image — continuing."); }
       }catch(e){t.remove(); _addMsg('assistant','Image parse error: '+e.message);}
-    } else if(text&&!/skip|no comp/i.test(text)){
-      const t=_typing();
-      try{
-        const resp=await _callClaude([{role:'user',content:`Parse competitor PG rates: "${text}". Return JSON array only.`}],'Return only valid JSON array.',200);
-        t.remove();
-        let parsed=[]; try{parsed=JSON.parse(resp.match(/\[[\s\S]*\]/)?.[0]||'[]');}catch(e){}
-        if(parsed.length>0){ _state.data.compRates=parsed; _applyCompRates(parsed); }
-      }catch(e){t.remove();}
+    } else if(text&&!/^\s*no\b|skip|no comp|none/i.test(text)){
+      // Use same smart rate parser for competitor rates
+      const compParsed=_parseRatesDirect(text);
+      if(compParsed.length>0){
+        _state.data.compRates=compParsed;
+        _applyCompRates(compParsed);
+        const lines=compParsed.map(r=>`${r.method}: <strong>${r.flat!=null&&r.flat>0?`₹${r.flat}/txn`:`${r.rate}%`}</strong>`).join(' · ');
+        _addMsg('assistant',`🎯 Competitor rates applied: ${lines}`,true);
+      }
     }
     _state.step++;
     _ask(_md("Last step! 🎯 What rates do you want to **offer this merchant**?\n\nE.g. \"1.8% CC, 0.9% DC, free UPI, ₹5 NB flat\""),['Skip — fill manually']);
@@ -6422,46 +6423,51 @@ function _buildMerchantEmailHtml({merchantName,intro,snap}){
     });
   }
 
-  // ── Direct rate parser — no Claude, handles &/and/+ separators ──
+  // ── Smart rate parser: context-scan every % in the full text ──
+  // Works with any format: "UPI 0.05%, DC>2k: 0.90%, DC<2k: 0.45%"
+  //   or "1.6% on CC & 0.15% UPI" or "Competition Rates: UPI-0.05% DC>2k:0.9%"
   function _parseRatesDirect(text){
-    const result=[];
-    // Flat fee: ₹N NB / NB ₹N flat
-    const flatPat=/(?:rs\.?|₹)\s*(\d+\.?\d*)\s*(?:flat|\/txn|per txn)?\s*(?:for|on|-)?\s*([a-z\s]+)?/gi;
-    let fm; while((fm=flatPat.exec(text))!==null){
-      const fee=parseFloat(fm[1]); const label=(fm[2]||'').toLowerCase().trim();
-      if(/net.?bank|nb\b/.test(label))   result.push({method:'Net Banking',rate:0,flat:fee});
-      else if(/wallet/.test(label))       result.push({method:'Wallets',rate:0,flat:fee});
+    const t=text.toLowerCase();
+    const seen=new Map();
+
+    // First pass: flat fees — "NB ₹5 flat" / "₹8 per txn NB"
+    const flatPat=/(?:(?:net.?bank|nb|wallet)[^₹\d]*)?(?:rs\.?|₹)\s*(\d+\.?\d*)\s*(?:flat|\/txn|per\s*txn)?[^₹\d]*(?:net.?bank|nb|wallet)?/gi;
+    let fm;
+    while((fm=flatPat.exec(t))!==null){
+      const fee=parseFloat(fm[1]); if(!fee) continue;
+      const ctx=fm[0];
+      if(/wallet/.test(ctx))           seen.set('Wallets',{method:'Wallets',rate:0,flat:fee});
+      else if(/net.?bank|nb/.test(ctx)) seen.set('Net Banking',{method:'Net Banking',rate:0,flat:fee});
     }
-    // Also handle "NB ₹5" / "NB flat ₹5" format
-    const flatPat2=/(?:net.?bank|nb|wallet)\s*(?:flat)?\s*(?:rs\.?|₹)\s*(\d+\.?\d*)/gi;
-    while((fm=flatPat2.exec(text.toLowerCase()))!==null){
-      const fee=parseFloat(fm[1]);
-      const seg=fm[0]; if(/wallet/.test(seg)) result.push({method:'Wallets',rate:0,flat:fee});
-      else result.push({method:'Net Banking',rate:0,flat:fee});
+
+    // Second pass: for every % value, look at ±50 chars around it for method keywords
+    const pctRe=/(\d+\.?\d*)\s*%/g;
+    let m;
+    while((m=pctRe.exec(t))!==null){
+      const val=parseFloat(m[1]);
+      if(val>10) continue; // skip split percentages (MDR rates are 0–10%)
+      const before=t.slice(Math.max(0,m.index-50),m.index);
+      const after=t.slice(m.index+m[0].length,Math.min(t.length,m.index+m[0].length+50));
+      const ctx=before+' '+after;
+
+      let method=null;
+      if(/credit|visa|master|\bcc\b/.test(ctx)&&!/upi/.test(ctx))               method='Credit Card';
+      else if(/dc\s*[<≤]\s*2k|debit\s*[<≤]\s*2k|debit.*(lt|below|under|<2k)/.test(ctx))  method='Debit lt2k';
+      else if(/dc\s*[>≥]\s*2k|debit\s*[>≥]\s*2k|debit.*(gt|above|over|>2k)/.test(ctx))   method='Debit gt2k';
+      else if(/rupay/.test(ctx))                                                  method='RuPay';
+      else if(/\bcorp/.test(ctx))                                                 method='Corp Card';
+      else if(/intl|international/.test(ctx))                                     method='Intl Card';
+      else if(/amex|diners/.test(ctx))                                            method='Amex';
+      else if(/\bemi\b/.test(ctx))                                                method='EMI';
+      else if(/\bupi\b/.test(ctx)&&!/wallet|cc/.test(ctx))                        method='UPI';
+      else if(/net.?bank.*other|nb.*other/.test(ctx))                             method='Net Banking Other';
+      else if(/net.?bank|\bnb\b/.test(ctx))                                       method='Net Banking';
+      else if(/wallet/.test(ctx))                                                  method='Wallets';
+      else if(/\bdc\b|\bdebit\b/.test(ctx)&&!/rupay/.test(ctx))                   method='Debit gt2k';
+
+      if(method) seen.set(method,{method,rate:val,flat:null});
     }
-    // Split by common separators INCLUDING & and "and"
-    const segments=text.split(/[,;\/\n&+]|\band\b/i);
-    segments.forEach(seg=>{
-      const s=seg.toLowerCase();
-      const pctMatch=s.match(/(\d+\.?\d*)\s*%/);
-      if(!pctMatch) return;
-      const rate=parseFloat(pctMatch[1]);
-      // Sanity: MDR rates are 0–10%. Anything above 10% is likely split%, not a rate.
-      if(rate>10) return;
-      if(/credit|visa|master|\bcc\b/.test(s)&&!/upi/.test(s))          result.push({method:'Credit Card',rate});
-      else if(/debit.*(lt|below|under|<\s*2k)/.test(s))                result.push({method:'Debit lt2k',rate});
-      else if(/debit.*(gt|above|over|>\s*2k)/.test(s))                 result.push({method:'Debit gt2k',rate});
-      else if(/rupay/.test(s))                                           result.push({method:'RuPay',rate});
-      else if(/debit|\bdc\b/.test(s)&&!/rupay/.test(s))                 result.push({method:'Debit gt2k',rate});
-      else if(/\bupi\b/.test(s)&&!/wallet|cc/.test(s))                  result.push({method:'UPI',rate});
-      else if(/net.?bank.*other/.test(s))                               result.push({method:'Net Banking Other',rate});
-      else if(/net.?bank|\bnb\b/.test(s))                               result.push({method:'Net Banking',rate});
-      else if(/wallet/.test(s))                                          result.push({method:'Wallets',rate});
-      else if(/emi/.test(s))                                             result.push({method:'EMI',rate});
-      else if(/amex|diners/.test(s))                                    result.push({method:'Amex',rate});
-      else if(/intl|international/.test(s))                             result.push({method:'Intl Card',rate});
-    });
-    return result;
+    return [...seen.values()];
   }
 
   // ── Our rates step + floor guardrail ──
