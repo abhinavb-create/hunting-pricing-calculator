@@ -6759,17 +6759,10 @@ If rates are 0 ("free UPI") use rate:0.`;
     const tab=typeof activeTab!=='undefined'?activeTab:'competition';
     const pfx=tab==='competition'?'c':'mc';
 
-    // ── GUARDRAIL 0: Low GMV warning ──
+    // ── GUARDRAIL 0: Low GMV — warning only, does not block ──
     if(gmv>0&&gmv<500000){
-      _addMsg('assistant',`<div class="font-bold text-amber-300 mb-2">⚠️ Very Low GMV</div>
-<p class="text-xs text-white/70">GMV is <strong class="text-amber-300">₹${gmv.toLocaleString()}</strong> — this is below ₹5L/month which is unusually small for a pricing proposal. Are you sure this is correct?</p>`,true);
-      const proceed=await new Promise(res=>{
-        _chips(['✅ Yes, GMV is correct','❌ Cancel — let me fix GMV']);
-        document.getElementById('ai-chips').querySelectorAll('button').forEach(btn=>{
-          btn.onclick=()=>{ _chips([]); _addMsg('user',btn.textContent); res(btn.textContent.includes('Yes')); };
-        });
-      });
-      if(!proceed) return false;
+      _addMsg('assistant',`<div class="font-bold text-amber-300 mb-1">⚠️ Low GMV — ₹${gmv.toLocaleString()}/month</div>
+<p class="text-xs text-white/60">This is below ₹5L/month — just a heads up. Continuing…</p>`,true);
     }
 
     // ── GUARDRAIL 0.5: Split not set ──
