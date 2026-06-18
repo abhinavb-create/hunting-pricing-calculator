@@ -6395,53 +6395,52 @@ function _buildMerchantEmailHtml({merchantName,intro,snap}){
     return result;
   }
 
-  // ── Show rate confirmation table + ask proceed/add more ──
-  async function _confirmRates(hasViolations){
-    const allRates=_readAllRates();
-    if(!allRates.length){ _finishSetup(hasViolations); return; }
-    const rows=allRates.map(r=>`<tr class="border-b border-white/10"><td class="py-1.5 pr-3 text-white/90 text-xs">${r.label}</td><td class="py-1.5 text-${r.rate!=null&&r.rate>0?'green':'amber'}-300 font-bold text-xs">${r.flat!=null?`₹${r.flat}/txn`:`${r.rate}%`}</td></tr>`).join('');
-    _addMsg('assistant',`<div class="font-bold text-white mb-2">📋 Rates going into PDF</div>
-<p class="text-[11px] text-white/50 mb-2">Review all rates that will appear in the proposal:</p>
-<table class="w-full mb-3"><thead><tr class="border-b border-white/20 text-[10px] uppercase text-white/40"><th class="pb-1 text-left pr-3">Method</th><th class="pb-1 text-left">Rate</th></tr></thead><tbody>${rows}</tbody></table>
-<p class="text-xs text-white/60">Confirm these are correct, or add/correct any rates.</p>`,true);
+  // ── Conversational rate confirmation ──
+  async function _confirmRates(appliedRates, hasViolations){
+    if(!appliedRates||!appliedRates.length){ _applyBasicFields(); _finishSetup(hasViolations); return; }
+    // Show only what was just parsed — not stale DOM values
+    const lines=appliedRates.map(r=>`• <strong>${r.method}</strong> → <span class="text-green-300 font-bold">${r.flat!=null&&r.flat>0?`₹${r.flat}/txn`:`${r.rate}%`}</span>`).join('<br>');
+    _addMsg('assistant',`✅ Got it! Applied:<br><br>${lines}<br><br>Want to add rates for other methods (DC, NB, Wallets…) or is this enough?`,true);
     await new Promise(res=>{
-      _chips(['✅ Confirm & proceed','➕ Add / fix a rate','✏️ Fill manually on calculator']);
+      _chips(['✅ That\'s all — proceed','➕ Add more rates','✏️ Fill manually']);
       document.getElementById('ai-chips').querySelectorAll('button').forEach(btn=>{
         btn.onclick=async()=>{
           _chips([]);
           _addMsg('user',btn.textContent);
           const txt=btn.textContent;
-          if(txt.includes('Confirm')){
-            _applyBasicFields();
-            _finishSetup(hasViolations);
-            res();
+          if(txt.includes('proceed')){
+            _applyBasicFields(); _finishSetup(hasViolations); res();
           } else if(txt.includes('Add')){
-            _ask(_md('Which rate(s) do you want to add or correct?\n\nE.g. "DC 0.85%, NB ₹8 flat, Wallets 1.2%"'),['Skip — done']);
-            // Override next input back into this step
+            _ask('Which other rates? (e.g. "DC 0.85%, NB ₹8 flat, Wallets 1.2%")',['Skip — done']);
             _state.step=SETUP_STEPS.indexOf('ourRates');
             res();
           } else {
-            _applyBasicFields();
-            _finishSetup(false);
-            res();
+            _applyBasicFields(); _finishSetup(false); res();
           }
         };
       });
     });
   }
 
-  // ── Direct rate parser (no Claude, no API call) ──
+  // ── Direct rate parser — no Claude, handles &/and/+ separators ──
   function _parseRatesDirect(text){
     const result=[];
-    // Detect flat fee pattern: ₹N or Rs N for NB/wallets
+    // Flat fee: ₹N NB / NB ₹N flat
     const flatPat=/(?:rs\.?|₹)\s*(\d+\.?\d*)\s*(?:flat|\/txn|per txn)?\s*(?:for|on|-)?\s*([a-z\s]+)?/gi;
     let fm; while((fm=flatPat.exec(text))!==null){
       const fee=parseFloat(fm[1]); const label=(fm[2]||'').toLowerCase().trim();
       if(/net.?bank|nb\b/.test(label))   result.push({method:'Net Banking',rate:0,flat:fee});
       else if(/wallet/.test(label))       result.push({method:'Wallets',rate:0,flat:fee});
     }
-    // Detect percentage rates: N% CC / CC N% / N% on CC etc.
-    const segments=text.split(/[,;\/\n]+/);
+    // Also handle "NB ₹5" / "NB flat ₹5" format
+    const flatPat2=/(?:net.?bank|nb|wallet)\s*(?:flat)?\s*(?:rs\.?|₹)\s*(\d+\.?\d*)/gi;
+    while((fm=flatPat2.exec(text.toLowerCase()))!==null){
+      const fee=parseFloat(fm[1]);
+      const seg=fm[0]; if(/wallet/.test(seg)) result.push({method:'Wallets',rate:0,flat:fee});
+      else result.push({method:'Net Banking',rate:0,flat:fee});
+    }
+    // Split by common separators INCLUDING & and "and"
+    const segments=text.split(/[,;\/\n&+]|\band\b/i);
     segments.forEach(seg=>{
       const s=seg.toLowerCase();
       const pctMatch=s.match(/(\d+\.?\d*)\s*%/);
@@ -6480,7 +6479,7 @@ function _buildMerchantEmailHtml({merchantName,intro,snap}){
     }
 
     const parsed=_parseRatesDirect(text);
-    if(!parsed.length){ await _confirmRates(false); return; }
+    if(!parsed.length){ await _confirmRates([],false); return; }
 
     // ── Apply rates first ──
     _applyOurRates(parsed);
@@ -6510,14 +6509,13 @@ function _buildMerchantEmailHtml({merchantName,intro,snap}){
             _state.data.floorViolations=violations;
             _applyOurRates(_state.data.ourRates);
             _flagViolations(violations);
-            await _confirmRates(true);
+            await _confirmRates(_state.data._pendingRates, true);
           }
         };
       });
       return;
     }
-    _addMsg('assistant','<span class="text-green-400 font-bold">✅ All specified rates above floor</span>',true);
-    await _confirmRates(false);
+    await _confirmRates(parsed, false);
   }
 
   function _finishSetup(hasViolations){
