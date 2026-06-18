@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<!-- build: 20260618-v42 -->
+<!-- build: 20260618-v43 -->
 <title>Hunting &lt;&gt; Pricing Calculator</title>
 <script src="https://cdn.tailwindcss.com"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
@@ -6661,12 +6661,16 @@ function _buildMerchantEmailHtml({merchantName,intro,snap}){
     kws.sort((a,b)=>a.start-b.start);
 
     // Pass 3: for each % value, find nearest UNASSIGNED keyword
-    // Processes left-to-right; skips keywords already matched to avoid overwriting
-    const pctRe=/(\d+\.?\d*)\s*%/g;
+    // % sign is optional — "1.85 on CC" and "1.85% on CC" both work
+    // Match: number optionally followed by %
+    const pctRe=/(\d+\.?\d*)\s*(%)?/g;
     let m;
     while((m=pctRe.exec(t))!==null){
       const val=parseFloat(m[1]);
-      if(val>10) continue; // ignore split percentages
+      const hasPct=!!m[2];
+      // Accept: has explicit % sign, OR value looks like an MDR rate (0.01–10 range)
+      if(!hasPct&&(val>10||val===0)) continue; // skip large numbers without %
+      if(val>10) continue; // ignore split percentages even with %
       const pStart=m.index, pEnd=m.index+m[0].length;
 
       let best=null, bestDist=Infinity;
