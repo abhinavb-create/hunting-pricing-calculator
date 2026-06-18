@@ -6300,6 +6300,19 @@ function _buildMerchantEmailHtml({merchantName,intro,snap}){
         else _state.data.split='skipped';
         _briefAskNext(); return;
       }
+      if(w==='dcSlabRates'){
+        // Parse slab rates from text like "DC <2k = 0.9%, DC >2k = 1.5%"
+        const pending=_state._dcSlabPending||_state.data._pendingRates||[];
+        const lt2kM=text.match(/(?:lt|<|below|under)[^%\d]*(\d+\.?\d*)\s*%/i);
+        const gt2kM=text.match(/(?:gt|>|above|over)[^%\d]*(\d+\.?\d*)\s*%/i)||text.match(/(\d+\.?\d*)\s*%[^%]*(?:gt|>|above|over)/i);
+        const rates=pending.filter(r=>!/debit/i.test(r.method));
+        if(lt2kM) rates.push({method:'Debit Card lt2k',rate:parseFloat(lt2kM[1]),flat:null});
+        if(gt2kM) rates.push({method:'Debit Card gt2k',rate:parseFloat(gt2kM[1]),flat:null});
+        if(!lt2kM&&!gt2kM){ // couldn't parse — just apply pending as-is
+          await _applyAndFinishRates(pending); return;
+        }
+        await _applyAndFinishRates(rates); return;
+      }
       // Unknown briefWaiting value — fall through to normal mode routing
     }
     const m=_state.mode;
@@ -6700,13 +6713,30 @@ rate = MDR percentage as a plain number. Use flat (not rate) for flat-fee method
 Ignore split percentages (70%, 60% etc.) — those are transaction share, not MDR rates.
 If rates are 0 ("free UPI") use rate:0.`;
 
-    let result={intent:'our_rates',our_rates:[],comp_rates:[]};
-    try{
-      const resp=await _callClaude([{role:'user',content:`Rep said: "${text}"`}],intentSystem,400);
+    // ── Step 1: JS-first parsing (always works, no API needed) ──
+    const compKeywords=/cashfree|payu|paytm|phonepe|juspay|ccavenue|billdesk|stripe|competition|competitor|their rates|comp rates/i;
+    const isComp=compKeywords.test(text);
+
+    // Parse rates with the local regex engine
+    const jsParsed=_parseRatesDirect(text);
+
+    let result={intent:'our_rates',our_rates:jsParsed,comp_rates:[]};
+
+    // ── Step 2: Try Claude only when JS found rates (to detect intent) OR JS found nothing ──
+    if(isComp||!jsParsed.length){
+      try{
+        const resp=await _callClaude([{role:'user',content:`Rep said: "${text}"`}],intentSystem,400);
+        tp.remove();
+        const parsed=JSON.parse(resp.match(/\{[\s\S]*\}/)?.[0]||'{}');
+        parsed.our_rates=parsed.our_rates||[]; parsed.comp_rates=parsed.comp_rates||[];
+        // Merge: prefer Claude result but fall back to JS if Claude returned nothing
+        result.intent=parsed.intent||'our_rates';
+        result.our_rates=parsed.our_rates.length?parsed.our_rates:jsParsed;
+        result.comp_rates=parsed.comp_rates;
+      }catch(e){ tp.remove(); /* use JS result */ }
+    } else {
       tp.remove();
-      result=JSON.parse(resp.match(/\{[\s\S]*\}/)?.[0]||'{}');
-      result.our_rates=result.our_rates||[]; result.comp_rates=result.comp_rates||[];
-    }catch(e){tp.remove();}
+    }
 
     // If it was competition rates — apply them and re-ask for our rates
     if(result.intent==='competition_rates'||result.intent==='both'){
@@ -6716,21 +6746,58 @@ If rates are 0 ("free UPI") use rate:0.`;
         _addMsg('assistant',`🎯 Got it — applied as <strong>competition rates</strong>: ${lines}`,true);
       }
       if(result.intent==='competition_rates'){
-        // Still need our rates
-        _state.step=SETUP_STEPS.indexOf('ourRates'); // stay on this step
+        _state.step=SETUP_STEPS.indexOf('ourRates');
         _ask(_md('Now, what rates do you want to **offer this merchant**?\n\nE.g. "1.8% CC, 0.05% UPI, 0.9% DC"'),['Skip — fill manually']);
         return;
       }
     }
 
-    const parsed=result.intent==='both'?result.our_rates:result.our_rates;
+    const parsed=result.our_rates;
     if(!parsed.length){
-      _addMsg('assistant',"I couldn't find any MDR rates in that. Rates are like 1.8% CC, 0.05% UPI, ₹5 NB flat.",true);
+      _addMsg('assistant',"Hmm, I couldn't parse rates from that. Try something like: **1.8% CC, 0.05% UPI, 0.9% DC, ₹5 NB**",true);
       _ask('Try again — what rates to offer the merchant?',['Skip — fill manually']);
       _state.step=SETUP_STEPS.indexOf('ourRates');
       return;
     }
 
+    // ── DC Slab check: if user gave a generic DC rate without specifying lt2k/gt2k, ask ──
+    const hasGenericDC=parsed.some(r=>r.method==='Debit gt2k'||r.method==='Debit Card'||r.method==='Debit Card gt2k');
+    const hasLt2k=parsed.some(r=>r.method==='Debit lt2k'||r.method==='Debit Card lt2k');
+    const hasGt2k=parsed.some(r=>r.method==='Debit gt2k'||r.method==='Debit Card gt2k');
+    const hasSlabSplit=/lt\s*2k|<\s*2k|below|under|gt\s*2k|>\s*2k|above|over|slab/i.test(text);
+
+    if(hasGenericDC&&!hasLt2k&&!hasSlabSplit){
+      // User gave a single DC rate — ask if they want different slab rates
+      const dcRate=parsed.find(r=>/debit/i.test(r.method));
+      _state.data._pendingRates=parsed;
+      _state.briefWaiting='dcSlab';
+      _addMsg('assistant',`Got DC at <strong>${dcRate?.rate}%</strong> — do you want different rates for Debit Card below ₹2k vs above ₹2k?`,true);
+      _ask('',['Same rate for both slabs',`DC <₹2k = ${dcRate?.rate}%, DC >₹2k = ${dcRate?.rate}%`,'Enter different slab rates']);
+      // Override chip actions for slab decision
+      document.getElementById('ai-chips').querySelectorAll('button').forEach((btn,i)=>{
+        btn.onclick=async()=>{
+          _chips([]); _addMsg('user',btn.textContent); _state.briefWaiting=null;
+          const pending=_state.data._pendingRates||parsed;
+          if(btn.textContent.includes('Enter different')){
+            _state.data._pendingRates=pending;
+            _state.briefWaiting='dcSlabRates';
+            _ask('Enter the two DC rates:',['E.g. DC <2k = 0.9%, DC >2k = 1.5%']);
+            // override next input
+            const origWaiting='dcSlabRates';
+            _state._dcSlabPending=pending;
+            return;
+          }
+          // Same rate for both — apply as-is
+          await _applyAndFinishRates(pending);
+        };
+      });
+      return;
+    }
+
+    await _applyAndFinishRates(parsed);
+  }
+
+  async function _applyAndFinishRates(parsed){
     _applyOurRates(parsed); _state.data.ourRates=parsed;
 
     // Floor guardrail
