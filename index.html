@@ -7134,29 +7134,58 @@ function _buildMerchantEmailHtml({merchantName,intro,snap}){
   // Parse split from natural language directly — no Claude needed
   // Returns {idx: pct} map using METHODS array indices
   function _parseSplitDirect(text){
-    // METHODS indices: 0=CC, 1=DC≤2k, 2=DC>2k, 3=RuPay, 4=Corp, 5=Intl, 6=Amex, 7=EMI,
-    //                  8=UPI, 9=UPI-CC, 12=NB Major, 13=NB Others, 14=Wallets
+    // Keyword-nearest approach — works without delimiters (e.g. "60% UPI Dc20% CC 20%")
+    // METHODS indices: 0=CC, 1=DC≤2k, 2=DC>2k, 3=RuPay, 8=UPI, 12=NB, 13=NB Other, 14=Wallets
     const result={};
-    // Split on common delimiters including & and "and"
-    const segments=text.split(/[,;\/\n&+]+|\band\b/i);
-    segments.forEach(seg=>{
-      // Find the first number in this segment
-      const pctMatch=seg.match(/(\d+(?:\.\d+)?)\s*%?/);
-      if(!pctMatch) return;
-      const pct=parseFloat(pctMatch[1]);
-      if(pct<=0||pct>100) return; // ignore 0% or clearly wrong values
-      const s=seg.toLowerCase();
-      // Order matters: most specific first
-      if(/rupay/.test(s))                                    result[3]=pct;
-      else if(/net.?bank.*other|nbo\b/.test(s))              result[13]=pct;
-      else if(/net.?bank|\bnb\b/.test(s))                    result[12]=pct;
-      else if(/wallet/.test(s))                              result[14]=pct;
-      else if(/\bupi\b/.test(s)&&!/wallet/.test(s))         result[8]=pct;  // removed !/cc/ guard
-      else if(/credit|visa|master|\bcc\b/.test(s))          result[0]=pct;
-      else if(/debit.*(<=|lt|below|under|2k|2000)/.test(s)) result[1]=pct;
-      else if(/debit.*(>=|gt|above|over|2k|2000)/.test(s))  result[2]=pct;
-      else if(/debit|\bdc\b/.test(s))                        { result[1]=pct; result[2]=pct; } // generic DC → both slabs
-      else if(/\bemi\b/.test(s))                             result[7]=pct;
+    const t=text.toLowerCase();
+
+    // Method keyword → index mapping (specific before generic)
+    const SPLIT_KW=[
+      [/dc\s*(?:[<≤]|lt|below|under)\s*2k|debit\s*(?:lt|below|under)/g,[1]],
+      [/dc\s*(?:[>≥]|gt|above|over)\s*2k|debit\s*(?:gt|above|over)/g,[2]],
+      [/rupay/g,[3]],
+      [/net.?bank(?:\s*other|s\s*other)|nbo\b/g,[13]],
+      [/net.?bank|\bnb\b/g,[12]],
+      [/wallet/g,[14]],
+      [/\bupi\b/g,[8]],
+      [/credit|visa|master|\bcc\b/g,[0]],
+      [/\bdc\b|\bdebit\b/g,[1,2]], // generic DC → both slabs
+      [/\bemi\b/g,[7]],
+    ];
+
+    // Build keyword position list
+    const kws=[];
+    SPLIT_KW.forEach(([re,indices])=>{
+      re.lastIndex=0; let m;
+      while((m=re.exec(t))!==null) kws.push({indices,start:m.index,end:m.index+m[0].length,key:m[0]});
+    });
+    kws.sort((a,b)=>a.start-b.start);
+
+    // Build % position list (require explicit % sign)
+    const pcts=[];
+    const pctRe=/(\d+(?:\.\d+)?)\s*%/g; let pm;
+    while((pm=pctRe.exec(t))!==null){
+      const val=parseFloat(pm[1]);
+      if(val>0&&val<=100) pcts.push({val,start:pm.index,end:pm.index+pm[0].length});
+    }
+
+    // For each keyword, find nearest unused % (no penalty — "60% UPI" and "UPI 60%" are equally valid)
+    const usedPcts=new Set();
+    kws.forEach(kw=>{
+      // Skip if all indices for this keyword are already assigned
+      if(kw.indices.every(i=>result[i]!==undefined)) return;
+      let bestIdx=null, bestDist=Infinity;
+      pcts.forEach((pct,i)=>{
+        if(usedPcts.has(i)) return;
+        const dist=pct.end<=kw.start ? kw.start-pct.end   // % before keyword
+                  :pct.start>=kw.end ? pct.start-kw.end   // % after keyword
+                  :0;                                       // overlapping (e.g. "Dc20%")
+        if(dist<bestDist){bestDist=dist; bestIdx=i;}
+      });
+      if(bestIdx!==null&&bestDist<80){
+        usedPcts.add(bestIdx);
+        kw.indices.forEach(i=>{ result[i]=pcts[bestIdx].val; });
+      }
     });
     return result;
   }
