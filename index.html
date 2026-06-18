@@ -6246,7 +6246,7 @@ function _buildMerchantEmailHtml({merchantName,intro,snap}){
 
   // ── Entry / reset ──
   function _start(){
-    _state.started=true; _state.step=0; _state.mode='intent'; _state.data={};
+    _state.started=true; _state.step=0; _state.mode='intent'; _state.data={}; _state.briefWaiting=null; _state._lastBriefAsked=null;
     document.getElementById('ai-chat-messages').innerHTML='';
     _setStatus('Ready');
     const _firstName=currentUser?.name?.split(' ')[0]||currentUser?.email?.split('@')[0]||'there';
@@ -6283,7 +6283,7 @@ function _buildMerchantEmailHtml({merchantName,intro,snap}){
     _aiClearImg();
     // ── Handle direct question answers FIRST — before any mode routing ──
     if(_state.briefWaiting&&text){
-      const w=_state.briefWaiting; _state.briefWaiting=null;
+      const w=_state.briefWaiting; _state.briefWaiting=null; _state._lastBriefAsked=null;
       if(w==='businessName'){
         _state.data.businessName=text.trim();
         const el=document.getElementById('merchant-name'); if(el){el.value=text.trim();el.dispatchEvent(new Event('input'));}
@@ -6300,6 +6300,7 @@ function _buildMerchantEmailHtml({merchantName,intro,snap}){
         else _state.data.split='skipped';
         _briefAskNext(); return;
       }
+      // Unknown briefWaiting value — fall through to normal mode routing
     }
     const m=_state.mode;
     if(m==='intent')          await _handleIntent(text,img);
@@ -6316,12 +6317,12 @@ function _buildMerchantEmailHtml({merchantName,intro,snap}){
     if(/revamp/i.test(text)){ await _cmdPricingRevamp(); return; }
     if(/approv/i.test(text)&&!/new pricing/i.test(text)){ await _cmdDownloadPDF(false); return; }
     if(/new pricing|new proposal|pricing|proposal|deal/i.test(text)||img){
-      _state.mode='briefing'; _state.data={};
+      _state.mode='briefing'; _state.data={}; _state.briefWaiting=null; _state._lastBriefAsked=null;
       _ask(_md("Let's do it! Give me the deal details in one shot:\n\n**Merchant name, POC name, GMV, split, competition?**\n\nE.g. *\"HDFC Life, Priya Sharma, 5Cr GMV, 60% UPI 30% CC, PhonePe giving UPI free DC 1%\"*\n\nOr just start with what you know — I'll ask for the rest."),['Skip — fill manually on calculator']);
       return;
     }
     // Fallback — treat anything unrecognized as "new pricing"
-    _state.mode='briefing'; _state.data={};
+    _state.mode='briefing'; _state.data={}; _state.briefWaiting=null; _state._lastBriefAsked=null;
     _ask(_md("Let's create a new pricing proposal!\n\nTell me the deal: **merchant name, GMV, split, any competition?**\n\nE.g. *\"Reliance Industries, Mukesh Ambani, 5Cr GMV, 60% UPI 40% CC\"*"),['Skip — fill manually']);
   }
 
@@ -6364,7 +6365,10 @@ function _buildMerchantEmailHtml({merchantName,intro,snap}){
   // BRIEFING MODE — JS-first extraction, Claude only for name disambiguation
   // ================================================================
   async function _handleBriefing(text,img){
-    if(/skip|manual|fill manually/i.test(text)&&!_state.briefWaiting){ _enterCommandMode(); return; }
+    // If we're already waiting for a specific field, DON'T re-process — just ask next
+    if(_state.briefWaiting){ _briefAskNext(); return; }
+
+    if(/skip|manual|fill manually/i.test(text)){ _enterCommandMode(); return; }
 
     if(!text&&!img){ _briefAskNext(); return; }
 
@@ -6398,9 +6402,8 @@ function _buildMerchantEmailHtml({merchantName,intro,snap}){
       applied.push(`Competition rates: <strong>applied</strong>`);
     }
 
-    // ── Step 2: Names — JS heuristic first, Claude as enhancement ──
+    // ── Step 2: Names — JS heuristic (comma-split) ──
     if(!_state.data.businessName){
-      // Heuristic: split on comma — "Reliance Industries, Abhishek" → business + poc
       const parts=text.split(',').map(s=>s.trim()).filter(Boolean);
       const numericOrKeyword=/^\d|^(gmv|upi|cc|dc|nb|split|lakh|crore|cr|skip|no|yes|hey|hi)/i;
       const nameParts=parts.filter(p=>!numericOrKeyword.test(p)&&p.length>1);
@@ -6423,8 +6426,24 @@ function _buildMerchantEmailHtml({merchantName,intro,snap}){
     _briefAskNext();
   }
 
-  // Ask for the next missing required field, stay in briefing mode
+  // Ask for the next missing required field, stay in briefing mode.
+  // Anti-loop: tracks last asked field; if same field asked twice, force-skip it.
   function _briefAskNext(){
+    const need=!_state.data.businessName?'businessName':!_state.data.gmv?'gmv':!_state.data.split?'split':null;
+    if(need){
+      // Anti-loop guard: if we already asked for this field once and it's still not set,
+      // skip it rather than looping forever
+      if(_state._lastBriefAsked===need){
+        _state._lastBriefAsked=null;
+        if(need==='businessName') _state.data.businessName='(unknown)';
+        else if(need==='gmv') _state.data.gmv=1; // placeholder so we move on
+        else if(need==='split') _state.data.split='skipped';
+        _briefAskNext(); return; // recurse with field now "filled"
+      }
+      _state._lastBriefAsked=need;
+    } else {
+      _state._lastBriefAsked=null;
+    }
     if(!_state.data.businessName){ _state.briefWaiting='businessName'; _ask("What's the merchant / business name?"); return; }
     if(!_state.data.gmv){ _state.briefWaiting='gmv'; _ask("What's the estimated monthly GMV?",['₹10L','₹50L','₹1Cr','₹5Cr','₹10Cr+']); return; }
     if(!_state.data.split){ _state.briefWaiting='split'; _ask("What's the payment split? (e.g. 60% UPI, 30% CC)",['Skip — no split data']); return; }
@@ -6459,25 +6478,23 @@ function _buildMerchantEmailHtml({merchantName,intro,snap}){
 
     switch(step){
       case 'businessName':
-        // Route back to briefing — it handles this better
-        _state.mode='briefing'; await _handleBriefing(text,img); return;
+        // Set field directly then ask for next — never re-enter handleBriefing
+        if(text) { _state.data.businessName=text.trim(); const el=document.getElementById('merchant-name'); if(el){el.value=text.trim();el.dispatchEvent(new Event('input'));} }
+        _state.mode='briefing'; _state._lastBriefAsked=null; _briefAskNext(); return;
 
       case 'customerName':
-        _state.mode='briefing'; await _handleBriefing(text,img); return;
+        if(text) { _state.data.customerName=text.trim(); const el=document.getElementById('customer-name'); if(el){el.value=text.trim();el.dispatchEvent(new Event('input'));} }
+        _state.mode='briefing'; _state._lastBriefAsked=null; _briefAskNext(); return;
 
       case 'gmv':
         _state.data.gmv=_parseGMV(text);
         _applyGMV(_state.data.gmv);
-        _state.mode='briefing'; // go back to briefing to check what else is needed
-        await _handleBriefing('',img); // empty text = just check missing fields
-        return;
+        _state.mode='briefing'; _state._lastBriefAsked=null; _briefAskNext(); return;
 
       case 'split':
         _state.data.split=text||'';
         if(text&&!/skip/i.test(text)) await _applySplitText(text);
-        _state.mode='briefing';
-        await _handleBriefing('',img);
-        return;
+        _state.mode='briefing'; _state._lastBriefAsked=null; _briefAskNext(); return;
 
       case 'competitionImg':
         await _handleCompetitionStep(text,img);
