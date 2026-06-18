@@ -6249,7 +6249,8 @@ function _buildMerchantEmailHtml({merchantName,intro,snap}){
     _state.started=true; _state.step=0; _state.mode='intent'; _state.data={};
     document.getElementById('ai-chat-messages').innerHTML='';
     _setStatus('Ready');
-    _ask(_md("Hey Abhinav! 👋 What do you need help with?"),['📄 New pricing proposal','🔁 Re-download a past PDF','📤 Request pricing revamp','🔒 Send for approval']);
+    const _firstName=currentUser?.name?.split(' ')[0]||currentUser?.email?.split('@')[0]||'there';
+    _ask(_md(`Hey ${_firstName}! 👋 What do you need help with?`),['📄 New pricing proposal','🔁 Re-download a past PDF','📤 Request pricing revamp','🔒 Send for approval']);
   }
   window._aiReset=_start;
 
@@ -6280,6 +6281,26 @@ function _buildMerchantEmailHtml({merchantName,intro,snap}){
     if(text) _addMsg('user',text);
     if(img){ _addMsg('user','<img src="'+img+'" class="max-w-full rounded-xl max-h-48 object-contain border border-gray-200"/>',true); }
     _aiClearImg();
+    // ── Handle direct question answers FIRST — before any mode routing ──
+    if(_state.briefWaiting&&text){
+      const w=_state.briefWaiting; _state.briefWaiting=null;
+      if(w==='businessName'){
+        _state.data.businessName=text.trim();
+        const el=document.getElementById('merchant-name'); if(el){el.value=text.trim();el.dispatchEvent(new Event('input'));}
+        _addMsg('assistant',`✅ Got it — merchant: <strong>${text.trim()}</strong>`,true);
+        _briefAskNext(); return;
+      }
+      if(w==='gmv'){
+        _state.data.gmv=_parseGMV(text); _applyGMV(_state.data.gmv);
+        _addMsg('assistant',`✅ GMV: <strong>${_fmtGMV(_state.data.gmv)}</strong>`,true);
+        _briefAskNext(); return;
+      }
+      if(w==='split'){
+        if(!/skip/i.test(text)){_state.data.split=text; await _applySplitText(text);}
+        else _state.data.split='skipped';
+        _briefAskNext(); return;
+      }
+    }
     const m=_state.mode;
     if(m==='intent')          await _handleIntent(text,img);
     else if(m==='briefing')   await _handleBriefing(text,img);
@@ -6351,28 +6372,6 @@ function _buildMerchantEmailHtml({merchantName,intro,snap}){
       await _handleCompetitionStep(text,img);
       _state.mode='setup'; _state.step=SETUP_STEPS.indexOf('ourRates');
       _briefAskNext(); return;
-    }
-
-    // ── Direct answer to a specific question — no Claude needed ──
-    const waiting=_state.briefWaiting;
-    if(waiting){ _state.briefWaiting=null;
-      if(waiting==='businessName'){
-        _state.data.businessName=text.trim();
-        const el=document.getElementById('merchant-name'); if(el){el.value=text.trim();el.dispatchEvent(new Event('input'));}
-        _addMsg('assistant',`✅ Merchant: <strong>${text.trim()}</strong>`,true);
-        _briefAskNext(); return;
-      }
-      if(waiting==='gmv'){
-        _state.data.gmv=_parseGMV(text);
-        _applyGMV(_state.data.gmv);
-        _addMsg('assistant',`✅ GMV: <strong>${_fmtGMV(_state.data.gmv)}</strong>`,true);
-        _briefAskNext(); return;
-      }
-      if(waiting==='split'){
-        if(!/skip/i.test(text)){ _state.data.split=text; await _applySplitText(text); }
-        else { _state.data.split='skipped'; }
-        _briefAskNext(); return;
-      }
     }
 
     const applied=[];
