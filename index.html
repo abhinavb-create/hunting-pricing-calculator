@@ -6328,29 +6328,33 @@ function _buildMerchantEmailHtml({merchantName,intro,snap}){
     const tp=_typing();
 
     // Build context of what we already know
-    const known=[];
-    if(_state.data.businessName) known.push(`businessName already known: "${_state.data.businessName}"`);
-    if(_state.data.customerName) known.push(`customerName already known: "${_state.data.customerName}"`);
-    if(_state.data.gmv)          known.push(`gmv already known: ${_state.data.gmv}`);
-    if(_state.data.split)        known.push(`split already known`);
+    const alreadyHave=[];
+    if(_state.data.businessName) alreadyHave.push(`merchant="${_state.data.businessName}"`);
+    if(_state.data.customerName) alreadyHave.push(`poc="${_state.data.customerName}"`);
+    if(_state.data.gmv)          alreadyHave.push(`gmv=${_state.data.gmv}`);
+    if(_state.data.split)        alreadyHave.push('split=already set');
 
-    const briefSys=`You extract Razorpay deal info from a sales rep's message. ${known.length?'Already known: '+known.join('; ')+'.'  :''}
-Return ONLY valid JSON (no markdown, no explanation):
-{"businessName":string_or_null,"customerName":string_or_null,"gmv":number_or_null,"split":{"UPI":60,"CC":30}_or_null,"compRates":[{"method":"UPI","rate":0}]_or_[]}
-GMV: "5 lakh"/"5L"=500000, "5Cr"/"5cr"=50000000, "50L"=5000000, "1Cr"=10000000, "10L"=1000000, "3L"=300000
-Split keys: UPI, CC, DC, NB, Wallets. Values are percentages (60 not 0.6).
-compRates: only if user mentions a competitor (PhonePe,Cashfree,PayU,Paytm,Stripe,Juspay,CCAvenue,BillDesk) by name with rates.
-For fields not mentioned, return null. DO NOT include "missing" field.`;
+    const briefSys=`You extract deal info from a Razorpay sales rep. ${alreadyHave.length?'Already known: '+alreadyHave.join(', ')+'.':''}
+Reply with ONLY a JSON object, no markdown, no explanation. Example:
+{"businessName":"Reliance","customerName":"Mukesh","gmv":500000,"splitUPI":60,"splitCC":20,"splitDC":20,"splitNB":0,"hasComp":false,"compRates":""}
+Rules:
+- businessName/customerName: extract names. If only one name given with no role, it is businessName.
+- gmv as integer rupees: "5L"/"5 lakh"/"5 lakhs"=500000, "5Cr"/"5 crore"=50000000, "50L"=5000000, "1Cr"=10000000, "3L"=300000. null if not mentioned.
+- splitUPI/splitCC/splitDC/splitNB: integer percentages (60 not 0.6). 0 if not mentioned.
+- hasComp: true if user mentions a competitor name (Cashfree,PayU,Paytm,PhonePe,Juspay,CCAvenue,BillDesk,Stripe)
+- compRates: comma-separated rates string like "UPI 0%, CC 1.75%" — only if hasComp=true and rates given
+- Use null for fields not mentioned at all (not 0, not "")`;
 
     let d={};
     try{
-      const resp=await _callClaude([{role:'user',content:text}],briefSys,400);
+      const resp=await _callClaude([{role:'user',content:`Sales rep said: "${text}"`}],briefSys,400);
       tp.remove();
-      const raw=resp.match(/\{[\s\S]*?\}/)?.[0]||'{}';
+      // Use greedy match to get the outermost JSON object
+      const raw=resp.replace(/```json|```/g,'').match(/\{[\s\S]*\}/)?.[0]||'{}';
       d=JSON.parse(raw);
     }catch(e){tp.remove(); d={};}
 
-    // Merge into state — only update fields that were newly extracted
+    // Apply extracted flat fields — only set if not already known
     const applied=[];
     if(d.businessName&&!_state.data.businessName){
       _state.data.businessName=d.businessName;
@@ -6366,15 +6370,20 @@ For fields not mentioned, return null. DO NOT include "missing" field.`;
       _state.data.gmv=d.gmv; _applyGMV(d.gmv);
       applied.push(`GMV: <strong>${_fmtGMV(d.gmv)}</strong>`);
     }
-    if(d.split&&Object.keys(d.split).length&&!_state.data.split){
-      _state.data.split=d.split;
-      const splitStr=Object.entries(d.split).map(([k,v])=>`${k} ${v}%`).join(', ');
-      await _applySplitText(splitStr);
-      applied.push(`Split: <strong>${splitStr}</strong>`);
+    const totalSplit=(d.splitUPI||0)+(d.splitCC||0)+(d.splitDC||0)+(d.splitNB||0);
+    if(totalSplit>0&&!_state.data.split){
+      _state.data.split=d;
+      const parts=[];
+      if(d.splitUPI) parts.push(`UPI ${d.splitUPI}%`);
+      if(d.splitCC)  parts.push(`CC ${d.splitCC}%`);
+      if(d.splitDC)  parts.push(`DC ${d.splitDC}%`);
+      if(d.splitNB)  parts.push(`NB ${d.splitNB}%`);
+      await _applySplitText(parts.join(', '));
+      applied.push(`Split: <strong>${parts.join(', ')}</strong>`);
     }
-    if(d.compRates?.length){
-      _applyCompRates(d.compRates);
-      applied.push(`Competition: <strong>${d.compRates.map(r=>`${r.method} ${r.flat?`₹${r.flat}`:r.rate+'%'}`).join(', ')}</strong>`);
+    if(d.hasComp&&d.compRates){
+      const compParsed=_parseRatesDirect(d.compRates);
+      if(compParsed.length){ _applyCompRates(compParsed); applied.push(`Competition rates: <strong>applied</strong>`); }
     }
     if(applied.length) _addMsg('assistant',`✅ Got it:<br>${applied.map(a=>`• ${a}`).join('<br>')}`,true);
 
