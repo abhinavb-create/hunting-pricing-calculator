@@ -7172,8 +7172,9 @@ function _buildMerchantEmailHtml({merchantName,intro,snap}){
     // For each keyword, find nearest unused % (no penalty — "60% UPI" and "UPI 60%" are equally valid)
     const usedPcts=new Set();
     kws.forEach(kw=>{
-      // Skip if all indices for this keyword are already assigned
-      if(kw.indices.every(i=>result[i]!==undefined)) return;
+      // Skip if ANY of this keyword's indices are already assigned
+      // (prevents generic "DC" from stealing a % when "DC<2k" already claimed it)
+      if(kw.indices.some(i=>result[i]!==undefined)) return;
       let bestIdx=null, bestDist=Infinity;
       pcts.forEach((pct,i)=>{
         if(usedPcts.has(i)) return;
