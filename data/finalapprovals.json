@@ -97,5 +97,16 @@
     "resolvedAt": "",
     "teamGroup": "Competition Hunting",
     "timestamp": "2026-06-19T05:24:51.601Z"
+  },
+  {
+    "requestId": "fa_mqknm45bfo7mle",
+    "merchantName": "The Holidays.Ai",
+    "requesterEmail": "milind.singhbora@razorpay.com",
+    "versionIds": "dl_1781674036912",
+    "notes": "",
+    "status": "pending",
+    "resolvedAt": "",
+    "teamGroup": "Competition Hunting",
+    "timestamp": "2026-06-19T08:15:37.344Z"
   }
 ]
