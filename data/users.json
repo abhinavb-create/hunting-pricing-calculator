@@ -94,5 +94,13 @@
     "registeredAt": "2026-06-22T08:49:07.719Z",
     "lastSeen": "2026-06-23T05:38:05.507Z",
     "status": "active"
+  },
+  {
+    "email": "priyanka.pati@razorpay.com",
+    "name": "Priyanka Pati",
+    "teamGroup": "Startup Hunting",
+    "registeredAt": "2026-06-23T06:33:52.985Z",
+    "lastSeen": "2026-06-23T06:33:52.985Z",
+    "status": "pending"
   }
 ]
