@@ -370,5 +370,20 @@
     "teamGroup": "Startup Hunting",
     "versionGroup": null,
     "timestamp": 1781757676741
+  },
+  {
+    "requestId": "mqqbuxnyu4443m",
+    "fileName": "Autoloan-Razorpay-Proposal.pdf",
+    "requesterEmail": "nishi.agarwal@razorpay.com",
+    "merchantName": "Autoloan",
+    "status": "pending",
+    "resolvedAt": "",
+    "gmv": 50000000,
+    "slabLabel": "75L - 5Cr",
+    "driveLink": "https://drive.google.com/file/d/148XBul-7grc58HGzKJ1dqp5SBf_N9FHu/view",
+    "violations": "Credit Cards (Visa / MC / RuPay): 0.00%; Debit Card (Txn <= Rs.2,000): 0.40%; Corporate Cards (Credit & Debit): 0.00%; International Cards: 0.00%; Diners / AMEX - Domestic only: 0.00%; CC on UPI (RuPay CC on UPI): 0.00%",
+    "teamGroup": "Competition Hunting",
+    "versionGroup": null,
+    "timestamp": 1782199996530
   }
 ]
