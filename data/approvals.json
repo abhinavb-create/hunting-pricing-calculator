@@ -385,5 +385,20 @@
     "teamGroup": "Competition Hunting",
     "versionGroup": null,
     "timestamp": 1782199996530
+  },
+  {
+    "requestId": "mqrx2y6jlfp95v",
+    "fileName": "Girls Don't Dress For Boys-Razorpay-Proposal.pdf",
+    "requesterEmail": "anam.imteyaz@razorpay.com",
+    "merchantName": "Girls Don't Dress For Boys",
+    "status": "pending",
+    "resolvedAt": "",
+    "gmv": 2500000,
+    "slabLabel": "Upto 25 Lakhs",
+    "driveLink": "https://drive.google.com/file/d/1HdtO8cvxF5kHchaka9rz41Gg64HCXSJZ/view",
+    "violations": "Net Banking - Other Banks: 1.50%",
+    "teamGroup": "Shopify Hunting",
+    "versionGroup": null,
+    "timestamp": 1782296115490
   }
 ]
