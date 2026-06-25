@@ -119,5 +119,16 @@
     "resolvedAt": "",
     "teamGroup": "Competition Hunting",
     "timestamp": "2026-06-19T12:21:12.477Z"
+  },
+  {
+    "requestId": "fa_mqt36b67qsjoob",
+    "merchantName": "Make My Tours and Travels",
+    "requesterEmail": "sainath.vishnugauri@razorpay.com",
+    "versionIds": "ap_mq9db487kyk5vp",
+    "notes": "Pricing Revamp.",
+    "status": "pending",
+    "resolvedAt": "",
+    "teamGroup": "Competition Hunting",
+    "timestamp": "2026-06-25T05:53:23.215Z"
   }
 ]
