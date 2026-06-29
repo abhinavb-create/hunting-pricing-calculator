@@ -400,5 +400,20 @@
     "teamGroup": "Shopify Hunting",
     "versionGroup": null,
     "timestamp": 1782296115490
+  },
+  {
+    "requestId": "mqyvf7ec15zz7y",
+    "fileName": "JM Looks-Razorpay-Proposal.pdf",
+    "requesterEmail": "anam.imteyaz@razorpay.com",
+    "merchantName": "JM Looks",
+    "status": "pending",
+    "resolvedAt": "",
+    "gmv": 15000000,
+    "slabLabel": "75L - 5Cr",
+    "driveLink": "https://drive.google.com/file/d/1Ah3ZyjrQj_9zJHb6oQBrh6VIjwsJvxoy/view",
+    "violations": "International Cards: 2.55%",
+    "teamGroup": "Shopify Hunting",
+    "versionGroup": null,
+    "timestamp": 1782716590806
   }
 ]
