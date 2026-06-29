@@ -415,5 +415,20 @@
     "teamGroup": "Shopify Hunting",
     "versionGroup": null,
     "timestamp": 1782716590806
+  },
+  {
+    "requestId": "mqyxbzbaergexg",
+    "fileName": "Toners cart-NA-Razorpay-Proposal.pdf",
+    "requesterEmail": "nishi.agarwal@razorpay.com",
+    "merchantName": "Toners cart",
+    "status": "pending",
+    "resolvedAt": "",
+    "gmv": 1000000,
+    "slabLabel": "Upto 25 Lakhs",
+    "driveLink": "https://drive.google.com/file/d/1UEVV3lBH-zCXnBlrxx4vNo0NY6eJpEDt/view",
+    "violations": "Net Banking - Other Banks: 1.50%",
+    "teamGroup": "Competition Hunting",
+    "versionGroup": null,
+    "timestamp": 1782719793986
   }
 ]
