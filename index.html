@@ -812,6 +812,7 @@
         <option value="EB Farming">🌱 EB Farming</option>
         <option value="EB Hunting">🎯 EB Hunting</option>
         <option value="EB <> Pricing">💹 EB Pricing</option>
+        <option value="Partnership">🤝 Partnership</option>
       </select>
       <select id="stats-sort" onchange="filterStats()"
         class="px-3 py-2.5 border-2 border-gray-200 rounded-xl text-sm text-gray-700 focus:outline-none focus:border-blue-500 bg-white">
@@ -1976,8 +1977,8 @@ function _openPdfModal(){
   const _hasApprovedRecord=_localAps.some(a=>a.status==='approved'&&a.merchantName===name);
   const _alreadyApproved=!!_approvedRequestId||_hasApprovedRecord;
 
-  // Check floor violations and populate approval section (admins/ops bypass approval)
-  const violations=isAdminOrCoAdmin()?[]:getFloorViolations(activeTab,gmv);
+  // Check floor violations and populate approval section (admins/ops/partnership bypass approval)
+  const violations=(isAdminOrCoAdmin()||currentUser?.teamGroup==='Partnership')?[]:getFloorViolations(activeTab,gmv);
   const approvalSection=document.getElementById('pdf-approval-section');
   const violationsDiv=document.getElementById('pdf-approval-violations');
   if(violations.length>0&&!_alreadyApproved&&approvalSection&&violationsDiv){
@@ -2511,8 +2512,8 @@ async function generateAndDownloadPDF(){
 
     const fileName=mid?`${name}-${mid}-Razorpay-Proposal.pdf`:`${name}-Razorpay-Proposal.pdf`;
 
-    // Check for floor violations (admins/ops bypass approval)
-    const violations=isAdminOrCoAdmin()?[]:getFloorViolations(tab,gmv);
+    // Check for floor violations (admins/ops/partnership bypass approval)
+    const violations=(isAdminOrCoAdmin()||currentUser?.teamGroup==='Partnership')?[]:getFloorViolations(tab,gmv);
     const requesterEmail=document.getElementById('pdf-requester-email')?.value.trim()||currentUser?.email||'';
     const pdfBuffer=doc.output('arraybuffer');
 
@@ -3155,7 +3156,7 @@ async function revokeUser(email){
 
 async function editUserTeam(email, currentTeam, userName){
   if(!isAdminOrCoAdmin()) return;
-  const TEAM_OPTIONS=['Startup Hunting','Shopify Hunting','Competition Hunting','MM Hunting','EB Farming','EB Hunting','EB <> Pricing'];
+  const TEAM_OPTIONS=['Startup Hunting','Shopify Hunting','Competition Hunting','MM Hunting','EB Farming','EB Hunting','EB <> Pricing','Partnership'];
   // Build a small inline modal using a prompt-style select
   const modal=document.createElement('div');
   modal.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:9999;display:flex;align-items:center;justify-content:center;font-family:Arial,sans-serif';
