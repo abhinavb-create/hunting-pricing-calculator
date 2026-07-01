@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<!-- build: 20260618-v43 -->
+<!-- build: 20260618-v44 -->
 <title>Hunting &lt;&gt; Pricing Calculator</title>
 <script src="https://cdn.tailwindcss.com"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
@@ -1115,9 +1115,9 @@ const FLOOR_RATES = {
     'debit-lt2k':         [0.55,0.45,0.45,0.45],
     'debit-gt2k':         [0.95,0.90,0.85,0.85],
     'rupay-debit':        [0.15,0.12,0.10,0.10],
-    'corp-cards':         [2.75,2.60,2.50,2.40],
+    'corp-cards':         [2.40,2.40,2.40,2.40],
     'intl-cards':         [2.85,2.85,2.82,2.82],
-    'amex':               [2.60,2.50,2.40,2.20],
+    'amex':               [2.00,2.00,2.00,2.00],
     'emi':                [2.75,2.60,2.50,2.00],
     'upi':                [0.20,0.10,0.08,0.05],
     'upi-cc':             [2.05,2.05,2.05,2.05],
@@ -4075,7 +4075,7 @@ function buildApprovalEmailHtml({requesterName,requesterEmail,teamGroup,merchant
       </tr>
       ${posRows}
     </table>`:'';
-  return `<!DOCTYPE html><html><body style="margin:0;padding:0;background:#f3f4f6;font-family:Arial,sans-serif">
+  return `<!DOCTYPE html><html><head><meta charset="UTF-8"><meta http-equiv="Content-Type" content="text/html; charset=UTF-8"></head><body style="margin:0;padding:0;background:#f3f4f6;font-family:Arial,sans-serif">
   <div style="max-width:600px;margin:32px auto;background:#fff;border-radius:16px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,0.08)">
     <div style="background:linear-gradient(135deg,#1f3fa3,#4f46e5);padding:28px 32px">
       <div style="font-size:11px;font-weight:700;color:#a5b4fc;letter-spacing:2px;text-transform:uppercase;margin-bottom:6px">Razorpay · Hunting Pricing</div>
@@ -4092,7 +4092,7 @@ function buildApprovalEmailHtml({requesterName,requesterEmail,teamGroup,merchant
       <table style="width:100%;border-collapse:collapse;border:1px solid #e5e7eb;border-radius:8px;overflow:hidden;margin-bottom:20px">
         ${nrBreakdown||`<tr><td style="padding:8px 12px;font-size:12px;color:#6b7280">Effective NR</td><td style="padding:8px 12px;font-size:15px;font-weight:900;color:${nrColor};text-align:right">${fmtRs(totalNR)} / month</td></tr>`}
       </table>
-      <div style="font-size:12px;font-weight:700;color:#dc2626;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px">⚠️ Below-Floor Rates</div>
+      <div style="font-size:12px;font-weight:700;color:#dc2626;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px">&#x26A0; Below-Floor Rates</div>
       <table style="width:100%;border-collapse:collapse;border:1px solid #fee2e2;border-radius:8px;overflow:hidden;margin-bottom:24px">
         <tr style="background:#fef2f2">
           <th style="padding:8px 12px;font-size:11px;color:#991b1b;text-align:left;font-weight:600">Payment Method</th>
@@ -4103,10 +4103,10 @@ function buildApprovalEmailHtml({requesterName,requesterEmail,teamGroup,merchant
         ${violRows}
       </table>
       ${posSection}
-      ${driveLink?`<div style="margin-bottom:24px"><a href="${driveLink}" style="font-size:13px;color:#4f46e5;text-decoration:none;font-weight:600">📄 View Proposal PDF →</a></div>`:''}
+      ${driveLink?`<div style="margin-bottom:24px"><a href="${driveLink}" style="font-size:13px;color:#4f46e5;text-decoration:none;font-weight:600">&#x1F4C4; View Proposal PDF &rarr;</a></div>`:''}
       <div style="display:flex;gap:12px;margin-bottom:8px">
-        <a href="${approveUrl}" style="display:inline-block;background:#16a34a;color:#fff;text-decoration:none;font-size:14px;font-weight:700;padding:12px 32px;border-radius:8px;margin-right:12px">✅ Approve</a>
-        <a href="${rejectUrl}" style="display:inline-block;background:#dc2626;color:#fff;text-decoration:none;font-size:14px;font-weight:700;padding:12px 32px;border-radius:8px">❌ Reject</a>
+        <a href="${approveUrl}" style="display:inline-block;background:#16a34a;color:#fff;text-decoration:none;font-size:14px;font-weight:700;padding:12px 32px;border-radius:8px;margin-right:12px">&#x2705; Approve</a>
+        <a href="${rejectUrl}" style="display:inline-block;background:#dc2626;color:#fff;text-decoration:none;font-size:14px;font-weight:700;padding:12px 32px;border-radius:8px">&#x274C; Reject</a>
       </div>
       <div style="font-size:11px;color:#9ca3af;margin-top:16px">Clicking Approve or Reject will update the status and notify the requester automatically.</div>
     </div>
