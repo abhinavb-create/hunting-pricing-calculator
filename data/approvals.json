@@ -430,5 +430,20 @@
     "teamGroup": "Competition Hunting",
     "versionGroup": null,
     "timestamp": 1782719793986
+  },
+  {
+    "requestId": "mr4sszw7t9aepv",
+    "fileName": "bodhi.app-FuYvGMpPn4zJ5D-Razorpay-Proposal.pdf",
+    "requesterEmail": "kirubhavani.b@razorpay.com",
+    "merchantName": "bodhi.app",
+    "status": "pending",
+    "resolvedAt": "",
+    "gmv": 12000000,
+    "slabLabel": "75L - 5Cr",
+    "driveLink": "https://drive.google.com/file/d/172n6qQWWKVVqO4sxxPlgHVtsfZipE0sL/view",
+    "violations": "UPI: 0.05%",
+    "teamGroup": "Competition Hunting",
+    "versionGroup": null,
+    "timestamp": 1783074989272
   }
 ]
