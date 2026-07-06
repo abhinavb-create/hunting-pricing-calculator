@@ -1214,25 +1214,25 @@ function checkFloorWarnings(){
 
 const METHODS = [
   // ── Cards ──
-  { id:'credit-cards',     label:'Credit Cards (Visa / MC / RuPay)',          group:'Cards',       flat:false, compRate:2.00, nocompRate:2.00, mcRate:2.00, compSplit:0,  nocompSplit:0,  mcSplit:0,  compComp:1.95 },
-  { id:'debit-lt2k',       label:'Debit Card (Txn <= Rs.2,000)',               group:'Cards',       flat:false, compRate:2.00, nocompRate:2.00, mcRate:2.00, compSplit:0,  nocompSplit:0,  mcSplit:0,  compComp:0.40 },
-  { id:'debit-gt2k',       label:'Debit Card (Txn > Rs.2,000)',                group:'Cards',       flat:false, compRate:2.00, nocompRate:2.00, mcRate:2.00, compSplit:0,  nocompSplit:0,  mcSplit:0,  compComp:0.90 },
-  { id:'rupay-debit',      label:'RuPay Debit Card',                           group:'Cards',       flat:false, compRate:2.00, nocompRate:2.00, mcRate:2.00, compSplit:0,  nocompSplit:0,  mcSplit:0,  compComp:0.02 },
-  { id:'corp-cards',       label:'Corporate Cards (Credit & Debit)',           group:'Cards',       flat:false, compRate:3.00, nocompRate:3.00, mcRate:3.00, compSplit:0,  nocompSplit:0,  mcSplit:0,  compComp:3.00 },
-  { id:'intl-cards',       label:'International Cards',                        group:'Cards',       flat:false, compRate:3.00, nocompRate:3.00, mcRate:3.00, compSplit:0,  nocompSplit:0,  mcSplit:0,  compComp:3.00 },
-  { id:'amex',             label:'Diners / AMEX - Domestic only',              group:'Cards',       flat:false, compRate:3.00, nocompRate:3.00, mcRate:3.00, compSplit:0,  nocompSplit:0,  mcSplit:0,  compComp:3.00 },
-  { id:'emi',              label:'EMI (Cardless / No-Cost EMI)',               group:'Cards',       flat:false, compRate:3.00, nocompRate:3.00, mcRate:3.00, compSplit:0,  nocompSplit:0,  mcSplit:0,  compComp:2.40 },
+  { id:'credit-cards',     label:'Credit Cards (Visa / MC / RuPay)',          group:'Cards',       flat:true, compRate:2.00, nocompRate:2.00, mcRate:2.00, compSplit:0,  nocompSplit:0,  mcSplit:0,  compComp:1.95 },
+  { id:'debit-lt2k',       label:'Debit Card (Txn <= Rs.2,000)',               group:'Cards',       flat:true, compRate:2.00, nocompRate:2.00, mcRate:2.00, compSplit:0,  nocompSplit:0,  mcSplit:0,  compComp:0.40 },
+  { id:'debit-gt2k',       label:'Debit Card (Txn > Rs.2,000)',                group:'Cards',       flat:true, compRate:2.00, nocompRate:2.00, mcRate:2.00, compSplit:0,  nocompSplit:0,  mcSplit:0,  compComp:0.90 },
+  { id:'rupay-debit',      label:'RuPay Debit Card',                           group:'Cards',       flat:true, compRate:2.00, nocompRate:2.00, mcRate:2.00, compSplit:0,  nocompSplit:0,  mcSplit:0,  compComp:0.02 },
+  { id:'corp-cards',       label:'Corporate Cards (Credit & Debit)',           group:'Cards',       flat:true, compRate:3.00, nocompRate:3.00, mcRate:3.00, compSplit:0,  nocompSplit:0,  mcSplit:0,  compComp:3.00 },
+  { id:'intl-cards',       label:'International Cards',                        group:'Cards',       flat:true, compRate:3.00, nocompRate:3.00, mcRate:3.00, compSplit:0,  nocompSplit:0,  mcSplit:0,  compComp:3.00 },
+  { id:'amex',             label:'Diners / AMEX - Domestic only',              group:'Cards',       flat:true, compRate:3.00, nocompRate:3.00, mcRate:3.00, compSplit:0,  nocompSplit:0,  mcSplit:0,  compComp:3.00 },
+  { id:'emi',              label:'EMI (Cardless / No-Cost EMI)',               group:'Cards',       flat:true, compRate:3.00, nocompRate:3.00, mcRate:3.00, compSplit:0,  nocompSplit:0,  mcSplit:0,  compComp:2.40 },
   // ── UPI ──
   { id:'upi',              label:'UPI',                                        group:'UPI',         flat:true,  compRate:0.25, nocompRate:0.30, mcRate:0.25, compSplit:0,  nocompSplit:0,  mcSplit:0,  compComp:0.30 },
-  { id:'upi-cc',           label:'CC on UPI (RuPay CC on UPI)',                group:'UPI',         flat:false, compRate:2.15, nocompRate:2.15, mcRate:2.15, compSplit:0,  nocompSplit:0,  mcSplit:0,  compComp:2.15 },
-  { id:'upi-wallet',       label:'UPI on Wallet',                              group:'UPI',         flat:false, compRate:2.00, nocompRate:2.00, mcRate:2.00, compSplit:0,  nocompSplit:0,  mcSplit:0,  compComp:2.00, naFloor:true },
-  { id:'cl-on-upi',        label:'CL on UPI',                                  group:'UPI',         flat:false, compRate:2.00, nocompRate:2.00, mcRate:2.00, compSplit:0,  nocompSplit:0,  mcSplit:0,  compComp:2.00, naFloor:true },
+  { id:'upi-cc',           label:'CC on UPI (RuPay CC on UPI)',                group:'UPI',         flat:true, compRate:2.15, nocompRate:2.15, mcRate:2.15, compSplit:0,  nocompSplit:0,  mcSplit:0,  compComp:2.15 },
+  { id:'upi-wallet',       label:'UPI on Wallet',                              group:'UPI',         flat:true, compRate:2.00, nocompRate:2.00, mcRate:2.00, compSplit:0,  nocompSplit:0,  mcSplit:0,  compComp:2.00, naFloor:true },
+  { id:'cl-on-upi',        label:'CL on UPI',                                  group:'UPI',         flat:true, compRate:2.00, nocompRate:2.00, mcRate:2.00, compSplit:0,  nocompSplit:0,  mcSplit:0,  compComp:2.00, naFloor:true },
   // ── Net Banking ──
   { id:'net-banking',      label:'Net Banking - Major Banks (HDFC/ICICI/AXIS/SBI)', group:'Net Banking', flat:true,  compRate:1.65, nocompRate:1.70, mcRate:1.65, compSplit:0,  nocompSplit:0,  mcSplit:0,  compComp:1.80 },
   { id:'net-banking-others', label:'Net Banking - Other Banks',               group:'Net Banking', flat:true, compRate:2.00, nocompRate:2.00, mcRate:2.00, compSplit:0,  nocompSplit:0,  mcSplit:0,  compComp:1.40 },
   // ── Others ──
-  { id:'mobile-wallets',   label:'Mobile Wallets',                             group:'Others',      flat:false, compRate:2.00, nocompRate:2.00, mcRate:2.00, compSplit:0,  nocompSplit:0,  mcSplit:0,  compComp:1.80 },
-  { id:'no-code',          label:'No Code (Payment Links / Pages / QR)',       group:'Others',      flat:false, compRate:0.00, nocompRate:0.00, mcRate:0.00, compSplit:0,  nocompSplit:0,  mcSplit:0,  compComp:0.00, locked:true },
+  { id:'mobile-wallets',   label:'Mobile Wallets',                             group:'Others',      flat:true, compRate:2.00, nocompRate:2.00, mcRate:2.00, compSplit:0,  nocompSplit:0,  mcSplit:0,  compComp:1.80 },
+  { id:'no-code',          label:'No Code (Payment Links / Pages / QR)',       group:'Others',      flat:true, compRate:0.00, nocompRate:0.00, mcRate:0.00, compSplit:0,  nocompSplit:0,  mcSplit:0,  compComp:0.00, locked:true },
 ];
 
 // ================================================================
