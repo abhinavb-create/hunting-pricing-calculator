@@ -3479,10 +3479,12 @@ async function sendEmailWithAttachment({to,cc,subject,htmlBody,attachment,thread
   if(!tok.success) tok=await _getToken(true);
   if(!tok.success) return{success:false,error:tok.error};
 
+  // base64-encode HTML body (never splits entities unlike quoted-printable)
+  const _htmlB64=h=>{const b=new TextEncoder().encode(h);let s='';b.forEach(x=>s+=String.fromCharCode(x));return btoa(s).replace(/(.{76})/g,'$1\r\n').trimEnd();};
+
   let rawMime;
 
   if(!attachment){
-    // No attachment — use clean single-part MIME (same pattern as working approval emails)
     const lines=[
       'To: '+to,
       ...(cc?['Cc: '+cc]:[]),
@@ -3490,9 +3492,9 @@ async function sendEmailWithAttachment({to,cc,subject,htmlBody,attachment,thread
       'Subject: '+rfc2047Subject(subject),
       'MIME-Version: 1.0',
       'Content-Type: text/html; charset=utf-8',
-      'Content-Transfer-Encoding: quoted-printable',
+      'Content-Transfer-Encoding: base64',
       '',
-      _toQP(htmlBody),
+      _htmlB64(htmlBody),
     ];
     rawMime=lines.join('\r\n');
   }else{
@@ -3508,9 +3510,9 @@ async function sendEmailWithAttachment({to,cc,subject,htmlBody,attachment,thread
       '',
       '--'+boundary,
       'Content-Type: text/html; charset=utf-8',
-      'Content-Transfer-Encoding: quoted-printable',
+      'Content-Transfer-Encoding: base64',
       '',
-      _toQP(htmlBody),
+      _htmlB64(htmlBody),
       '--'+boundary,
       'Content-Type: '+attachment.type+'; name="'+_encodeFilename(attachment.name)+'"',
       'Content-Disposition: attachment; filename="'+_encodeFilename(attachment.name)+'"',
