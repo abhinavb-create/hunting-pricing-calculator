@@ -475,5 +475,20 @@
     "teamGroup": "Competition Hunting",
     "versionGroup": null,
     "timestamp": 1783328552119
+  },
+  {
+    "requestId": "mr90p5gaoawmzy",
+    "fileName": "BITLA SOFTWARE PVT LTD-Cx54CpGExSq7sP-Razorpay-Proposal.pdf",
+    "requesterEmail": "kirubhavani.b@razorpay.com",
+    "merchantName": "BITLA SOFTWARE PVT LTD",
+    "status": "pending",
+    "resolvedAt": "",
+    "gmv": 15000000,
+    "slabLabel": "75L - 5Cr",
+    "driveLink": "https://drive.google.com/file/d/120o9Jfz5GSl-TzSUUmv9X-pB_mSfkCe9/view",
+    "violations": "Credit Cards (Visa / MC / RuPay): 1.80%; Debit Card (Txn > Rs.2,000): 0.80%; UPI: 0.02%",
+    "teamGroup": "Competition Hunting",
+    "versionGroup": null,
+    "timestamp": 1783330109978
   }
 ]
