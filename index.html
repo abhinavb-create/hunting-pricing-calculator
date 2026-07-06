@@ -2688,7 +2688,7 @@ function snapshotCalculatorState(){
     METHODS.forEach((m,i)=>{
       snap.rates[sc][i]=document.getElementById(`${pfx}-mdr-${i}`)?.value||'';
       snap.flatModes[sc][i]=flatMode[sc][i]||false;
-      snap.flatFees[sc][i]=flatData[sc][i]?.fee||null;
+      snap.flatFees[sc][i]=flatData[sc][i]?.fee??null;
       snap.flatAovs[sc][i]=flatData[sc][i]?.aov||50000;
       snap.compFees[sc][i]=flatData[sc][i]?.compFee||null;
       const splEl=document.getElementById(`${pfx}-spl-${i}`);
@@ -2726,7 +2726,7 @@ function restoreCalculatorState(snap){
         if(mdrEl&&snap.rates[sc][i]!==undefined) mdrEl.value=snap.rates[sc][i];
         if(snap.flatModes[sc]&&snap.flatModes[sc][i]) {
           flatMode[sc][i]=snap.flatModes[sc][i];
-          if(snap.flatData) flatData[sc][i]={aov:snap.flatAovs?.[sc]?.[i]||50000,fee:snap.flatFees?.[sc]?.[i]||null,compFee:snap.compFees?.[sc]?.[i]||null};
+          if(snap.flatData) flatData[sc][i]={aov:snap.flatAovs?.[sc]?.[i]||50000,fee:snap.flatFees?.[sc]?.[i]??null,compFee:snap.compFees?.[sc]?.[i]??null};
           if(flatMode[sc][i]) refreshFlatUI(sc,i);
         }
         const splEl=document.getElementById(`${pfx}-spl-${i}`);
