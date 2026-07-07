@@ -490,5 +490,20 @@
     "teamGroup": "Competition Hunting",
     "versionGroup": null,
     "timestamp": 1783330109978
+  },
+  {
+    "requestId": "mraaal5uq9ojw9",
+    "fileName": "Rajan Cinemas-T8d7QXsSnQpgmY-Razorpay-Proposal.pdf",
+    "requesterEmail": "milind.singhbora@razorpay.com",
+    "merchantName": "Rajan Cinemas",
+    "status": "pending",
+    "resolvedAt": "",
+    "gmv": 10000000,
+    "slabLabel": "75L - 5Cr",
+    "driveLink": "https://drive.google.com/file/d/1vm_OKB67emGfJAqWopaZaTcZweaIUw0X/view",
+    "violations": "Credit Cards (Visa / MC / RuPay): 1.86%; Debit Card (Txn <= Rs.2,000): 0.40%; CC on UPI (RuPay CC on UPI): 1.75%; Net Banking - Major Banks (HDFC/ICICI/AXIS/SBI): 1.60%",
+    "teamGroup": "Competition Hunting",
+    "versionGroup": "dl_1783326701431",
+    "timestamp": 1783406690740
   }
 ]
