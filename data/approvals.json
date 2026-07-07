@@ -505,5 +505,20 @@
     "teamGroup": "Competition Hunting",
     "versionGroup": "dl_1783326701431",
     "timestamp": 1783406690740
+  },
+  {
+    "requestId": "mrah4riuak2vh8",
+    "fileName": "AV Management Pvt Ltd-SKgyOyntHTlvep-Razorpay-Proposal.pdf",
+    "requesterEmail": "sainath.vishnugauri@razorpay.com",
+    "merchantName": "AV Management Pvt Ltd",
+    "status": "pending",
+    "resolvedAt": "",
+    "gmv": 1500000,
+    "slabLabel": "Upto 25 Lakhs",
+    "driveLink": "https://drive.google.com/file/d/1MLLy9IDVkCQa-Xt0DkzLf78lisEp_lOU/view",
+    "violations": "Debit Card (Txn <= Rs.2,000): 0.40%; Net Banking - Other Banks: 1.50%",
+    "teamGroup": "Competition Hunting",
+    "versionGroup": null,
+    "timestamp": 1783418176200
   }
 ]
