@@ -3,6 +3,17 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
+<!-- build: 20260706-v48 -->
+<script>
+(function(){
+  const BUILD='v48';
+  const u=new URL(location.href);
+  if(u.searchParams.get('b')!==BUILD){u.searchParams.set('b',BUILD);location.replace(u.toString());}
+})();
+</script>
 <title>Hunting &lt;&gt; Pricing Calculator</title>
 <script src="https://cdn.tailwindcss.com"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
@@ -808,6 +819,7 @@
         <option value="EB Farming">🌱 EB Farming</option>
         <option value="EB Hunting">🎯 EB Hunting</option>
         <option value="EB <> Pricing">💹 EB Pricing</option>
+        <option value="Partnership">🤝 Partnership</option>
       </select>
       <select id="stats-sort" onchange="filterStats()"
         class="px-3 py-2.5 border-2 border-gray-200 rounded-xl text-sm text-gray-700 focus:outline-none focus:border-blue-500 bg-white">
@@ -1209,25 +1221,25 @@ function checkFloorWarnings(){
 
 const METHODS = [
   // ── Cards ──
-  { id:'credit-cards',     label:'Credit Cards (Visa / MC / RuPay)',          group:'Cards',       flat:false, compRate:2.00, nocompRate:2.00, mcRate:2.00, compSplit:0,  nocompSplit:0,  mcSplit:0,  compComp:1.95 },
-  { id:'debit-lt2k',       label:'Debit Card (Txn <= Rs.2,000)',               group:'Cards',       flat:false, compRate:2.00, nocompRate:2.00, mcRate:2.00, compSplit:0,  nocompSplit:0,  mcSplit:0,  compComp:0.40 },
-  { id:'debit-gt2k',       label:'Debit Card (Txn > Rs.2,000)',                group:'Cards',       flat:false, compRate:2.00, nocompRate:2.00, mcRate:2.00, compSplit:0,  nocompSplit:0,  mcSplit:0,  compComp:0.90 },
-  { id:'rupay-debit',      label:'RuPay Debit Card',                           group:'Cards',       flat:false, compRate:2.00, nocompRate:2.00, mcRate:2.00, compSplit:0,  nocompSplit:0,  mcSplit:0,  compComp:0.02 },
-  { id:'corp-cards',       label:'Corporate Cards (Credit & Debit)',           group:'Cards',       flat:false, compRate:3.00, nocompRate:3.00, mcRate:3.00, compSplit:0,  nocompSplit:0,  mcSplit:0,  compComp:3.00 },
-  { id:'intl-cards',       label:'International Cards',                        group:'Cards',       flat:false, compRate:3.00, nocompRate:3.00, mcRate:3.00, compSplit:0,  nocompSplit:0,  mcSplit:0,  compComp:3.00 },
-  { id:'amex',             label:'Diners / AMEX - Domestic only',              group:'Cards',       flat:false, compRate:3.00, nocompRate:3.00, mcRate:3.00, compSplit:0,  nocompSplit:0,  mcSplit:0,  compComp:3.00 },
-  { id:'emi',              label:'EMI (Cardless / No-Cost EMI)',               group:'Cards',       flat:false, compRate:3.00, nocompRate:3.00, mcRate:3.00, compSplit:0,  nocompSplit:0,  mcSplit:0,  compComp:2.40 },
+  { id:'credit-cards',     label:'Credit Cards (Visa / MC / RuPay)',          group:'Cards',       flat:true, compRate:2.00, nocompRate:2.00, mcRate:2.00, compSplit:0,  nocompSplit:0,  mcSplit:0,  compComp:1.95 },
+  { id:'debit-lt2k',       label:'Debit Card (Txn <= Rs.2,000)',               group:'Cards',       flat:true, compRate:2.00, nocompRate:2.00, mcRate:2.00, compSplit:0,  nocompSplit:0,  mcSplit:0,  compComp:0.40 },
+  { id:'debit-gt2k',       label:'Debit Card (Txn > Rs.2,000)',                group:'Cards',       flat:true, compRate:2.00, nocompRate:2.00, mcRate:2.00, compSplit:0,  nocompSplit:0,  mcSplit:0,  compComp:0.90 },
+  { id:'rupay-debit',      label:'RuPay Debit Card',                           group:'Cards',       flat:true, compRate:2.00, nocompRate:2.00, mcRate:2.00, compSplit:0,  nocompSplit:0,  mcSplit:0,  compComp:0.02 },
+  { id:'corp-cards',       label:'Corporate Cards (Credit & Debit)',           group:'Cards',       flat:true, compRate:3.00, nocompRate:3.00, mcRate:3.00, compSplit:0,  nocompSplit:0,  mcSplit:0,  compComp:3.00 },
+  { id:'intl-cards',       label:'International Cards',                        group:'Cards',       flat:true, compRate:3.00, nocompRate:3.00, mcRate:3.00, compSplit:0,  nocompSplit:0,  mcSplit:0,  compComp:3.00 },
+  { id:'amex',             label:'Diners / AMEX - Domestic only',              group:'Cards',       flat:true, compRate:3.00, nocompRate:3.00, mcRate:3.00, compSplit:0,  nocompSplit:0,  mcSplit:0,  compComp:3.00 },
+  { id:'emi',              label:'EMI (Cardless / No-Cost EMI)',               group:'Cards',       flat:true, compRate:3.00, nocompRate:3.00, mcRate:3.00, compSplit:0,  nocompSplit:0,  mcSplit:0,  compComp:2.40 },
   // ── UPI ──
   { id:'upi',              label:'UPI',                                        group:'UPI',         flat:true,  compRate:0.25, nocompRate:0.30, mcRate:0.25, compSplit:0,  nocompSplit:0,  mcSplit:0,  compComp:0.30 },
-  { id:'upi-cc',           label:'CC on UPI (RuPay CC on UPI)',                group:'UPI',         flat:false, compRate:2.15, nocompRate:2.15, mcRate:2.15, compSplit:0,  nocompSplit:0,  mcSplit:0,  compComp:2.15 },
-  { id:'upi-wallet',       label:'UPI on Wallet',                              group:'UPI',         flat:false, compRate:2.00, nocompRate:2.00, mcRate:2.00, compSplit:0,  nocompSplit:0,  mcSplit:0,  compComp:2.00, naFloor:true },
-  { id:'cl-on-upi',        label:'CL on UPI',                                  group:'UPI',         flat:false, compRate:2.00, nocompRate:2.00, mcRate:2.00, compSplit:0,  nocompSplit:0,  mcSplit:0,  compComp:2.00, naFloor:true },
+  { id:'upi-cc',           label:'CC on UPI (RuPay CC on UPI)',                group:'UPI',         flat:true, compRate:2.15, nocompRate:2.15, mcRate:2.15, compSplit:0,  nocompSplit:0,  mcSplit:0,  compComp:2.15 },
+  { id:'upi-wallet',       label:'UPI on Wallet',                              group:'UPI',         flat:true, compRate:2.00, nocompRate:2.00, mcRate:2.00, compSplit:0,  nocompSplit:0,  mcSplit:0,  compComp:2.00, naFloor:true },
+  { id:'cl-on-upi',        label:'CL on UPI',                                  group:'UPI',         flat:true, compRate:2.00, nocompRate:2.00, mcRate:2.00, compSplit:0,  nocompSplit:0,  mcSplit:0,  compComp:2.00, naFloor:true },
   // ── Net Banking ──
   { id:'net-banking',      label:'Net Banking - Major Banks (HDFC/ICICI/AXIS/SBI)', group:'Net Banking', flat:true,  compRate:1.65, nocompRate:1.70, mcRate:1.65, compSplit:0,  nocompSplit:0,  mcSplit:0,  compComp:1.80 },
-  { id:'net-banking-others', label:'Net Banking - Other Banks',               group:'Net Banking', flat:false, compRate:2.00, nocompRate:2.00, mcRate:2.00, compSplit:0,  nocompSplit:0,  mcSplit:0,  compComp:1.40 },
+  { id:'net-banking-others', label:'Net Banking - Other Banks',               group:'Net Banking', flat:true, compRate:2.00, nocompRate:2.00, mcRate:2.00, compSplit:0,  nocompSplit:0,  mcSplit:0,  compComp:1.40 },
   // ── Others ──
-  { id:'mobile-wallets',   label:'Mobile Wallets',                             group:'Others',      flat:false, compRate:2.00, nocompRate:2.00, mcRate:2.00, compSplit:0,  nocompSplit:0,  mcSplit:0,  compComp:1.80 },
-  { id:'no-code',          label:'No Code (Payment Links / Pages / QR)',       group:'Others',      flat:false, compRate:0.00, nocompRate:0.00, mcRate:0.00, compSplit:0,  nocompSplit:0,  mcSplit:0,  compComp:0.00, locked:true },
+  { id:'mobile-wallets',   label:'Mobile Wallets',                             group:'Others',      flat:true, compRate:2.00, nocompRate:2.00, mcRate:2.00, compSplit:0,  nocompSplit:0,  mcSplit:0,  compComp:1.80 },
+  { id:'no-code',          label:'No Code (Payment Links / Pages / QR)',       group:'Others',      flat:true, compRate:0.00, nocompRate:0.00, mcRate:0.00, compSplit:0,  nocompSplit:0,  mcSplit:0,  compComp:0.00, locked:true },
 ];
 
 // ================================================================
@@ -1972,8 +1984,8 @@ function _openPdfModal(){
   const _hasApprovedRecord=_localAps.some(a=>a.status==='approved'&&a.merchantName===name);
   const _alreadyApproved=!!_approvedRequestId||_hasApprovedRecord;
 
-  // Check floor violations and populate approval section (admins/ops bypass approval)
-  const violations=isAdminOrCoAdmin()?[]:getFloorViolations(activeTab,gmv);
+  // Check floor violations and populate approval section (admins/ops/partnership bypass approval)
+  const violations=(isAdminOrCoAdmin()||currentUser?.teamGroup==='Partnership')?[]:getFloorViolations(activeTab,gmv);
   const approvalSection=document.getElementById('pdf-approval-section');
   const violationsDiv=document.getElementById('pdf-approval-violations');
   if(violations.length>0&&!_alreadyApproved&&approvalSection&&violationsDiv){
@@ -2507,8 +2519,8 @@ async function generateAndDownloadPDF(){
 
     const fileName=mid?`${name}-${mid}-Razorpay-Proposal.pdf`:`${name}-Razorpay-Proposal.pdf`;
 
-    // Check for floor violations (admins/ops bypass approval)
-    const violations=isAdminOrCoAdmin()?[]:getFloorViolations(tab,gmv);
+    // Check for floor violations (admins/ops/partnership bypass approval)
+    const violations=(isAdminOrCoAdmin()||currentUser?.teamGroup==='Partnership')?[]:getFloorViolations(tab,gmv);
     const requesterEmail=document.getElementById('pdf-requester-email')?.value.trim()||currentUser?.email||'';
     const pdfBuffer=doc.output('arraybuffer');
 
@@ -2683,7 +2695,7 @@ function snapshotCalculatorState(){
     METHODS.forEach((m,i)=>{
       snap.rates[sc][i]=document.getElementById(`${pfx}-mdr-${i}`)?.value||'';
       snap.flatModes[sc][i]=flatMode[sc][i]||false;
-      snap.flatFees[sc][i]=flatData[sc][i]?.fee||null;
+      snap.flatFees[sc][i]=flatData[sc][i]?.fee??null;
       snap.flatAovs[sc][i]=flatData[sc][i]?.aov||50000;
       snap.compFees[sc][i]=flatData[sc][i]?.compFee||null;
       const splEl=document.getElementById(`${pfx}-spl-${i}`);
@@ -2721,7 +2733,7 @@ function restoreCalculatorState(snap){
         if(mdrEl&&snap.rates[sc][i]!==undefined) mdrEl.value=snap.rates[sc][i];
         if(snap.flatModes[sc]&&snap.flatModes[sc][i]) {
           flatMode[sc][i]=snap.flatModes[sc][i];
-          if(snap.flatData) flatData[sc][i]={aov:snap.flatAovs?.[sc]?.[i]||50000,fee:snap.flatFees?.[sc]?.[i]||null,compFee:snap.compFees?.[sc]?.[i]||null};
+          if(snap.flatData) flatData[sc][i]={aov:snap.flatAovs?.[sc]?.[i]||50000,fee:snap.flatFees?.[sc]?.[i]??null,compFee:snap.compFees?.[sc]?.[i]??null};
           if(flatMode[sc][i]) refreshFlatUI(sc,i);
         }
         const splEl=document.getElementById(`${pfx}-spl-${i}`);
@@ -3053,7 +3065,7 @@ async function submitAccessRequest(team){
 <p style="color:#9ca3af;font-size:11px;margin:0">Hunting Pricing Calculator · Internal · Clicking Approve will open the app and grant access automatically.</p></div>`;
     const mime=['To: '+ADMIN_EMAIL,'From: '+currentUser.email,'Subject: '+rfc2047Subject(subject),
       'MIME-Version: 1.0','Content-Type: text/html; charset=utf-8','',body].join('\r\n');
-    const encoded=btoa(unescape(encodeURIComponent(mime))).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
+    const encoded=_utf8B64url(mime);
     const res=await fetch('https://gmail.googleapis.com/gmail/v1/users/me/messages/send',{
       method:'POST',headers:{'Authorization':'Bearer '+tok.token,'Content-Type':'application/json'},
       body:JSON.stringify({raw:encoded}),
@@ -3118,7 +3130,7 @@ async function approveUser(email){
 <p style="color:#9ca3af;font-size:11px">Hunting Pricing Calculator · Internal</p></div>`;
     const mime=['To: '+email,'From: '+currentUser.email,'Subject: '+rfc2047Subject(subject),
       'MIME-Version: 1.0','Content-Type: text/html; charset=utf-8','',body].join('\r\n');
-    const encoded=btoa(unescape(encodeURIComponent(mime))).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
+    const encoded=_utf8B64url(mime);
     await fetch('https://gmail.googleapis.com/gmail/v1/users/me/messages/send',{
       method:'POST',headers:{'Authorization':'Bearer '+tok.token,'Content-Type':'application/json'},
       body:JSON.stringify({raw:encoded}),
@@ -3151,7 +3163,7 @@ async function revokeUser(email){
 
 async function editUserTeam(email, currentTeam, userName){
   if(!isAdminOrCoAdmin()) return;
-  const TEAM_OPTIONS=['Startup Hunting','Shopify Hunting','Competition Hunting','MM Hunting','EB Farming','EB Hunting','EB <> Pricing'];
+  const TEAM_OPTIONS=['Startup Hunting','Shopify Hunting','Competition Hunting','MM Hunting','EB Farming','EB Hunting','EB <> Pricing','Partnership'];
   // Build a small inline modal using a prompt-style select
   const modal=document.createElement('div');
   modal.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:9999;display:flex;align-items:center;justify-content:center;font-family:Arial,sans-serif';
@@ -3426,7 +3438,7 @@ function buildFinalApprovalEmailHtml({requesterName,requesterEmail,teamGroup,mer
                 <span style="font-size:13px;font-weight:700;color:#111827;margin-left:10px">${v.merchantName||merchantName}</span></td>
               <td align="right">
                 <span style="font-size:11px;font-weight:700;padding:3px 10px;border-radius:99px;background:${statusBg};color:${statusColor}">${statusLabel}</span>
-                ${v.driveLink?`<a href="${v.driveLink}" style="font-size:11px;color:#2563eb;font-weight:700;text-decoration:none;margin-left:8px">📄 PDF</a>`:''}
+                ${v.driveLink?`<a href="${v.driveLink}" style="font-size:11px;color:#2563eb;font-weight:700;text-decoration:none;margin-left:8px">PDF -&gt;</a>`:''}
               </td>
             </tr></table>
             <div style="font-size:11px;color:#9ca3af;margin-top:4px">${v.date||''} ${v.time||''} · GMV: ${v.gmvDisplay||'—'} · ${v.slabLabel||''}</div>
@@ -3439,7 +3451,7 @@ function buildFinalApprovalEmailHtml({requesterName,requesterEmail,teamGroup,mer
     </td></tr>`;
   }).join('');
 
-  return `<!DOCTYPE html><html><body style="margin:0;padding:0;background:#f3f4f6;font-family:Arial,sans-serif">
+  return `<!DOCTYPE html><html><head><meta charset="UTF-8"><meta http-equiv="Content-Type" content="text/html; charset=UTF-8"></head><body style="margin:0;padding:0;background:#f3f4f6;font-family:Arial,sans-serif">
 <table width="100%" cellpadding="0" cellspacing="0"><tr><td align="center" style="padding:32px 16px">
 <table width="640" cellpadding="0" cellspacing="0" style="background:#fff;border-radius:20px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,0.08)">
   <tr><td style="background:linear-gradient(135deg,#059669 0%,#0d9488 100%);padding:28px 32px">
@@ -3460,7 +3472,7 @@ function buildFinalApprovalEmailHtml({requesterName,requesterEmail,teamGroup,mer
       <p style="font-size:13px;color:#374151;margin:0;font-weight:600">${requesterName} &lt;${requesterEmail}&gt; · ${teamGroup||'Hunting Team'}</p>
     </div>
     <div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:10px;padding:14px 18px;text-align:center">
-      <p style="font-size:13px;color:#1d4ed8;font-weight:600;margin:0">📋 This is a pricing revamp submission for your records. No approval action required.</p>
+      <p style="font-size:13px;color:#1d4ed8;font-weight:600;margin:0">This is a pricing revamp submission for your records. No approval action required.</p>
     </div>
   </td></tr>
   <tr><td style="background:#f9fafb;padding:14px 32px;text-align:center">
@@ -3474,10 +3486,12 @@ async function sendEmailWithAttachment({to,cc,subject,htmlBody,attachment,thread
   if(!tok.success) tok=await _getToken(true);
   if(!tok.success) return{success:false,error:tok.error};
 
+  // base64-encode HTML body (never splits entities unlike quoted-printable)
+  const _htmlB64=h=>{const b=new TextEncoder().encode(h);let s='';b.forEach(x=>s+=String.fromCharCode(x));return btoa(s).replace(/(.{76})/g,'$1\r\n').trimEnd();};
+
   let rawMime;
 
   if(!attachment){
-    // No attachment — use clean single-part MIME (same pattern as working approval emails)
     const lines=[
       'To: '+to,
       ...(cc?['Cc: '+cc]:[]),
@@ -3485,9 +3499,9 @@ async function sendEmailWithAttachment({to,cc,subject,htmlBody,attachment,thread
       'Subject: '+rfc2047Subject(subject),
       'MIME-Version: 1.0',
       'Content-Type: text/html; charset=utf-8',
-      'Content-Transfer-Encoding: quoted-printable',
+      'Content-Transfer-Encoding: base64',
       '',
-      _toQP(htmlBody),
+      _htmlB64(htmlBody),
     ];
     rawMime=lines.join('\r\n');
   }else{
@@ -3503,9 +3517,9 @@ async function sendEmailWithAttachment({to,cc,subject,htmlBody,attachment,thread
       '',
       '--'+boundary,
       'Content-Type: text/html; charset=utf-8',
-      'Content-Transfer-Encoding: quoted-printable',
+      'Content-Transfer-Encoding: base64',
       '',
-      _toQP(htmlBody),
+      _htmlB64(htmlBody),
       '--'+boundary,
       'Content-Type: '+attachment.type+'; name="'+_encodeFilename(attachment.name)+'"',
       'Content-Disposition: attachment; filename="'+_encodeFilename(attachment.name)+'"',
@@ -3517,7 +3531,7 @@ async function sendEmailWithAttachment({to,cc,subject,htmlBody,attachment,thread
     rawMime=lines.join('\r\n');
   }
 
-  const encoded=btoa(unescape(encodeURIComponent(rawMime))).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
+  const encoded=_utf8B64url(rawMime);
   const payload={raw:encoded};
   if(threadId) payload.threadId=threadId;
 
@@ -3824,9 +3838,9 @@ async function handleApproveUserUrl(params){
       // Email user — include activation link so no Sheet read needed on user side
       const activationUrl='https://abhinavb-create.github.io/hunting-pricing-calculator/?action=activate-user&email='+encodeURIComponent(userEmail);
       const subject=`[Pricing Calculator] You're approved! 🎉`;
-      const body=`<div style="font-family:Arial,sans-serif;max-width:480px;padding:24px"><h2 style="color:#1f3fa3">You're approved! 🎉</h2><p>Hi ${userName.split(' ')[0]||'there'},</p><p>Your access to the <strong>Hunting Pricing Calculator</strong> has been approved.</p><p style="margin:20px 0;text-align:center"><a href="${activationUrl}" style="display:inline-block;background:#16a34a;color:white;padding:14px 28px;border-radius:10px;text-decoration:none;font-weight:900;font-size:15px">✅ Activate My Access →</a></p><p style="font-size:12px;color:#6b7280">Click the button above to activate your account and open the calculator. The link is unique to your email.</p><p style="font-size:11px;color:#9ca3af">Hunting Pricing Calculator · Internal</p></div>`;
+      const body=`<div style="font-family:Arial,sans-serif;max-width:480px;padding:24px"><h2 style="color:#1f3fa3">You're approved! 🎉</h2><p>Hi ${userName.split(' ')[0]||'there'},</p><p>Your access to the <strong>Hunting Pricing Calculator</strong> has been approved.</p><p style="margin:20px 0;text-align:center"><a href="${activationUrl}" style="display:inline-block;background:#16a34a;color:white;padding:14px 28px;border-radius:10px;text-decoration:none;font-weight:900;font-size:15px">Activate My Access -&gt;</a></p><p style="font-size:12px;color:#6b7280">Click the button above to activate your account and open the calculator. The link is unique to your email.</p><p style="font-size:11px;color:#9ca3af">Hunting Pricing Calculator · Internal</p></div>`;
       const mime=['To: '+userEmail,'From: '+currentUser.email,'Subject: '+rfc2047Subject(subject),'MIME-Version: 1.0','Content-Type: text/html; charset=utf-8','',body].join('\r\n');
-      const encoded=btoa(unescape(encodeURIComponent(mime))).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
+      const encoded=_utf8B64url(mime);
       await fetch('https://gmail.googleapis.com/gmail/v1/users/me/messages/send',{method:'POST',headers:{'Authorization':'Bearer '+tok.token,'Content-Type':'application/json'},body:JSON.stringify({raw:encoded})});
       if(statusEl) statusEl.innerHTML='<span style="color:#16a34a;font-weight:700">✅ Access granted! Email sent to '+userEmail+'</span>';
       if(btn) btn.style.display='none';
@@ -3992,9 +4006,18 @@ async function logApprovalToSheet({requestId,fileName,requesterEmail,merchantNam
   }catch(e){console.warn('logApprovalToSheet(GH) failed silently',e);}
 }
 
+// Correct UTF-8 → base64url (for Gmail API raw MIME). Replaces btoa(unescape(encodeURIComponent()))
+function _utf8B64url(str){
+  const bytes=new TextEncoder().encode(str);
+  let bin=''; bytes.forEach(b=>bin+=String.fromCharCode(b));
+  return btoa(bin).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
+}
+
 // Encode email subject per RFC 2047 (handles non-ASCII / em-dashes / emoji)
 function rfc2047Subject(s){
-  return '=?UTF-8?B?'+btoa(unescape(encodeURIComponent(s)))+'?=';
+  const bytes=new TextEncoder().encode(s);
+  let bin=''; bytes.forEach(b=>bin+=String.fromCharCode(b));
+  return '=?UTF-8?B?'+btoa(bin)+'?=';
 }
 
 // ── Send HTML email via Gmail API ──────────────────────────────────────
@@ -4010,7 +4033,7 @@ async function sendEmailViaGmail({to,subject,htmlBody},forceConsent=false){
     '',
     htmlBody,
   ].join('\r\n');
-  const encoded=btoa(unescape(encodeURIComponent(mime))).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
+  const encoded=_utf8B64url(mime);
   try{
     const res=await fetch('https://gmail.googleapis.com/gmail/v1/users/me/messages/send',{
       method:'POST',
@@ -4025,7 +4048,7 @@ async function sendEmailViaGmail({to,subject,htmlBody},forceConsent=false){
 }
 
 function buildApprovalEmailHtml({requesterName,requesterEmail,teamGroup,merchantName,gmv,slabLabel,violations,positiveNRMethods,pgNR,settleNR,effectiveNR,driveLink,approveUrl,rejectUrl}){
-  const fmtRs=v=>v==null?'—':'₹'+Math.round(v).toLocaleString('en-IN');
+  const fmtRs=v=>v==null?'-':'Rs.'+Math.round(v).toLocaleString('en-IN');
   const totalNR=effectiveNR!=null?effectiveNR:(pgNR||0)+(settleNR||0);
   const nrColor=(totalNR==null||isNaN(totalNR))?'#374151':totalNR<0?'#dc2626':totalNR<5000?'#d97706':'#059669';
   const hasPGNR=pgNR!=null&&!isNaN(pgNR);
@@ -4062,7 +4085,7 @@ function buildApprovalEmailHtml({requesterName,requesterEmail,teamGroup,merchant
       <td style="padding:8px 12px;font-size:15px;font-weight:900;color:${nrColor};text-align:right">${fmtRs(totalNR)} / month</td>
     </tr>`:'';
   const posSection=posRows?`
-    <div style="font-size:12px;font-weight:700;color:#059669;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px">✅ Positive NR Methods (offsetting the below-floor rates)</div>
+    <div style="font-size:12px;font-weight:700;color:#059669;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px">Positive NR Methods (offsetting the below-floor rates)</div>
     <table style="width:100%;border-collapse:collapse;border:1px solid #d1fae5;border-radius:8px;overflow:hidden;margin-bottom:24px;background:#f0fdf4">
       <tr style="background:#dcfce7">
         <th style="padding:8px 12px;font-size:11px;color:#166534;text-align:left;font-weight:600">Payment Method</th>
@@ -4071,7 +4094,7 @@ function buildApprovalEmailHtml({requesterName,requesterEmail,teamGroup,merchant
       </tr>
       ${posRows}
     </table>`:'';
-  return `<!DOCTYPE html><html><body style="margin:0;padding:0;background:#f3f4f6;font-family:Arial,sans-serif">
+  return `<!DOCTYPE html><html><head><meta charset="UTF-8"><meta http-equiv="Content-Type" content="text/html; charset=UTF-8"></head><body style="margin:0;padding:0;background:#f3f4f6;font-family:Arial,sans-serif">
   <div style="max-width:600px;margin:32px auto;background:#fff;border-radius:16px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,0.08)">
     <div style="background:linear-gradient(135deg,#1f3fa3,#4f46e5);padding:28px 32px">
       <div style="font-size:11px;font-weight:700;color:#a5b4fc;letter-spacing:2px;text-transform:uppercase;margin-bottom:6px">Razorpay · Hunting Pricing</div>
@@ -4083,12 +4106,12 @@ function buildApprovalEmailHtml({requesterName,requesterEmail,teamGroup,merchant
         <tr><td style="padding:6px 0;font-size:12px;color:#6b7280;width:110px">Requested by</td><td style="padding:6px 0;font-size:13px;font-weight:600;color:#111827">${requesterName} &lt;${requesterEmail}&gt;</td></tr>
         <tr><td style="padding:6px 0;font-size:12px;color:#6b7280">Team</td><td style="padding:6px 0;font-size:13px;font-weight:600;color:#111827">${teamGroup||'Not set'}</td></tr>
         <tr><td style="padding:6px 0;font-size:12px;color:#6b7280">Merchant</td><td style="padding:6px 0;font-size:13px;font-weight:700;color:#111827">${merchantName}</td></tr>
-        <tr><td style="padding:6px 0;font-size:12px;color:#6b7280">GMV</td><td style="padding:6px 0;font-size:13px;font-weight:600;color:#111827">₹${Math.round(gmv||0).toLocaleString('en-IN')} <span style="color:#6b7280;font-weight:400">(${slabLabel})</span></td></tr>
+        <tr><td style="padding:6px 0;font-size:12px;color:#6b7280">GMV</td><td style="padding:6px 0;font-size:13px;font-weight:600;color:#111827">Rs.${Math.round(gmv||0).toLocaleString('en-IN')} <span style="color:#6b7280;font-weight:400">(${slabLabel})</span></td></tr>
       </table>
       <table style="width:100%;border-collapse:collapse;border:1px solid #e5e7eb;border-radius:8px;overflow:hidden;margin-bottom:20px">
         ${nrBreakdown||`<tr><td style="padding:8px 12px;font-size:12px;color:#6b7280">Effective NR</td><td style="padding:8px 12px;font-size:15px;font-weight:900;color:${nrColor};text-align:right">${fmtRs(totalNR)} / month</td></tr>`}
       </table>
-      <div style="font-size:12px;font-weight:700;color:#dc2626;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px">⚠️ Below-Floor Rates</div>
+      <div style="font-size:12px;font-weight:700;color:#dc2626;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px">Below-Floor Rates</div>
       <table style="width:100%;border-collapse:collapse;border:1px solid #fee2e2;border-radius:8px;overflow:hidden;margin-bottom:24px">
         <tr style="background:#fef2f2">
           <th style="padding:8px 12px;font-size:11px;color:#991b1b;text-align:left;font-weight:600">Payment Method</th>
@@ -4099,10 +4122,10 @@ function buildApprovalEmailHtml({requesterName,requesterEmail,teamGroup,merchant
         ${violRows}
       </table>
       ${posSection}
-      ${driveLink?`<div style="margin-bottom:24px"><a href="${driveLink}" style="font-size:13px;color:#4f46e5;text-decoration:none;font-weight:600">📄 View Proposal PDF →</a></div>`:''}
+      ${driveLink?`<div style="margin-bottom:24px"><a href="${driveLink}" style="font-size:13px;color:#4f46e5;text-decoration:none;font-weight:600">View Proposal PDF -&gt;</a></div>`:''}
       <div style="display:flex;gap:12px;margin-bottom:8px">
-        <a href="${approveUrl}" style="display:inline-block;background:#16a34a;color:#fff;text-decoration:none;font-size:14px;font-weight:700;padding:12px 32px;border-radius:8px;margin-right:12px">✅ Approve</a>
-        <a href="${rejectUrl}" style="display:inline-block;background:#dc2626;color:#fff;text-decoration:none;font-size:14px;font-weight:700;padding:12px 32px;border-radius:8px">❌ Reject</a>
+        <a href="${approveUrl}" style="display:inline-block;background:#16a34a;color:#fff;text-decoration:none;font-size:14px;font-weight:700;padding:12px 32px;border-radius:8px;margin-right:12px">Approve</a>
+        <a href="${rejectUrl}" style="display:inline-block;background:#dc2626;color:#fff;text-decoration:none;font-size:14px;font-weight:700;padding:12px 32px;border-radius:8px">Reject</a>
       </div>
       <div style="font-size:11px;color:#9ca3af;margin-top:16px">Clicking Approve or Reject will update the status and notify the requester automatically.</div>
     </div>
@@ -6246,7 +6269,7 @@ function _buildMerchantEmailHtml({merchantName,intro,snap}){
 
   // ── Entry / reset ──
   function _start(){
-    _state.started=true; _state.step=0; _state.mode='intent'; _state.data={};
+    _state.started=true; _state.step=0; _state.mode='intent'; _state.data={}; _state.briefWaiting=null; _state._lastBriefAsked=null;
     document.getElementById('ai-chat-messages').innerHTML='';
     _setStatus('Ready');
     const _firstName=currentUser?.name?.split(' ')[0]||currentUser?.email?.split('@')[0]||'there';
@@ -6283,7 +6306,7 @@ function _buildMerchantEmailHtml({merchantName,intro,snap}){
     _aiClearImg();
     // ── Handle direct question answers FIRST — before any mode routing ──
     if(_state.briefWaiting&&text){
-      const w=_state.briefWaiting; _state.briefWaiting=null;
+      const w=_state.briefWaiting; _state.briefWaiting=null; _state._lastBriefAsked=null;
       if(w==='businessName'){
         _state.data.businessName=text.trim();
         const el=document.getElementById('merchant-name'); if(el){el.value=text.trim();el.dispatchEvent(new Event('input'));}
@@ -6291,8 +6314,15 @@ function _buildMerchantEmailHtml({merchantName,intro,snap}){
         _briefAskNext(); return;
       }
       if(w==='gmv'){
-        _state.data.gmv=_parseGMV(text); _applyGMV(_state.data.gmv);
-        _addMsg('assistant',`✅ GMV: <strong>${_fmtGMV(_state.data.gmv)}</strong>`,true);
+        const g=_parseGMV(text);
+        if(!g){
+          // Couldn't parse — re-ask (put briefWaiting back)
+          _state.briefWaiting='gmv';
+          _addMsg('assistant',"Couldn't read that as a GMV — try something like **₹5L**, **2Cr**, **50 lakh**",true);
+          _chips(['₹10L','₹50L','₹1Cr','₹5Cr','₹10Cr+']); return;
+        }
+        _state.data.gmv=g; _applyGMV(g);
+        _addMsg('assistant',`✅ GMV: <strong>${_fmtGMV(g)}</strong>`,true);
         _briefAskNext(); return;
       }
       if(w==='split'){
@@ -6300,6 +6330,20 @@ function _buildMerchantEmailHtml({merchantName,intro,snap}){
         else _state.data.split='skipped';
         _briefAskNext(); return;
       }
+      if(w==='dcSlabRates'){
+        // Parse slab rates from text like "DC <2k = 0.9%, DC >2k = 1.5%"
+        const pending=_state._dcSlabPending||_state.data._pendingRates||[];
+        const lt2kM=text.match(/(?:lt|<|below|under)[^%\d]*(\d+\.?\d*)\s*%/i);
+        const gt2kM=text.match(/(?:gt|>|above|over)[^%\d]*(\d+\.?\d*)\s*%/i)||text.match(/(\d+\.?\d*)\s*%[^%]*(?:gt|>|above|over)/i);
+        const rates=pending.filter(r=>!/debit/i.test(r.method));
+        if(lt2kM) rates.push({method:'Debit Card lt2k',rate:parseFloat(lt2kM[1]),flat:null});
+        if(gt2kM) rates.push({method:'Debit Card gt2k',rate:parseFloat(gt2kM[1]),flat:null});
+        if(!lt2kM&&!gt2kM){ // couldn't parse — just apply pending as-is
+          await _applyAndFinishRates(pending); return;
+        }
+        await _applyAndFinishRates(rates); return;
+      }
+      // Unknown briefWaiting value — fall through to normal mode routing
     }
     const m=_state.mode;
     if(m==='intent')          await _handleIntent(text,img);
@@ -6316,12 +6360,12 @@ function _buildMerchantEmailHtml({merchantName,intro,snap}){
     if(/revamp/i.test(text)){ await _cmdPricingRevamp(); return; }
     if(/approv/i.test(text)&&!/new pricing/i.test(text)){ await _cmdDownloadPDF(false); return; }
     if(/new pricing|new proposal|pricing|proposal|deal/i.test(text)||img){
-      _state.mode='briefing'; _state.data={};
+      _state.mode='briefing'; _state.data={}; _state.briefWaiting=null; _state._lastBriefAsked=null;
       _ask(_md("Let's do it! Give me the deal details in one shot:\n\n**Merchant name, POC name, GMV, split, competition?**\n\nE.g. *\"HDFC Life, Priya Sharma, 5Cr GMV, 60% UPI 30% CC, PhonePe giving UPI free DC 1%\"*\n\nOr just start with what you know — I'll ask for the rest."),['Skip — fill manually on calculator']);
       return;
     }
     // Fallback — treat anything unrecognized as "new pricing"
-    _state.mode='briefing'; _state.data={};
+    _state.mode='briefing'; _state.data={}; _state.briefWaiting=null; _state._lastBriefAsked=null;
     _ask(_md("Let's create a new pricing proposal!\n\nTell me the deal: **merchant name, GMV, split, any competition?**\n\nE.g. *\"Reliance Industries, Mukesh Ambani, 5Cr GMV, 60% UPI 40% CC\"*"),['Skip — fill manually']);
   }
 
@@ -6331,7 +6375,7 @@ function _buildMerchantEmailHtml({merchantName,intro,snap}){
     const out={};
 
     // GMV — regex is 100% reliable for this
-    const gmvRe=/(\d+\.?\d*)\s*(cr(?:ore)?s?|lakh?s?|\bl\b)/gi;
+    const gmvRe=/(\d+\.?\d*)\s*(cr(?:ore)?s?|lakh?s?|l(?!\w))/gi;
     let gm; while((gm=gmvRe.exec(tl))!==null){
       const n=parseFloat(gm[1]), u=gm[2];
       if(/cr/.test(u)) out.gmv=Math.round(n*10000000);
@@ -6364,7 +6408,10 @@ function _buildMerchantEmailHtml({merchantName,intro,snap}){
   // BRIEFING MODE — JS-first extraction, Claude only for name disambiguation
   // ================================================================
   async function _handleBriefing(text,img){
-    if(/skip|manual|fill manually/i.test(text)&&!_state.briefWaiting){ _enterCommandMode(); return; }
+    // If we're already waiting for a specific field, DON'T re-process — just ask next
+    if(_state.briefWaiting){ _briefAskNext(); return; }
+
+    if(/skip|manual|fill manually/i.test(text)){ _enterCommandMode(); return; }
 
     if(!text&&!img){ _briefAskNext(); return; }
 
@@ -6398,9 +6445,8 @@ function _buildMerchantEmailHtml({merchantName,intro,snap}){
       applied.push(`Competition rates: <strong>applied</strong>`);
     }
 
-    // ── Step 2: Names — JS heuristic first, Claude as enhancement ──
+    // ── Step 2: Names — JS heuristic (comma-split) ──
     if(!_state.data.businessName){
-      // Heuristic: split on comma — "Reliance Industries, Abhishek" → business + poc
       const parts=text.split(',').map(s=>s.trim()).filter(Boolean);
       const numericOrKeyword=/^\d|^(gmv|upi|cc|dc|nb|split|lakh|crore|cr|skip|no|yes|hey|hi)/i;
       const nameParts=parts.filter(p=>!numericOrKeyword.test(p)&&p.length>1);
@@ -6423,8 +6469,24 @@ function _buildMerchantEmailHtml({merchantName,intro,snap}){
     _briefAskNext();
   }
 
-  // Ask for the next missing required field, stay in briefing mode
+  // Ask for the next missing required field, stay in briefing mode.
+  // Anti-loop: tracks last asked field; if same field asked twice, force-skip it.
   function _briefAskNext(){
+    const need=!_state.data.businessName?'businessName':!_state.data.gmv?'gmv':!_state.data.split?'split':null;
+    if(need){
+      // Anti-loop guard: if we already asked for this field once and it's still not set,
+      // skip it rather than looping forever
+      if(_state._lastBriefAsked===need){
+        _state._lastBriefAsked=null;
+        if(need==='businessName') _state.data.businessName='(unknown)';
+        else if(need==='gmv') _state.data.gmv=1; // placeholder so we move on
+        else if(need==='split') _state.data.split='skipped';
+        _briefAskNext(); return; // recurse with field now "filled"
+      }
+      _state._lastBriefAsked=need;
+    } else {
+      _state._lastBriefAsked=null;
+    }
     if(!_state.data.businessName){ _state.briefWaiting='businessName'; _ask("What's the merchant / business name?"); return; }
     if(!_state.data.gmv){ _state.briefWaiting='gmv'; _ask("What's the estimated monthly GMV?",['₹10L','₹50L','₹1Cr','₹5Cr','₹10Cr+']); return; }
     if(!_state.data.split){ _state.briefWaiting='split'; _ask("What's the payment split? (e.g. 60% UPI, 30% CC)",['Skip — no split data']); return; }
@@ -6459,25 +6521,23 @@ function _buildMerchantEmailHtml({merchantName,intro,snap}){
 
     switch(step){
       case 'businessName':
-        // Route back to briefing — it handles this better
-        _state.mode='briefing'; await _handleBriefing(text,img); return;
+        // Set field directly then ask for next — never re-enter handleBriefing
+        if(text) { _state.data.businessName=text.trim(); const el=document.getElementById('merchant-name'); if(el){el.value=text.trim();el.dispatchEvent(new Event('input'));} }
+        _state.mode='briefing'; _state._lastBriefAsked=null; _briefAskNext(); return;
 
       case 'customerName':
-        _state.mode='briefing'; await _handleBriefing(text,img); return;
+        if(text) { _state.data.customerName=text.trim(); const el=document.getElementById('customer-name'); if(el){el.value=text.trim();el.dispatchEvent(new Event('input'));} }
+        _state.mode='briefing'; _state._lastBriefAsked=null; _briefAskNext(); return;
 
       case 'gmv':
         _state.data.gmv=_parseGMV(text);
         _applyGMV(_state.data.gmv);
-        _state.mode='briefing'; // go back to briefing to check what else is needed
-        await _handleBriefing('',img); // empty text = just check missing fields
-        return;
+        _state.mode='briefing'; _state._lastBriefAsked=null; _briefAskNext(); return;
 
       case 'split':
         _state.data.split=text||'';
         if(text&&!/skip/i.test(text)) await _applySplitText(text);
-        _state.mode='briefing';
-        await _handleBriefing('',img);
-        return;
+        _state.mode='briefing'; _state._lastBriefAsked=null; _briefAskNext(); return;
 
       case 'competitionImg':
         await _handleCompetitionStep(text,img);
@@ -6494,46 +6554,29 @@ function _buildMerchantEmailHtml({merchantName,intro,snap}){
     }
   }
 
-  // ── Shared Claude rates extractor ──
-  const _RATES_SYSTEM=`You are a Razorpay sales tool. Extract PG payment rates from a sales rep's message.
-Return ONLY valid JSON: {"rates":[{"method":"Credit Card","rate":1.8},{"method":"UPI","rate":0.05},{"method":"Net Banking","flat":5}]}
-Rules:
-- method names: "Credit Card", "Debit Card lt2k", "Debit Card gt2k", "UPI", "Net Banking", "RuPay", "Wallets", "EMI", "Intl Card"
-- rate = MDR % as a number (e.g. 1.8 for 1.8%). Use flat for flat-fee methods.
-- "free UPI" or "0% UPI" = {"method":"UPI","rate":0}
-- Split percentages like "60% UPI" are NOT rates — ignore them
-- If no rates found, return {"rates":[]}`;
-
-  async function _claudeExtractRates(text){
-    try{
-      const resp=await _callClaude([{role:'user',content:`Extract payment rates from: "${text}"`}],_RATES_SYSTEM,300);
-      const parsed=JSON.parse(resp.match(/\{[\s\S]*\}/)?.[0]||'{}');
-      return parsed.rates||[];
-    }catch(e){return [];}
-  }
-
   // ── Competition rates step ──
   async function _handleCompetitionStep(text,img){
     if(img){
+      // Image → Claude (only legitimate use — can't parse images with regex)
       const t=_typing();
       try{
         const b64=img.split(',')[1], mtype=img.split(';')[0].split(':')[1]||'image/jpeg';
+        const imgSystem=`Extract payment method rates from a competitor PG pricing screenshot. Return ONLY valid JSON: {"rates":[{"method":"Credit Card","rate":1.75},{"method":"UPI","rate":0},{"method":"Net Banking","flat":10}]}. Method names: "Credit Card","Debit Card lt2k","Debit Card gt2k","UPI","Net Banking","RuPay","Wallets","EMI","Intl Card". rate=MDR % as number. flat=flat fee in ₹.`;
         const resp=await _callClaude([{role:'user',content:[
           {type:'image',source:{type:'base64',media_type:mtype,data:b64}},
-          {type:'text',text:'This is a competitor PG pricing screenshot. Extract all payment method rates as JSON: {"rates":[{"method":"Credit Card","rate":1.75},{"method":"UPI","rate":0},{"method":"Net Banking","flat":10}]}. Return JSON only.'}
-        ]}],_RATES_SYSTEM,300);
+          {type:'text',text:'Extract all payment method rates from this competitor pricing screenshot.'}
+        ]}],imgSystem,300);
         t.remove();
         let parsed=[]; try{const d=JSON.parse(resp.match(/\{[\s\S]*\}/)?.[0]||'{}'); parsed=d.rates||[];}catch(e){}
         if(parsed.length>0){
           _state.data.compRates=parsed; _applyCompRates(parsed);
           const lines=parsed.map(r=>`${r.method}: <strong>${r.flat?`₹${r.flat}/txn`:`${r.rate}%`}</strong>`).join(' · ');
           _addMsg('assistant',`🎯 Competitor rates applied: ${lines}`,true);
-        } else { _addMsg('assistant',"Couldn't read rates from image — continuing."); }
-      }catch(e){t.remove(); _addMsg('assistant','Image parse error: '+e.message);}
+        } else { _addMsg('assistant',"Couldn't read rates from image — enter them manually if needed.",true); }
+      }catch(e){t.remove(); _addMsg('assistant',"Image couldn't be parsed — skip and enter rates manually.",true);}
     } else if(text&&!/^\s*no\b|skip|no comp|none/i.test(text)){
-      const t=_typing();
-      const compParsed=await _claudeExtractRates(text);
-      t.remove();
+      // Text → JS parser (fast, no API)
+      const compParsed=_parseRatesDirect(text);
       if(compParsed.length>0){
         _state.data.compRates=compParsed; _applyCompRates(compParsed);
         const lines=compParsed.map(r=>`${r.method}: <strong>${r.flat?`₹${r.flat}/txn`:`${r.rate}%`}</strong>`).join(' · ');
@@ -6636,16 +6679,22 @@ Rules:
     });
     kws.sort((a,b)=>a.start-b.start);
 
-    // Pass 3: for each % value, find nearest keyword
-    const pctRe=/(\d+\.?\d*)\s*%/g;
+    // Pass 3: for each % value, find nearest UNASSIGNED keyword
+    // % sign is optional — "1.85 on CC" and "1.85% on CC" both work
+    // Match: number optionally followed by %
+    const pctRe=/(\d+\.?\d*)\s*(%)?/g;
     let m;
     while((m=pctRe.exec(t))!==null){
       const val=parseFloat(m[1]);
-      if(val>10) continue; // ignore split percentages
+      const hasPct=!!m[2];
+      // Accept: has explicit % sign, OR value looks like an MDR rate (0.01–10 range)
+      if(!hasPct&&(val>10||val===0)) continue; // skip large numbers without %
+      if(val>10) continue; // ignore split percentages even with %
       const pStart=m.index, pEnd=m.index+m[0].length;
 
       let best=null, bestDist=Infinity;
       kws.forEach(kw=>{
+        if(seen.has(kw.method)) return; // skip already-assigned methods
         let dist;
         if(kw.end<=pStart)      dist=pStart-kw.end;          // keyword before %
         else if(kw.start>=pEnd) dist=kw.start-pEnd+60;       // keyword after % (penalised)
@@ -6662,58 +6711,69 @@ Rules:
   async function _handleOurRatesStep(text){
     if(/skip|manual/i.test(text)){ _applyBasicFields(); _finishSetup(false); return; }
 
-    const tp=_typing();
+    // ── Pure JS parsing — no API calls ──
+    // Detect if user accidentally gave competitor rates
+    const compKeywords=/cashfree|payu|paytm|phonepe|juspay|ccavenue|billdesk|stripe|\bcomp(?:etition|etitor)?\b|\btheir rates\b/i;
+    const isComp=compKeywords.test(text);
 
-    // Ask Claude to understand intent + extract rates in one shot
-    const intentSystem=`You are a Razorpay sales assistant. A sales rep is filling in a pricing proposal.
-We asked: "What rates do you want to OFFER this merchant?"
-The rep replied. Figure out:
-1. Did they accidentally give COMPETITION/COMPETITOR rates instead of their own? (look for words like "competition", "competitor", "comp", "their rates", "PhonePe", "Cashfree", "PayU", "Paytm", "Stripe" etc.)
-2. Extract the actual rates.
+    const jsParsed=_parseRatesDirect(text);
 
-Return ONLY valid JSON:
-{
-  "intent": "our_rates" | "competition_rates" | "both",
-  "our_rates": [{"method":"Credit Card","rate":1.8}, {"method":"UPI","rate":0.05}],
-  "comp_rates": [],
-  "note": "optional short explanation if something was unclear"
-}
-Method names to use: "Credit Card", "Debit Card lt2k", "Debit Card gt2k", "UPI", "Net Banking", "RuPay", "Wallets", "EMI", "Intl Card"
-rate = MDR percentage as a plain number. Use flat (not rate) for flat-fee methods.
-Ignore split percentages (70%, 60% etc.) — those are transaction share, not MDR rates.
-If rates are 0 ("free UPI") use rate:0.`;
-
-    let result={intent:'our_rates',our_rates:[],comp_rates:[]};
-    try{
-      const resp=await _callClaude([{role:'user',content:`Rep said: "${text}"`}],intentSystem,400);
-      tp.remove();
-      result=JSON.parse(resp.match(/\{[\s\S]*\}/)?.[0]||'{}');
-      result.our_rates=result.our_rates||[]; result.comp_rates=result.comp_rates||[];
-    }catch(e){tp.remove();}
-
-    // If it was competition rates — apply them and re-ask for our rates
-    if(result.intent==='competition_rates'||result.intent==='both'){
-      if(result.comp_rates.length){
-        _state.data.compRates=result.comp_rates; _applyCompRates(result.comp_rates);
-        const lines=result.comp_rates.map(r=>`${r.method}: <strong>${r.flat?`₹${r.flat}/txn`:`${r.rate}%`}</strong>`).join(' · ');
-        _addMsg('assistant',`🎯 Got it — applied as <strong>competition rates</strong>: ${lines}`,true);
-      }
-      if(result.intent==='competition_rates'){
-        // Still need our rates
-        _state.step=SETUP_STEPS.indexOf('ourRates'); // stay on this step
-        _ask(_md('Now, what rates do you want to **offer this merchant**?\n\nE.g. "1.8% CC, 0.05% UPI, 0.9% DC"'),['Skip — fill manually']);
-        return;
-      }
+    if(isComp&&jsParsed.length){
+      // User gave comp rates — apply and re-ask
+      _state.data.compRates=jsParsed; _applyCompRates(jsParsed);
+      const lines=jsParsed.map(r=>`${r.method}: <strong>${r.flat?`₹${r.flat}/txn`:`${r.rate}%`}</strong>`).join(' · ');
+      _addMsg('assistant',`🎯 Applied as <strong>competition rates</strong>: ${lines}`,true);
+      _state.step=SETUP_STEPS.indexOf('ourRates');
+      _ask(_md('Now, what rates do you want to **offer this merchant**?\n\nE.g. "1.8% CC, 0.05% UPI, 0.9% DC"'),['Skip — fill manually']);
+      return;
     }
 
-    const parsed=result.intent==='both'?result.our_rates:result.our_rates;
+    const parsed=jsParsed;
     if(!parsed.length){
-      _addMsg('assistant',"I couldn't find any MDR rates in that. Rates are like 1.8% CC, 0.05% UPI, ₹5 NB flat.",true);
+      _addMsg('assistant',"Hmm, I couldn't parse rates from that. Try something like: **1.8% CC, 0.05% UPI, 0.9% DC, ₹5 NB**",true);
       _ask('Try again — what rates to offer the merchant?',['Skip — fill manually']);
       _state.step=SETUP_STEPS.indexOf('ourRates');
       return;
     }
 
+    // ── DC Slab check: if user gave a generic DC rate without specifying lt2k/gt2k, ask ──
+    const hasGenericDC=parsed.some(r=>r.method==='Debit gt2k'||r.method==='Debit Card'||r.method==='Debit Card gt2k');
+    const hasLt2k=parsed.some(r=>r.method==='Debit lt2k'||r.method==='Debit Card lt2k');
+    const hasGt2k=parsed.some(r=>r.method==='Debit gt2k'||r.method==='Debit Card gt2k');
+    const hasSlabSplit=/lt\s*2k|<\s*2k|below|under|gt\s*2k|>\s*2k|above|over|slab/i.test(text);
+
+    if(hasGenericDC&&!hasLt2k&&!hasSlabSplit){
+      // User gave a single DC rate — ask if they want different slab rates
+      const dcRate=parsed.find(r=>/debit/i.test(r.method));
+      _state.data._pendingRates=parsed;
+      _state.briefWaiting='dcSlab';
+      _addMsg('assistant',`Got DC at <strong>${dcRate?.rate}%</strong> — do you want different rates for Debit Card below ₹2k vs above ₹2k?`,true);
+      _ask('',['Same rate for both slabs',`DC <₹2k = ${dcRate?.rate}%, DC >₹2k = ${dcRate?.rate}%`,'Enter different slab rates']);
+      // Override chip actions for slab decision
+      document.getElementById('ai-chips').querySelectorAll('button').forEach((btn,i)=>{
+        btn.onclick=async()=>{
+          _chips([]); _addMsg('user',btn.textContent); _state.briefWaiting=null;
+          const pending=_state.data._pendingRates||parsed;
+          if(btn.textContent.includes('Enter different')){
+            _state.data._pendingRates=pending;
+            _state.briefWaiting='dcSlabRates';
+            _ask('Enter the two DC rates:',['E.g. DC <2k = 0.9%, DC >2k = 1.5%']);
+            // override next input
+            const origWaiting='dcSlabRates';
+            _state._dcSlabPending=pending;
+            return;
+          }
+          // Same rate for both — apply as-is
+          await _applyAndFinishRates(pending);
+        };
+      });
+      return;
+    }
+
+    await _applyAndFinishRates(parsed);
+  }
+
+  async function _applyAndFinishRates(parsed){
     _applyOurRates(parsed); _state.data.ourRates=parsed;
 
     // Floor guardrail
@@ -6768,18 +6828,10 @@ If rates are 0 ("free UPI") use rate:0.`;
     if(/download|pdf/i.test(t)&&!/re.?download|past|previous/i.test(t)){ await _cmdDownloadPDF(false); return; }
     if(/approv/i.test(t)&&!/revamp/i.test(t)){ await _cmdDownloadPDF(false); return; } // approval is triggered by generateAndDownloadPDF if violations exist
     if(/revamp/i.test(t)){ await _cmdPricingRevamp(); return; }
-    // Claude classify fallback
-    const tp=_typing();
-    try{
-      const resp=await _callClaude([{role:'user',content:`User message: "${text}". They're on a pricing calculator. Classify intent: DOWNLOAD_PDF, PRICING_REVAMP, REDOWNLOAD, FILL_CALCULATOR. Return one word only.`}],'Return one word only.',30);
-      tp.remove();
-      const code=resp.trim().toUpperCase();
-      if(code==='DOWNLOAD_PDF'){ await _cmdDownloadPDF(false); }
-      else if(code==='PRICING_REVAMP'){ await _cmdPricingRevamp(); }
-      else if(code==='REDOWNLOAD'){ await _cmdRedownload(t); }
-      else if(code==='FILL_CALCULATOR'){ _state.mode='setup'; _state.step=0; _start(); }
-      else{ _addMsg('assistant','I can help with: Download PDF, Send for Approval, Pricing Revamp, or Re-download a past PDF.'); _backToCommands(); }
-    }catch(e){tp.remove(); _addMsg('assistant','Not sure what you need — pick from below.'); _backToCommands();}
+    // JS fallback — broader keyword matching
+    if(/download|pdf|print/i.test(t)){ await _cmdDownloadPDF(false); return; }
+    if(/new|reset|fresh|another|start/i.test(t)){ _state.mode='setup'; _state.step=0; _start(); return; }
+    _addMsg('assistant','Not sure what you need — pick from below.',true); _backToCommands();
   }
 
   // ── Download PDF — suppress all modals/alerts, show everything in chat ──
@@ -7077,10 +7129,14 @@ If rates are 0 ("free UPI") use rate:0.`;
   // APPLY HELPERS — Fixed to use real IDs and updateOutputs()
   // ================================================================
   function _parseGMV(text){
-    const t=(text||'').toLowerCase().replace(/,/g,'').replace(/₹/g,'');
-    const cr=t.match(/(\d+\.?\d*)\s*cr/); if(cr) return parseFloat(cr[1])*10000000;
-    const l=t.match(/(\d+\.?\d*)\s*l/); if(l) return parseFloat(l[1])*100000;
-    const r=t.match(/(\d+\.?\d*)/); if(r) return parseFloat(r[1]);
+    const t=(text||'').toLowerCase().replace(/,/g,'').replace(/₹/g,'').replace(/rs\.?/g,'');
+    // Must have explicit unit (cr/lakh/l/k) OR be a large raw number (>=10000)
+    const cr=t.match(/(\d+\.?\d*)\s*cr(?:ore)?s?/); if(cr) return parseFloat(cr[1])*10000000;
+    const lk=t.match(/(\d+\.?\d*)\s*(?:lakh?s?|lac)/); if(lk) return parseFloat(lk[1])*100000;
+    const lShort=t.match(/(\d+\.?\d*)\s*l(?!\w)/); if(lShort) return parseFloat(lShort[1])*100000;
+    const k=t.match(/(\d+\.?\d*)\s*k(?!\w)/); if(k) return parseFloat(k[1])*1000;
+    // Raw number — only accept if large enough to be a GMV (>=10000)
+    const r=t.match(/(\d{5,})/); if(r) return parseFloat(r[1]);
     return 0;
   }
   function _fmtGMV(g){ return g>=10000000?`₹${(g/10000000).toFixed(1)} Cr`:g>=100000?`₹${(g/100000).toFixed(0)}L`:`₹${(g||0).toLocaleString()}`; }
@@ -7105,25 +7161,59 @@ If rates are 0 ("free UPI") use rate:0.`;
   // Parse split from natural language directly — no Claude needed
   // Returns {idx: pct} map using METHODS array indices
   function _parseSplitDirect(text){
-    // METHODS indices: 0=CC, 1=DC≤2k, 2=DC>2k, 3=RuPay, 4=Corp, 5=Intl, 6=Amex, 7=EMI,
-    //                  8=UPI, 9=UPI-CC, 12=NB Major, 13=NB Others, 14=Wallets
+    // Keyword-nearest approach — works without delimiters (e.g. "60% UPI Dc20% CC 20%")
+    // METHODS indices: 0=CC, 1=DC≤2k, 2=DC>2k, 3=RuPay, 8=UPI, 12=NB, 13=NB Other, 14=Wallets
     const result={};
-    const segments=text.split(/[,;\/\n]+/);
-    segments.forEach(seg=>{
-      const pctMatch=seg.match(/(\d+\.?\d*)\s*%?/);
-      if(!pctMatch) return;
-      const pct=parseFloat(pctMatch[1]);
-      const s=seg.toLowerCase();
-      if(/\bupi\b/.test(s)&&!/wallet|cc/.test(s))          result[8]=pct;
-      else if(/credit|visa|master|\bcc\b/.test(s))          result[0]=pct;
-      else if(/debit.*(<=|lt|below|under|2k|2000)/.test(s)) result[1]=pct;
-      else if(/debit.*(>=|gt|above|over|2k|2000)/.test(s))  result[2]=pct;
-      else if(/debit|dc\b/.test(s)&&!/rupay/.test(s))       result[2]=pct; // default debit → gt2k
-      else if(/rupay/.test(s))                               result[3]=pct;
-      else if(/net.?bank.*other/.test(s))                    result[13]=pct;
-      else if(/net.?bank|nb\b/.test(s))                      result[12]=pct;
-      else if(/wallet/.test(s))                              result[14]=pct;
-      else if(/emi/.test(s))                                 result[7]=pct;
+    const t=text.toLowerCase();
+
+    // Method keyword → index mapping (specific before generic)
+    const SPLIT_KW=[
+      [/dc\s*(?:[<≤]|lt|below|under)\s*2k|debit\s*(?:lt|below|under)/g,[1]],
+      [/dc\s*(?:[>≥]|gt|above|over)\s*2k|debit\s*(?:gt|above|over)/g,[2]],
+      [/rupay/g,[3]],
+      [/net.?bank(?:\s*other|s\s*other)|nbo\b/g,[13]],
+      [/net.?bank|\bnb\b/g,[12]],
+      [/wallet/g,[14]],
+      [/\bupi\b/g,[8]],
+      [/credit|visa|master|\bcc\b/g,[0]],
+      [/\bdc\b|\bdebit\b/g,[1,2]], // generic DC → both slabs
+      [/\bemi\b/g,[7]],
+    ];
+
+    // Build keyword position list
+    const kws=[];
+    SPLIT_KW.forEach(([re,indices])=>{
+      re.lastIndex=0; let m;
+      while((m=re.exec(t))!==null) kws.push({indices,start:m.index,end:m.index+m[0].length,key:m[0]});
+    });
+    kws.sort((a,b)=>a.start-b.start);
+
+    // Build % position list (require explicit % sign)
+    const pcts=[];
+    const pctRe=/(\d+(?:\.\d+)?)\s*%/g; let pm;
+    while((pm=pctRe.exec(t))!==null){
+      const val=parseFloat(pm[1]);
+      if(val>0&&val<=100) pcts.push({val,start:pm.index,end:pm.index+pm[0].length});
+    }
+
+    // For each keyword, find nearest unused % (no penalty — "60% UPI" and "UPI 60%" are equally valid)
+    const usedPcts=new Set();
+    kws.forEach(kw=>{
+      // Skip if ANY of this keyword's indices are already assigned
+      // (prevents generic "DC" from stealing a % when "DC<2k" already claimed it)
+      if(kw.indices.some(i=>result[i]!==undefined)) return;
+      let bestIdx=null, bestDist=Infinity;
+      pcts.forEach((pct,i)=>{
+        if(usedPcts.has(i)) return;
+        const dist=pct.end<=kw.start ? kw.start-pct.end   // % before keyword
+                  :pct.start>=kw.end ? pct.start-kw.end   // % after keyword
+                  :0;                                       // overlapping (e.g. "Dc20%")
+        if(dist<bestDist){bestDist=dist; bestIdx=i;}
+      });
+      if(bestIdx!==null&&bestDist<80){
+        usedPcts.add(bestIdx);
+        kw.indices.forEach(i=>{ result[i]=pcts[bestIdx].val; });
+      }
     });
     return result;
   }
