@@ -535,5 +535,20 @@
     "teamGroup": "Competition Hunting",
     "versionGroup": null,
     "timestamp": 1783501711959
+  },
+  {
+    "requestId": "mrbuzu3wh7i6k6",
+    "fileName": "JPRPARK INFRA LLP-SzXnHsiOVrDMyz-Razorpay-Proposal.pdf",
+    "requesterEmail": "prerna.kumari@razorpay.com",
+    "merchantName": "JPRPARK INFRA LLP",
+    "status": "pending",
+    "resolvedAt": "",
+    "gmv": 20000000,
+    "slabLabel": "75L - 5Cr",
+    "driveLink": "https://drive.google.com/file/d/1jpoQyBFxAC4HpGfDqoA1vnvyETmLQwYx/view",
+    "violations": "Credit Cards (Visa / MC / RuPay): 1.10%; Debit Card (Txn > Rs.2,000): 0.80%; International Cards: 2.75%",
+    "teamGroup": "Competition Hunting",
+    "versionGroup": null,
+    "timestamp": 1783501929378
   }
 ]
