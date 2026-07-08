@@ -520,5 +520,20 @@
     "teamGroup": "Competition Hunting",
     "versionGroup": null,
     "timestamp": 1783418176200
+  },
+  {
+    "requestId": "mrbuv3xvxfwiph",
+    "fileName": "SzXnHsiOVrDMyz-SzXnHsiOVrDMyz-Razorpay-Proposal.pdf",
+    "requesterEmail": "prerna.kumari@razorpay.com",
+    "merchantName": "SzXnHsiOVrDMyz",
+    "status": "pending",
+    "resolvedAt": "",
+    "gmv": 20000000,
+    "slabLabel": "75L - 5Cr",
+    "driveLink": "https://drive.google.com/file/d/1er0SsY4fz2NUcGTbyM2GOWleF2KVdcSN/view",
+    "violations": "Credit Cards (Visa / MC / RuPay): 1.10%; Debit Card (Txn > Rs.2,000): 0.80%; International Cards: 2.75%",
+    "teamGroup": "Competition Hunting",
+    "versionGroup": null,
+    "timestamp": 1783501711959
   }
 ]
