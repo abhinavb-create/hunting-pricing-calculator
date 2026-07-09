@@ -163,5 +163,16 @@
     "resolvedAt": "",
     "teamGroup": "Competition Hunting",
     "timestamp": "2026-07-09T05:40:25.061Z"
+  },
+  {
+    "requestId": "fa_mrd9w7k3u5tler",
+    "merchantName": "OH BY OZY",
+    "requesterEmail": "anam.imteyaz@razorpay.com",
+    "versionIds": "dl_1783579733200",
+    "notes": "Please Note : Magic Checkout will be charged at 0.25% after  3 months free trial period",
+    "status": "pending",
+    "resolvedAt": "",
+    "teamGroup": "Shopify Hunting",
+    "timestamp": "2026-07-09T08:56:52.804Z"
   }
 ]
