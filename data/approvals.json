@@ -565,5 +565,20 @@
     "teamGroup": "Competition Hunting",
     "versionGroup": "ap_mr90p5gaoawmzy",
     "timestamp": 1783661546881
+  },
+  {
+    "requestId": "mrejzyudr528ng",
+    "fileName": "Agromech-Razorpay-Proposal.pdf",
+    "requesterEmail": "anam.imteyaz@razorpay.com",
+    "merchantName": "Agromech",
+    "status": "pending",
+    "resolvedAt": "",
+    "gmv": 2000000,
+    "slabLabel": "Upto 25 Lakhs",
+    "driveLink": "https://drive.google.com/file/d/10fQyAvI9N4AQucSK84JjepmgJa3xPFWq/view",
+    "violations": "Credit Cards (Visa / MC / RuPay): 1.90%; Debit Card (Txn <= Rs.2,000): 0.45%; Debit Card (Txn > Rs.2,000): 0.85%; Net Banking - Other Banks: 1.40%; Mobile Wallets: 1.70%",
+    "teamGroup": "Shopify Hunting",
+    "versionGroup": null,
+    "timestamp": 1783664855554
   }
 ]
