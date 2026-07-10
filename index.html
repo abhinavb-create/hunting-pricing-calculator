@@ -6,10 +6,10 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<!-- build: 20260710-v49 -->
+<!-- build: 20260710-v50 -->
 <script>
 (function(){
-  const BUILD='v49';
+  const BUILD='v50';
   const u=new URL(location.href);
   if(u.searchParams.get('b')!==BUILD){u.searchParams.set('b',BUILD);location.replace(u.toString());}
 })();
@@ -2889,7 +2889,7 @@ async function uploadToDrive(arrayBuffer,fileName,violations,requestId,merchantN
     ]);
     const driveLink=`https://drive.google.com/file/d/${file.id}/view`;
     // Log to Downloads sheet
-    await logDownloadToSheet({fileName,merchantName:merchantName||'',fileId:file.id,driveLink,hasViolations:!!(violations&&violations.length),requestId:requestId||''});
+    await logDownloadToSheet({fileName,merchantName:merchantName||'',fileId:file.id,driveLink,hasViolations:!!(violations&&violations.length),requestId:requestId||'',rowId:_currentDlRowId||undefined,teamGroup:currentUser?.teamGroup||'',versionGroup:_newVersionParentGroup||undefined});
     return{success:true,fileId:file.id,driveLink};
   }catch(e){
     console.error('[Drive] Upload error:',e);
@@ -2897,9 +2897,17 @@ async function uploadToDrive(arrayBuffer,fileName,violations,requestId,merchantN
   }
 }
 
-async function logDownloadToSheet({fileName,merchantName,fileId,driveLink,hasViolations,requestId}){
-  // Downloads logged to localStorage only — no sheet/GitHub write needed for downloads
-  // (cross-browser admin view only shows approvals, which are in GitHub)
+async function logDownloadToSheet({fileName,merchantName,fileId,driveLink,hasViolations,requestId,rowId,teamGroup,versionGroup}){
+  // Persist download record to GitHub so it survives cache clear / logout
+  try{
+    const rec={rowId:rowId||('dl_'+Date.now()),fileName,merchantName:merchantName||'',userEmail:currentUser?.email||'',userName:currentUser?.name||'',teamGroup:teamGroup||currentUser?.teamGroup||'',driveLink:driveLink||'',fileId:fileId||'',versionGroup:versionGroup||null,timestamp:Date.now()};
+    await _ghUpdate('data/downloads.json',existing=>{
+      const arr=Array.isArray(existing)?existing:[];
+      // De-duplicate by rowId
+      const filtered=arr.filter(d=>d.rowId!==rec.rowId);
+      return [rec,...filtered].slice(0,500);
+    },'Log download: '+merchantName);
+  }catch(e){console.warn('[Download] GitHub log failed:',e);}
 }
 
 // ================================================================
@@ -4622,10 +4630,17 @@ async function loadUserHistory(){
     // ── ADMIN PATH: read from GitHub JSON (cross-browser, no OAuth needed) ──
     downloads=localDls;
     try{
-      const[{data:ghAps},{data:ghGrpMap}]=await Promise.all([
+      const[{data:ghAps},{data:ghGrpMap},{data:ghDls}]=await Promise.all([
         _ghRead('data/approvals.json'),
         _ghRead('data/group-map.json'),
+        _ghRead('data/downloads.json'),
       ]);
+      // Merge GitHub downloads with local (for full cross-browser admin view)
+      if(ghDls&&ghDls.length){
+        const localIds=new Set(localDls.map(d=>d.rowId));
+        const ghOnly=ghDls.filter(d=>!localIds.has(d.rowId)).map(d=>({...d,statusKey:'downloaded',type:'download',snapshot:null}));
+        if(ghOnly.length) downloads=[...localDls,...ghOnly];
+      }
       // Merge GitHub group map into local — GitHub wins for cross-browser sync
       if(ghGrpMap&&typeof ghGrpMap==='object'){
         Object.assign(statsGroupMap,ghGrpMap);
@@ -4649,7 +4664,21 @@ async function loadUserHistory(){
     downloads=localDls.filter(d=>d.userEmail===userEmail);
     const localAps=JSON.parse(localStorage.getItem('rzp_pending_approvals')||'[]');
     try{
-      const{data:ghAps}=await _ghRead('data/approvals.json');
+      const[{data:ghAps},{data:ghDls}]=await Promise.all([
+        _ghRead('data/approvals.json'),
+        _ghRead('data/downloads.json'),
+      ]);
+      // Revive downloads from GitHub (survives cache clear)
+      if(ghDls&&ghDls.length){
+        const myGhDls=ghDls.filter(g=>g.userEmail===userEmail);
+        const localDlIds=new Set(downloads.map(d=>d.rowId));
+        const revived=myGhDls.filter(g=>!localDlIds.has(g.rowId)).map(g=>({...g,statusKey:'downloaded',type:'download',snapshot:null}));
+        if(revived.length){
+          const merged=[...downloads,...revived];
+          localStorage.setItem('rzp_downloads',JSON.stringify(merged.slice(0,200)));
+          downloads=merged;
+        }
+      }
       if(ghAps&&ghAps.length){
         // Sync statuses for existing local records
         let changed=false;
