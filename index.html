@@ -6,10 +6,10 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<!-- build: 20260710-v50 -->
+<!-- build: 20260710-v51 -->
 <script>
 (function(){
-  const BUILD='v50';
+  const BUILD='v51';
   const u=new URL(location.href);
   if(u.searchParams.get('b')!==BUILD){u.searchParams.set('b',BUILD);location.replace(u.toString());}
 })();
@@ -4751,12 +4751,29 @@ async function loadUserHistory(){
   const merged=[...dlRows,...apRows].sort((a,b)=>b.rawDate.localeCompare(a.rawDate));
 
   // Version assignment: manual group, or versionGroup linking parent↔child
-  // Step 0: for any row whose rowId is referenced as another row's versionGroup, give it the same group key
+  // Step 0a: for any row whose rowId is referenced as another row's versionGroup, give it the same group key
   const allVersionGroups=new Set(merged.map(r=>r.group).filter(Boolean));
   merged.forEach(r=>{
     if(!r.group && allVersionGroups.has(r.rowId)){
       r.group=r.rowId; // parent row gets its own rowId as group key
     }
+  });
+  // Step 0b: auto-group rows with the same merchant name that have no explicit group
+  // (handles cases where v2 was submitted fresh, not via "New Version" button)
+  const byMerchant={};
+  merged.forEach(r=>{
+    if(r.group) return; // already grouped — skip
+    const mKey=(r.merchantName||'').toLowerCase().trim();
+    if(!mKey) return;
+    if(!byMerchant[mKey]) byMerchant[mKey]=[];
+    byMerchant[mKey].push(r);
+  });
+  Object.entries(byMerchant).forEach(([mKey,rows])=>{
+    if(rows.length<2) return; // only one row for this merchant — leave standalone
+    // Use the earliest rowId as the canonical group key
+    const sorted=[...rows].sort((a,b)=>a.rawDate.localeCompare(b.rawDate));
+    const groupKey=sorted[0].rowId;
+    sorted.forEach(r=>{r.group=groupKey;});
   });
   const groupedRows={};
   merged.forEach(r=>{
