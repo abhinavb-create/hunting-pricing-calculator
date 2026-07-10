@@ -595,5 +595,20 @@
     "teamGroup": "Shopify Hunting",
     "versionGroup": null,
     "timestamp": 1783664890509
+  },
+  {
+    "requestId": "mreu03q0owlx1u",
+    "fileName": "Tulsyan Impex Pvt Limited-DMNyBXwtVij0iw-Razorpay-Proposal.pdf",
+    "requesterEmail": "prerna.kumari@razorpay.com",
+    "merchantName": "Tulsyan Impex Pvt Limited",
+    "status": "pending",
+    "resolvedAt": "",
+    "gmv": 2500000,
+    "slabLabel": "Upto 25 Lakhs",
+    "driveLink": "https://drive.google.com/file/d/1w5_eo-HiqyXIl7-Q8K2izyDnBROrsLMP/view",
+    "violations": "Credit Cards (Visa / MC / RuPay): 1.90%; Debit Card (Txn <= Rs.2,000): 0.45%; Debit Card (Txn > Rs.2,000): 0.85%; Net Banking - Other Banks: 1.40%; Mobile Wallets: 1.70%",
+    "teamGroup": "Competition Hunting",
+    "versionGroup": null,
+    "timestamp": 1783681663332
   }
 ]
