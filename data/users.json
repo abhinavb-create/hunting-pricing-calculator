@@ -102,5 +102,13 @@
     "registeredAt": "2026-06-23T06:33:52.985Z",
     "lastSeen": "2026-06-24T11:48:20.919Z",
     "status": "active"
+  },
+  {
+    "email": "milind.singhbora@razorpay.com",
+    "name": "Milind Singh Bora",
+    "teamGroup": "Competition Hunting",
+    "registeredAt": "2026-07-10T08:21:38.707Z",
+    "lastSeen": "2026-07-10T08:21:38.707Z",
+    "status": "pending"
   }
 ]
