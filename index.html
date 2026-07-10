@@ -6,10 +6,10 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<!-- build: 20260706-v48 -->
+<!-- build: 20260710-v49 -->
 <script>
 (function(){
-  const BUILD='v48';
+  const BUILD='v49';
   const u=new URL(location.href);
   if(u.searchParams.get('b')!==BUILD){u.searchParams.set('b',BUILD);location.replace(u.toString());}
 })();
@@ -4544,6 +4544,8 @@ function saveGroup(){
   if(val) statsGroupMap[_groupEditRowId]=val;
   else delete statsGroupMap[_groupEditRowId];
   localStorage.setItem('rzp_group_map',JSON.stringify(statsGroupMap));
+  // Persist group map to GitHub so it's cross-browser
+  (async()=>{try{await _ghUpdate('data/group-map.json',existing=>{const m=existing&&typeof existing==='object'?{...existing}:{};if(val) m[_groupEditRowId]=val; else delete m[_groupEditRowId]; return m;},'Update version group map');}catch(e){console.warn('[GroupMap] GitHub sync failed:',e);}})();
   // Re-assign versions
   statsAllRows.forEach(r=>{if(r.rowId===_groupEditRowId) r.group=val||'';});
   const groupedRows={};
@@ -4620,7 +4622,15 @@ async function loadUserHistory(){
     // ── ADMIN PATH: read from GitHub JSON (cross-browser, no OAuth needed) ──
     downloads=localDls;
     try{
-      const{data:ghAps}=await _ghRead('data/approvals.json');
+      const[{data:ghAps},{data:ghGrpMap}]=await Promise.all([
+        _ghRead('data/approvals.json'),
+        _ghRead('data/group-map.json'),
+      ]);
+      // Merge GitHub group map into local — GitHub wins for cross-browser sync
+      if(ghGrpMap&&typeof ghGrpMap==='object'){
+        Object.assign(statsGroupMap,ghGrpMap);
+        localStorage.setItem('rzp_group_map',JSON.stringify(statsGroupMap));
+      }
       approvals=(ghAps||[]).map(r=>({
         ...r,
         timestamp:r.timestamp||Date.now(),
