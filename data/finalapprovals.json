@@ -207,5 +207,16 @@
     "resolvedAt": "",
     "teamGroup": "Shopify Hunting",
     "timestamp": "2026-07-13T05:40:49.733Z"
+  },
+  {
+    "requestId": "fa_mrj7140e5hu6vw",
+    "merchantName": "ALGORUN TECHNOLOGIES (OPC) PRIVATE LIMITED",
+    "requesterEmail": "chandel.yajat@razorpay.com",
+    "versionIds": "dl_1783945363764",
+    "notes": "",
+    "status": "pending",
+    "resolvedAt": "",
+    "teamGroup": "Competition Hunting",
+    "timestamp": "2026-07-13T12:23:19.695Z"
   }
 ]
