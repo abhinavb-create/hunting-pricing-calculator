@@ -196,5 +196,16 @@
     "resolvedAt": "",
     "teamGroup": "Competition Hunting",
     "timestamp": "2026-07-13T05:30:24.427Z"
+  },
+  {
+    "requestId": "fa_mrisnhs4yu8uix",
+    "merchantName": "OH BY OZY",
+    "requesterEmail": "anam.imteyaz@razorpay.com",
+    "versionIds": "dl_1783579733200",
+    "notes": "",
+    "status": "pending",
+    "resolvedAt": "",
+    "teamGroup": "Shopify Hunting",
+    "timestamp": "2026-07-13T05:40:49.733Z"
   }
 ]
