@@ -6,10 +6,10 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<!-- build: 20260710-v53 -->
+<!-- build: 20260710-v54 -->
 <script>
 (function(){
-  const BUILD='v53';
+  const BUILD='v54';
   const u=new URL(location.href);
   if(u.searchParams.get('b')!==BUILD){u.searchParams.set('b',BUILD);location.replace(u.toString());}
 })();
@@ -3051,21 +3051,6 @@ async function submitAccessRequest(team){
   document.querySelectorAll('#request-access-screen button[onclick^="submitAccessRequest"]').forEach(b=>{b.disabled=true;b.classList.add('opacity-50');});
   const statusEl=document.getElementById('ra-status');
   if(statusEl) statusEl.textContent='Sending request…';
-  // Partnership team: auto-approve, no admin sign-off needed
-  if(team==='Partnership'){
-    currentUser.teamGroup=team;
-    currentUser.accessStatus='active';
-    localStorage.setItem('rzp_user',JSON.stringify(currentUser));
-    const now=new Date().toISOString();
-    _ghUpdate('data/users.json',arr=>{
-      const a=[...(arr||[])];const idx=a.findIndex(x=>x.email===currentUser.email);
-      if(idx>=0){a[idx]={...a[idx],teamGroup:team,status:'active',lastSeen:now};}
-      else{a.push({email:currentUser.email,name:currentUser.name||'',teamGroup:team,registeredAt:now,lastSeen:now,status:'active'});}
-      return a;
-    },'auto-approve partnership: '+currentUser.email).catch(()=>{});
-    showMainApp();
-    return;
-  }
   // Save team + pending status BEFORE OAuth — so refresh always shows pending screen
   currentUser.teamGroup=team;
   currentUser.accessStatus='pending';
