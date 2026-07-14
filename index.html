@@ -6,10 +6,10 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<!-- build: 20260714-v58 -->
+<!-- build: 20260714-v59 -->
 <script>
 (function(){
-  const BUILD='v58';
+  const BUILD='v59';
   const u=new URL(location.href);
   if(u.searchParams.get('b')!==BUILD){u.searchParams.set('b',BUILD);location.replace(u.toString());}
 })();
@@ -1989,12 +1989,19 @@ function _openPdfModal(){
   const _alreadyApproved=!!_approvedRequestId&&_localAps.some(a=>a.status==='approved'&&a.requestId===_approvedRequestId);
 
   // Check floor violations and populate approval section (admins/ops/partnership bypass approval)
-  const violations=(isAdminOrCoAdmin()||currentUser?.teamGroup==='Partnership')?[]:getFloorViolations(activeTab,gmv);
+  const _isBypassUser=isAdminOrCoAdmin()||currentUser?.teamGroup==='Partnership';
+  const violations=_isBypassUser?[]:getFloorViolations(activeTab,gmv);
+  // Negative NR always requires approval even with no floor violations
+  const _pgNRModal=computePGNR(activeTab,gmv);
+  const _negativeNRModal=!_isBypassUser&&_pgNRModal<0;
+  const _needsApproval=(violations.length>0||_negativeNRModal)&&!_alreadyApproved;
   const approvalSection=document.getElementById('pdf-approval-section');
   const violationsDiv=document.getElementById('pdf-approval-violations');
-  if(violations.length>0&&!_alreadyApproved&&approvalSection&&violationsDiv){
+  if(_needsApproval&&approvalSection&&violationsDiv){
     approvalSection.classList.remove('hidden');
-    violationsDiv.innerHTML=violations.map(v=>`<div>• ${v.label}: ${v.rate.toFixed(2)}%</div>`).join('');
+    const vlItems=violations.map(v=>`<div>• ${v.label}: ${v.rate.toFixed(2)}%</div>`);
+    if(_negativeNRModal) vlItems.unshift(`<div>• Negative Net Revenue: Rs.${Math.round(_pgNRModal).toLocaleString('en-IN')}</div>`);
+    violationsDiv.innerHTML=vlItems.join('');
     // Show correct approver name based on user's team
     const approverNameEl=document.getElementById('pdf-approver-name');
     if(approverNameEl){
@@ -2006,7 +2013,7 @@ function _openPdfModal(){
   } else if(approvalSection){
     approvalSection.classList.add('hidden');
     // If approved, show a green notice and update button
-    if(violations.length>0&&_alreadyApproved&&queuedEl){
+    if((violations.length>0||_negativeNRModal)&&_alreadyApproved&&queuedEl){
       queuedEl.textContent='✅ Rates approved — click Download to get your PDF.';
       queuedEl.className='bg-green-50 border border-green-300 rounded-lg px-3 py-2 text-xs text-green-800 font-semibold';
       queuedEl.classList.remove('hidden');
@@ -2524,7 +2531,11 @@ async function generateAndDownloadPDF(){
     const fileName=mid?`${name}-${mid}-Razorpay-Proposal.pdf`:`${name}-Razorpay-Proposal.pdf`;
 
     // Check for floor violations (admins/ops/partnership bypass approval)
-    const violations=(isAdminOrCoAdmin()||currentUser?.teamGroup==='Partnership')?[]:getFloorViolations(tab,gmv);
+    const isBypassUser=isAdminOrCoAdmin()||currentUser?.teamGroup==='Partnership';
+    const violations=isBypassUser?[]:getFloorViolations(tab,gmv);
+    // Negative NR always requires approval — even if no floor violations
+    const _pgNRCheck=computePGNR(tab,gmv);
+    const _negativeNR=!isBypassUser&&_pgNRCheck<0;
     const requesterEmail=document.getElementById('pdf-requester-email')?.value.trim()||currentUser?.email||'';
     const pdfBuffer=doc.output('arraybuffer');
 
@@ -2535,7 +2546,7 @@ async function generateAndDownloadPDF(){
 
     if(driveEl){driveEl.classList.remove('hidden');driveEl.innerHTML='<span class="text-gray-400">☁️ Uploading to Drive...</span>';}
 
-    if(violations.length>0&&!_alreadyApprovedGen){
+    if((violations.length>0||_negativeNR)&&!_alreadyApprovedGen){
       // ── APPROVAL FLOW: don't download yet ──
       isQueued=true;
       const requestId=genRequestId();
@@ -2637,7 +2648,8 @@ async function generateAndDownloadPDF(){
         if(idx>=0){localDls[idx].snapshot=snap;localDls[idx].fileName=fileName;localStorage.setItem('rzp_downloads',JSON.stringify(localDls));}
       }
       const rowIdForDrive=_currentDlRowId;
-      uploadToDrive(pdfBuffer,fileName,[],null,name).then(result=>{
+      const snapForDrive=snap;
+      uploadToDrive(pdfBuffer,fileName,[],null,name,rowIdForDrive,snapForDrive).then(result=>{
         if(driveEl){
           if(result.success) driveEl.innerHTML='✅ <span class="text-green-600 font-medium">Saved to Razorpay Drive</span>';
           else driveEl.innerHTML='<span class="text-amber-500">⚠️ Drive save failed — PDF downloaded locally</span>';
@@ -2854,7 +2866,7 @@ async function getOrCreateDriveFolder(){
   return _driveFolderId;
 }
 
-async function uploadToDrive(arrayBuffer,fileName,violations,requestId,merchantName){
+async function uploadToDrive(arrayBuffer,fileName,violations,requestId,merchantName,dlRowId,dlSnapshot){
   try{
     const tok=await _getToken(false);
     if(!tok.success) return{success:false,error:'No token'};
@@ -2904,7 +2916,7 @@ async function uploadToDrive(arrayBuffer,fileName,violations,requestId,merchantN
     ]);
     const driveLink=`https://drive.google.com/file/d/${file.id}/view`;
     // Log to Downloads sheet
-    await logDownloadToSheet({fileName,merchantName:merchantName||'',fileId:file.id,driveLink,hasViolations:!!(violations&&violations.length),requestId:requestId||'',rowId:_currentDlRowId||undefined,teamGroup:currentUser?.teamGroup||'',versionGroup:_newVersionParentGroup||undefined});
+    await logDownloadToSheet({fileName,merchantName:merchantName||'',fileId:file.id,driveLink,hasViolations:!!(violations&&violations.length),requestId:requestId||'',rowId:dlRowId||_currentDlRowId||undefined,teamGroup:currentUser?.teamGroup||'',versionGroup:_newVersionParentGroup||undefined,snapshot:dlSnapshot||null});
     return{success:true,fileId:file.id,driveLink};
   }catch(e){
     console.error('[Drive] Upload error:',e);
@@ -2912,10 +2924,10 @@ async function uploadToDrive(arrayBuffer,fileName,violations,requestId,merchantN
   }
 }
 
-async function logDownloadToSheet({fileName,merchantName,fileId,driveLink,hasViolations,requestId,rowId,teamGroup,versionGroup}){
+async function logDownloadToSheet({fileName,merchantName,fileId,driveLink,hasViolations,requestId,rowId,teamGroup,versionGroup,snapshot}){
   // Persist download record to GitHub so it survives cache clear / logout
   try{
-    const rec={rowId:rowId||('dl_'+Date.now()),fileName,merchantName:merchantName||'',userEmail:currentUser?.email||'',userName:currentUser?.name||'',teamGroup:teamGroup||currentUser?.teamGroup||'',driveLink:driveLink||'',fileId:fileId||'',versionGroup:versionGroup||null,timestamp:Date.now()};
+    const rec={rowId:rowId||('dl_'+Date.now()),fileName,merchantName:merchantName||'',userEmail:currentUser?.email||'',userName:currentUser?.name||'',teamGroup:teamGroup||currentUser?.teamGroup||'',driveLink:driveLink||'',fileId:fileId||'',versionGroup:versionGroup||null,snapshot:snapshot||null,timestamp:Date.now()};
     await _ghUpdate('data/downloads.json',existing=>{
       const arr=Array.isArray(existing)?existing:[];
       // De-duplicate by rowId
@@ -5161,6 +5173,12 @@ async function _resolveSnap(rowId){
     const{data:ghAps}=await _ghRead('data/approvals.json');
     const gh=(ghAps||[]).find(g=>'ap_'+g.requestId===rowId||g.requestId===reqId||g.requestId===rowId);
     if(gh?.snapshot){if(!window._snapCache) window._snapCache={};window._snapCache[rowId]=gh.snapshot;return gh.snapshot;}
+  }catch(e){}
+  // 5b. GitHub downloads.json (for download-type rows)
+  try{
+    const{data:ghDls}=await _ghRead('data/downloads.json');
+    const ghDl=(ghDls||[]).find(g=>g.rowId===rowId);
+    if(ghDl?.snapshot){if(!window._snapCache) window._snapCache={};window._snapCache[rowId]=ghDl.snapshot;return ghDl.snapshot;}
   }catch(e){}
   // 6. GitHub finalapprovals.json
   try{
