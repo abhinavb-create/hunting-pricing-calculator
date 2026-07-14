@@ -6,10 +6,10 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<!-- build: 20260714-v63 -->
+<!-- build: 20260714-v64 -->
 <script>
 (function(){
-  const BUILD='v63';
+  const BUILD='v64';
   const u=new URL(location.href);
   if(u.searchParams.get('b')!==BUILD){u.searchParams.set('b',BUILD);location.replace(u.toString());}
 })();
@@ -35,7 +35,7 @@
   .method-row-blocked{opacity:.4;pointer-events:none;background:#fff5f5;}
   .method-row-conditional{background:#fffbeb;}
   .mcc-blocked-badge{display:inline-block;margin-left:6px;padding:1px 6px;border-radius:999px;background:#ffe3e3;color:#c92a2a;font-size:10px;font-weight:700;border:1px solid #fa5252;vertical-align:middle;}
-  .mcc-cond-badge{display:inline-block;margin-left:6px;padding:1px 6px;border-radius:999px;background:#fef3c7;color:#92400e;font-size:10px;font-weight:700;border:1px solid #fcd34d;vertical-align:middle;}
+  .mcc-cond-badge{display:inline-block;margin-left:6px;padding:2px 7px;border-radius:999px;background:#fef3c7;color:#92400e;font-size:9.5px;font-weight:700;border:1px solid #fcd34d;vertical-align:middle;cursor:help;}
   input[type=number]::-webkit-inner-spin-button{opacity:.4;}
   .pdf-btn{background:linear-gradient(135deg,#3b5bdb,#7048e8);}
   .pdf-btn:hover{opacity:.9;}
@@ -313,7 +313,7 @@
         <input id="merchant-mcc" type="text" maxlength="4" placeholder="e.g. 5411"
           class="w-full px-3 py-2.5 border-2 border-gray-200 rounded-xl text-gray-800 font-bold text-sm focus:outline-none focus:border-blue-500 transition"
           oninput="this.value=this.value.replace(/\D/g,'').slice(0,4);applyMCCRestrictions();">
-        <div id="mcc-info-badge" class="text-xs mt-1 font-semibold truncate" style="min-height:16px;"></div>
+        <div id="mcc-info-badge" class="text-xs mt-1 font-semibold leading-snug" style="min-height:16px;max-width:320px;"></div>
       </div>
       <div class="flex-1 min-w-44">
         <label class="block text-xs font-semibold text-gray-500 mb-1.5">Monthly GMV (₹) <span class="text-red-400">*</span></label>
@@ -1260,9 +1260,9 @@ function applyMCCRestrictions(){
   const {entry,blockedIds,conditionalIds}=info;
   const parts=[];
   if(entry.blocked?.length) parts.push(`🚫 Blocked: ${entry.blocked.join(', ')}`);
-  if(entry.conditional?.length) parts.push(`⚠ Reg-dep: ${entry.conditional.join(', ')}`);
+  if(entry.conditional?.length) parts.push(`⚠ Not available for unregistered merchants: ${entry.conditional.join(', ')}`);
   if(infoEl){
-    infoEl.textContent=`${entry.sub} — ${parts.join(' | ')}`;
+    infoEl.innerHTML=`<span style="color:#6b7280">MCC ${mcc} · ${entry.sub}</span><br>${parts.join('<br>')}`;
     infoEl.style.color=entry.blocked?.length?'#c92a2a':'#92400e';
   }
   document.querySelectorAll('.method-row[data-method-id]').forEach(tr=>{
@@ -1279,7 +1279,7 @@ function applyMCCRestrictions(){
       tr.classList.add('method-row-conditional');
       if(firstTd&&!firstTd.querySelector('.mcc-cond-badge')){
         const b=document.createElement('span');b.className='mcc-cond-badge';
-        b.title='May be restricted for Unreg/No-website merchants for MCC '+mcc;b.textContent='⚠ Reg-dep';
+        b.title='This method may NOT be available for Unregistered merchants or merchants without a website for MCC '+mcc+' ('+entry.sub+'). Confirm with your banking team before including.';b.textContent='⚠ Check eligibility';
         firstTd.appendChild(b);
       }
     }
