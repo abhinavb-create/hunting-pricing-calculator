@@ -6,10 +6,10 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<!-- build: 20260713-v55 -->
+<!-- build: 20260714-v56 -->
 <script>
 (function(){
-  const BUILD='v55';
+  const BUILD='v56';
   const u=new URL(location.href);
   if(u.searchParams.get('b')!==BUILD){u.searchParams.set('b',BUILD);location.replace(u.toString());}
 })();
@@ -2571,6 +2571,7 @@ async function generateAndDownloadPDF(){
           versionGroup,
           fileId,driveLink,fileName,
           pdfBuffer,
+          snapshot:snapshotCalculatorState(),
         });
         if(driveEl){
           if(approvalResult.success) driveEl.innerHTML='<span class="text-green-600">✅ Queued & approval email sent</span>';
@@ -2805,9 +2806,13 @@ function startNewVersion(rowId, parentGroup, snapJSON){
 }
 
 // Wrapper that reads snapshot from side-cache instead of inline onclick arg
-function startNewVersionFromCache(rowId, parentGroup){
+async function startNewVersionFromCache(rowId, parentGroup){
   const pg=parentGroup?decodeURIComponent(parentGroup):rowId;
-  const snap=window._snapCache?window._snapCache[rowId]:null;
+  // Try in-memory cache first, then all fallbacks (localStorage, GitHub, etc.)
+  let snap=window._snapCache?.[rowId]||null;
+  if(!snap){
+    try{snap=await _resolveSnap(rowId);}catch(e){}
+  }
   const snapJSON=snap?JSON.stringify(snap):null;
   startNewVersion(rowId, pg, snapJSON?encodeURIComponent(snapJSON):null);
 }
@@ -4019,10 +4024,10 @@ async function _syncPendingApprovals(){
 }
 
 // ── Write approval row directly to Google Sheet ────────────────────────
-async function logApprovalToSheet({requestId,fileName,requesterEmail,merchantName,gmv,slabLabel,driveLink,violations,teamGroup,versionGroup}){
+async function logApprovalToSheet({requestId,fileName,requesterEmail,merchantName,gmv,slabLabel,driveLink,violations,teamGroup,versionGroup,snapshot}){
   try{
     const violText=(violations||[]).map(v=>v.label+': '+Number(v.rate).toFixed(2)+'%').join('; ');
-    const record={requestId,fileName,requesterEmail,merchantName,status:'pending',resolvedAt:'',gmv:gmv||0,slabLabel:slabLabel||'',driveLink:driveLink||'',violations:violText,teamGroup:teamGroup||'',versionGroup:versionGroup||null,timestamp:Date.now()};
+    const record={requestId,fileName,requesterEmail,merchantName,status:'pending',resolvedAt:'',gmv:gmv||0,slabLabel:slabLabel||'',driveLink:driveLink||'',violations:violText,teamGroup:teamGroup||'',versionGroup:versionGroup||null,snapshot:snapshot||null,timestamp:Date.now()};
     await _ghUpdate('data/approvals.json',arr=>{
       const a=[...(arr||[])];
       const idx=a.findIndex(x=>x.requestId===requestId);
@@ -4169,14 +4174,14 @@ async function runEmailTest(){
   alert('Email Test:\n\n'+(result.success?'✅ Sent! Check your inbox.':'❌ Failed: '+result.error));
 }
 
-async function requestApproval({requestId,requesterEmail,requesterName,merchantName,gmv,slabLabel,violations,positiveNRMethods,pgNR,settleNR,effectiveNR,versionGroup,fileId,driveLink,fileName,pdfBuffer}){
+async function requestApproval({requestId,requesterEmail,requesterName,merchantName,gmv,slabLabel,violations,positiveNRMethods,pgNR,settleNR,effectiveNR,versionGroup,fileId,driveLink,fileName,pdfBuffer,snapshot}){
   const teamGroup=currentUser?.teamGroup||'';
   const base='https://abhinavb-create.github.io/hunting-pricing-calculator/';
   const approveUrl=base+'?action=approve&requestId='+requestId+'&merchant='+encodeURIComponent(merchantName);
   const rejectUrl=base+'?action=reject&requestId='+requestId+'&merchant='+encodeURIComponent(merchantName);
 
-  // 1. Log to GitHub (includes versionGroup for cross-browser versioning)
-  await logApprovalToSheet({requestId,fileName,requesterEmail,merchantName,gmv,slabLabel,driveLink,violations,teamGroup,versionGroup});
+  // 1. Log to GitHub (includes versionGroup + snapshot for cross-browser versioning and new-version restore)
+  await logApprovalToSheet({requestId,fileName,requesterEmail,merchantName,gmv,slabLabel,driveLink,violations,teamGroup,versionGroup,snapshot});
 
   // 2. Send HTML approval email with PDF attached directly (bypasses Drive access issues)
   const htmlBody=buildApprovalEmailHtml({
