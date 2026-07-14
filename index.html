@@ -6,10 +6,10 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<!-- build: 20260714-v64 -->
+<!-- build: 20260714-v65 -->
 <script>
 (function(){
-  const BUILD='v64';
+  const BUILD='v65';
   const u=new URL(location.href);
   if(u.searchParams.get('b')!==BUILD){u.searchParams.set('b',BUILD);location.replace(u.toString());}
 })();
@@ -503,37 +503,44 @@
           <span class="text-sm font-bold text-orange-800">Option C — UPI Autopay</span>
         </label>
         <div class="flex flex-wrap gap-4 items-start">
-          <div class="min-w-36">
-            <label class="block text-xs font-semibold text-gray-500 mb-1">Registration Fee (₹)</label>
-            <input id="recur-upi-reg" type="number" value="10" min="0" step="1"
-              class="w-full px-3 py-2 border-2 border-orange-200 rounded-lg text-gray-800 font-bold text-sm focus:outline-none focus:border-orange-500"
-              oninput="onRecurChange()">
+          <!-- Header row -->
+          <div class="w-full grid gap-1" style="grid-template-columns:80px 100px 100px">
+            <span class="text-xs font-semibold text-gray-500 text-center">Txn Value</span>
+            <span class="text-xs font-semibold text-orange-700 text-center">Registration (₹)</span>
+            <span class="text-xs font-semibold text-orange-700 text-center">Auto-debit (₹)</span>
           </div>
-          <div class="min-w-52">
-            <label class="block text-xs font-semibold text-gray-500 mb-1">Auto-debit by Txn Value (₹ flat/txn)</label>
-            <div class="space-y-1.5">
-              <div class="flex items-center gap-2">
-                <span class="text-xs text-gray-500 w-20 shrink-0">₹0–250</span>
-                <input id="recur-upi-t1" type="number" value="5" min="0" step="1"
-                  class="w-20 px-2 py-1.5 border-2 border-orange-200 rounded-lg text-gray-800 font-bold text-xs focus:outline-none focus:border-orange-500"
-                  oninput="onRecurChange()">
-              </div>
-              <div class="flex items-center gap-2">
-                <span class="text-xs text-gray-500 w-20 shrink-0">₹250–1000</span>
-                <input id="recur-upi-t2" type="number" value="8" min="0" step="1"
-                  class="w-20 px-2 py-1.5 border-2 border-orange-200 rounded-lg text-gray-800 font-bold text-xs focus:outline-none focus:border-orange-500"
-                  oninput="onRecurChange()">
-              </div>
-              <div class="flex items-center gap-2">
-                <span class="text-xs text-gray-500 w-20 shrink-0">&gt;₹1000</span>
-                <input id="recur-upi-t3" type="number" value="18" min="0" step="1"
-                  class="w-20 px-2 py-1.5 border-2 border-orange-200 rounded-lg text-gray-800 font-bold text-xs focus:outline-none focus:border-orange-500"
-                  oninput="onRecurChange()">
-              </div>
+          <!-- Tier rows -->
+          <div class="w-full space-y-1.5">
+            <div class="grid items-center gap-1" style="grid-template-columns:80px 100px 100px">
+              <span class="text-xs text-gray-500 font-semibold">₹0–250</span>
+              <input id="recur-upi-reg1" type="number" value="2" min="0" step="1"
+                class="px-2 py-1.5 border-2 border-orange-200 rounded-lg text-gray-800 font-bold text-xs focus:outline-none focus:border-orange-500 text-center"
+                oninput="onRecurChange()">
+              <input id="recur-upi-t1" type="number" value="5" min="0" step="1"
+                class="px-2 py-1.5 border-2 border-orange-200 rounded-lg text-gray-800 font-bold text-xs focus:outline-none focus:border-orange-500 text-center"
+                oninput="onRecurChange()">
+            </div>
+            <div class="grid items-center gap-1" style="grid-template-columns:80px 100px 100px">
+              <span class="text-xs text-gray-500 font-semibold">₹250–1000</span>
+              <input id="recur-upi-reg2" type="number" value="7" min="0" step="1"
+                class="px-2 py-1.5 border-2 border-orange-200 rounded-lg text-gray-800 font-bold text-xs focus:outline-none focus:border-orange-500 text-center"
+                oninput="onRecurChange()">
+              <input id="recur-upi-t2" type="number" value="8" min="0" step="1"
+                class="px-2 py-1.5 border-2 border-orange-200 rounded-lg text-gray-800 font-bold text-xs focus:outline-none focus:border-orange-500 text-center"
+                oninput="onRecurChange()">
+            </div>
+            <div class="grid items-center gap-1" style="grid-template-columns:80px 100px 100px">
+              <span class="text-xs text-gray-500 font-semibold">&gt;₹1000</span>
+              <input id="recur-upi-reg3" type="number" value="7" min="0" step="1"
+                class="px-2 py-1.5 border-2 border-orange-200 rounded-lg text-gray-800 font-bold text-xs focus:outline-none focus:border-orange-500 text-center"
+                oninput="onRecurChange()">
+              <input id="recur-upi-t3" type="number" value="18" min="0" step="1"
+                class="px-2 py-1.5 border-2 border-orange-200 rounded-lg text-gray-800 font-bold text-xs focus:outline-none focus:border-orange-500 text-center"
+                oninput="onRecurChange()">
             </div>
           </div>
-          <div class="flex-1 min-w-44 bg-orange-100 border border-orange-300 rounded-lg px-3 py-2 text-xs text-orange-800 font-semibold self-start mt-5">
-            Base rates from UPI Autopay sheet. All 3 tiers will appear in the PDF.
+          <div class="w-full bg-orange-100 border border-orange-300 rounded-lg px-3 py-2 text-xs text-orange-800 font-semibold">
+            ₹ flat per transaction · Not GMV-slab dependent · All tiers appear in PDF
           </div>
         </div>
       </div>
@@ -2641,11 +2648,17 @@ async function generateAndDownloadPDF(){
       addonsRows.push(['E-Mandate (NACH)',`Registration ₹${reg} · Auto-debit ₹${deb} | ${note}`]);
     }
     if(document.getElementById('recur-upi-enabled')?.checked){
-      const reg=+(document.getElementById('recur-upi-reg')?.value)||10;
+      const r1=+(document.getElementById('recur-upi-reg1')?.value)||2;
+      const r2=+(document.getElementById('recur-upi-reg2')?.value)||7;
+      const r3=+(document.getElementById('recur-upi-reg3')?.value)||7;
       const t1=+(document.getElementById('recur-upi-t1')?.value)||5;
       const t2=+(document.getElementById('recur-upi-t2')?.value)||8;
       const t3=+(document.getElementById('recur-upi-t3')?.value)||18;
-      addonsRows.push(['UPI Autopay',`Registration ₹${reg} | Auto-debit: ₹${t1} (0-250) · ₹${t2} (250-1000) · ₹${t3} (>1000)`]);
+      addonsRows.push(['UPI Autopay',
+        `Txn ₹0–250: Reg ₹${r1} · Debit ₹${t1}` +
+        ` | Txn ₹250–1000: Reg ₹${r2} · Debit ₹${t2}` +
+        ` | Txn >₹1000: Reg ₹${r3} · Debit ₹${t3}`
+      ]);
     }
 
     if(addonsRows.length){
