@@ -6,10 +6,10 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<!-- build: 20260714-v60 -->
+<!-- build: 20260714-v61 -->
 <script>
 (function(){
-  const BUILD='v60';
+  const BUILD='v61';
   const u=new URL(location.href);
   if(u.searchParams.get('b')!==BUILD){u.searchParams.set('b',BUILD);location.replace(u.toString());}
 })();
@@ -32,6 +32,8 @@
   .nr-warn {color:#c92a2a;background:#ffe3e3;border:2px solid #fa5252;}
   .nr-amber{color:#92400e;background:#fef3c7;border:2px solid #fcd34d;}
   .method-row:hover{background:#f8f9ff;}
+  .method-row-blocked{opacity:.45;pointer-events:none;background:#f9fafb;}
+  .mcc-blocked-badge{display:inline-block;margin-left:6px;padding:1px 6px;border-radius:999px;background:#fef3c7;color:#92400e;font-size:10px;font-weight:700;border:1px solid #fcd34d;vertical-align:middle;}
   input[type=number]::-webkit-inner-spin-button{opacity:.4;}
   .pdf-btn{background:linear-gradient(135deg,#3b5bdb,#7048e8);}
   .pdf-btn:hover{opacity:.9;}
@@ -303,7 +305,8 @@
         <label class="block text-xs font-semibold text-gray-500 mb-1.5">MCC <span class="text-gray-300 font-normal">(optional)</span></label>
         <input id="merchant-mcc" type="text" maxlength="4" placeholder="e.g. 5411"
           class="w-full px-3 py-2.5 border-2 border-gray-200 rounded-xl text-gray-800 font-bold text-sm focus:outline-none focus:border-blue-500 transition"
-          oninput="this.value=this.value.replace(/\D/g,'').slice(0,4)">
+          oninput="this.value=this.value.replace(/\D/g,'').slice(0,4);applyMCCRestrictions();">
+        <div id="mcc-info-badge" class="text-xs mt-1 font-semibold truncate" style="min-height:16px;"></div>
       </div>
       <div class="flex-1 min-w-44">
         <label class="block text-xs font-semibold text-gray-500 mb-1.5">Monthly GMV (₹) <span class="text-red-400">*</span></label>
@@ -1093,6 +1096,66 @@
 // ================================================================
 // CONSTANTS
 // ================================================================
+// ================================================================
+// MCC → BLOCKED METHODS MAP (auto-generated from NV 2.0 sheet)
+// ================================================================
+const MCC_DATA={"6211":{"cat":"Financial Services","sub":"Mutual fund","blocked":["Credit Cards","Diners / AMEX"],"upiMCC":"5412"},"5412":{"cat":"Financial Services","sub":"Mutual fund","blocked":["Credit Cards","Diners / AMEX"],"upiMCC":"5412"},"6012":{"cat":"Financial Services","sub":"Lending","blocked":["Credit Cards","Diners / AMEX"]},"7322":{"cat":"Financial Services","sub":"Lending","blocked":["Credit Cards","Diners / AMEX"]},"5413":{"cat":"Financial Services","sub":"Lending","blocked":["Credit Cards","Diners / AMEX"]},"6051":{"cat":"Financial Services","sub":"Cryptocurrency","blocked":["Diners / AMEX"]},"7801":{"cat":"Financial Services","sub":"Betting","blocked":["UPI","Diners / AMEX"]},"4829":{"cat":"Financial Services","sub":"Wire transfers","blocked":["Diners / AMEX"]},"6011":{"cat":"Financial Services","sub":"ATMs","blocked":["Diners / AMEX"]},"5912":{"cat":"Healthcare","sub":"Pharmacy","blocked":["Diners / AMEX"]},"5122":{"cat":"Healthcare","sub":"Drugs","blocked":["Diners / AMEX"]},"4816":{"cat":"Utilities","sub":"Internet service provider","blocked":["Diners / AMEX"]},"4511":{"cat":"Tours and Travel","sub":"Airlines","blocked":["Diners / AMEX"]},"7012":{"cat":"Tours and Travel","sub":"Timeshare","blocked":["Diners / AMEX"]},"4411":{"cat":"Transportation","sub":"Cruise","blocked":["Diners / AMEX"]},"5999":{"cat":"Ecommerce","sub":"Crypto machinery","blocked":["Diners / AMEX"]},"5993":{"cat":"Ecommerce","sub":"Tobacco","blocked":["Credit Cards","Debit Card","Diners / AMEX"]},"5094":{"cat":"Ecommerce","sub":"Jewellery / Gems / Watches","blocked":["EMI"]},"5933":{"cat":"Ecommerce","sub":"Pawn shops","blocked":["Diners / AMEX"]},"5931":{"cat":"Ecommerce","sub":"Used merchandise","blocked":["Diners / AMEX"]},"5816":{"cat":"Gaming","sub":"Game developer","blocked":["Debit Card"]},"5964":{"cat":"Services","sub":"Multi-level marketing","blocked":["Diners / AMEX"]},"7297":{"cat":"Services","sub":"Massage parlours","blocked":["Diners / AMEX"]},"7802":{"cat":"Services","sub":"Govt licensed racing","blocked":["EMI","Diners / AMEX"]},"7800":{"cat":"Services","sub":"Government lotteries","blocked":["EMI","Diners / AMEX"]},"5963":{"cat":"Services","sub":"Door to door sales","blocked":["Diners / AMEX"]},"5962":{"cat":"Services","sub":"Travel direct marketing","blocked":["Diners / AMEX"]},"7995":{"cat":"Services","sub":"Lottery / Betting / Gambling","blocked":["Credit Cards","Debit Card","Net Banking","UPI","EMI","Diners / AMEX"]},"5967":{"cat":"Services","sub":"Inbound telemarketing","blocked":["Diners / AMEX"]},"5966":{"cat":"Services","sub":"Outbound telemarketing","blocked":["Diners / AMEX"]},"6513":{"cat":"Housing and Real Estate","sub":"Residential / commercial rentals","blocked":["Diners / AMEX"]},"8398":{"cat":"Not-For-Profit","sub":"Charitable organizations","blocked":["Diners / AMEX"]},"7273":{"cat":"Social","sub":"Dating or matrimony","blocked":["Credit Cards","Debit Card","EMI","Diners / AMEX"]},"8651":{"cat":"Social","sub":"Political organizations","blocked":["Credit Cards","Debit Card","Diners / AMEX"]},"6540":{"cat":"Financial Services","sub":"Wallet top up","blocked":["Diners / AMEX"]},"9223":{"cat":"Financial Services","sub":"Bail and bond payments","blocked":["Diners / AMEX"]},"6010":{"cat":"Financial Services","sub":"Manual cash disbursements","blocked":["Diners / AMEX"]}};
+
+// Maps CSV category names → calculator method IDs
+const MCC_BLOCKED_TO_IDS={
+  'Credit Cards':  ['credit-cards'],
+  'Debit Card':    ['debit-lt2k','debit-gt2k','rupay-debit'],
+  'Net Banking':   ['net-banking','net-banking-others'],
+  'UPI':           ['upi','upi-cc','upi-wallet','cl-on-upi'],
+  'Mobile Wallets':['mobile-wallets'],
+  'EMI':           ['emi'],
+  'Diners / AMEX': ['amex'],
+};
+
+function getMCCBlockedIds(mcc){
+  const entry=MCC_DATA[mcc];
+  if(!entry||!entry.blocked||!entry.blocked.length) return {ids:new Set(),entry:null};
+  const ids=new Set();
+  entry.blocked.forEach(cat=>{(MCC_BLOCKED_TO_IDS[cat]||[]).forEach(id=>ids.add(id));});
+  return {ids,entry};
+}
+
+function applyMCCRestrictions(){
+  const mcc=(document.getElementById('merchant-mcc')?.value||'').trim();
+  const infoEl=document.getElementById('mcc-info-badge');
+  // Clear all blocked states first
+  document.querySelectorAll('.method-row').forEach(tr=>{
+    tr.classList.remove('method-row-blocked');
+    tr.querySelectorAll('.mcc-blocked-badge').forEach(b=>b.remove());
+  });
+  if(infoEl) infoEl.textContent='';
+  if(mcc.length!==4) return;
+  const {ids,entry}=getMCCBlockedIds(mcc);
+  if(!entry){
+    if(infoEl){infoEl.textContent='✅ MCC '+mcc+' — all methods available';infoEl.style.color='#087f5b';}
+    return;
+  }
+  if(infoEl){
+    infoEl.textContent=`⚠️ MCC ${mcc} (${entry.sub}) — ${entry.blocked.join(', ')} restricted`;
+    infoEl.style.color='#92400e';
+  }
+  // Apply to all rendered method rows
+  document.querySelectorAll('.method-row[data-method-id]').forEach(tr=>{
+    const mid=tr.dataset.methodId;
+    if(ids.has(mid)){
+      tr.classList.add('method-row-blocked');
+      const firstTd=tr.querySelector('td');
+      if(firstTd&&!firstTd.querySelector('.mcc-blocked-badge')){
+        const badge=document.createElement('span');
+        badge.className='mcc-blocked-badge';
+        badge.title='Blocked for MCC '+mcc+' ('+entry.sub+')';
+        badge.textContent='MCC ✗';
+        firstTd.appendChild(badge);
+      }
+    }
+  });
+}
+
 const BANK_COSTS = {
   'credit-cards': 0.0195,
   'debit-lt2k':   0.0038,
@@ -1352,7 +1415,7 @@ function initTable(sc) {
         </td>`;
       }
     }
-    html+=`<tr class="method-row border-b border-gray-50">
+    html+=`<tr class="method-row border-b border-gray-50" data-method-id="${m.id}">
       <td class="py-2.5 pr-2 font-semibold text-gray-700 align-top pt-3 text-xs">${m.label}</td>
       ${pricingCell(sc,i,m)}${compCell}
       <td class="py-2.5 px-2 text-center align-top pt-3">
@@ -1376,6 +1439,7 @@ function initTable(sc) {
       if(inp){inp.disabled=true;inp.style.background='#f3f4f6';inp.style.color='#9ca3af';inp.title='Hardcoded at 0% - not editable';}
     }
   });
+  applyMCCRestrictions();
 }
 
 // ================================================================
