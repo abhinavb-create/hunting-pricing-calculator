@@ -6,10 +6,10 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<!-- build: 20260714-v62 -->
+<!-- build: 20260714-v63 -->
 <script>
 (function(){
-  const BUILD='v62';
+  const BUILD='v63';
   const u=new URL(location.href);
   if(u.searchParams.get('b')!==BUILD){u.searchParams.set('b',BUILD);location.replace(u.toString());}
 })();
@@ -49,6 +49,11 @@
   .locked input,.locked select{opacity:.4;pointer-events:none;cursor:not-allowed;}
   .modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:1000;align-items:center;justify-content:center;}
   .modal.show{display:flex;}
+  .info-btn{display:inline-flex;align-items:center;justify-content:center;width:16px;height:16px;border-radius:50%;background:#e0e7ff;color:#3b5bdb;font-size:10px;font-weight:900;border:1px solid #c0ccf0;cursor:pointer;margin-left:5px;vertical-align:middle;line-height:1;flex-shrink:0;}
+  .info-btn:hover{background:#3b5bdb;color:white;}
+  .info-popup{position:absolute;z-index:500;background:white;border:1.5px solid #c0ccf0;border-radius:10px;box-shadow:0 4px 20px rgba(0,0,0,.15);padding:10px 12px;min-width:200px;max-width:280px;font-size:11px;}
+  .info-popup-item{display:flex;align-items:center;gap:6px;padding:3px 0;border-bottom:1px solid #f0f0f0;}
+  .info-popup-item:last-child{border-bottom:none;}
 </style>
 </head>
 <body class="min-h-screen p-4 md:p-6">
@@ -438,6 +443,104 @@
       </div>
     </div>
   </div>
+
+  <!-- RECURRING PAYMENTS -->
+  <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-5 mb-4">
+    <div class="flex items-center justify-between cursor-pointer" onclick="toggleRecurringCard()">
+      <p class="text-xs font-bold text-gray-400 uppercase tracking-wider">♻️ Recurring Payments <span class="text-gray-300 font-normal">(optional · fixed rates · not GMV-slab dependent)</span></p>
+      <svg id="recur-chevron" class="w-4 h-4 text-gray-400 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+    </div>
+    <div id="recur-body" class="hidden mt-4 space-y-4">
+
+      <!-- Option A: Cards Recurring -->
+      <div class="border border-gray-100 rounded-xl p-3 bg-indigo-50">
+        <label class="flex items-center gap-2 mb-3 cursor-pointer">
+          <input type="checkbox" id="recur-cards-enabled" onchange="onRecurChange()" class="w-4 h-4 accent-indigo-600">
+          <span class="text-sm font-bold text-indigo-800">Option A — Cards Recurring</span>
+          <span class="text-xs text-indigo-500 font-semibold">(Credit + Debit Cards)</span>
+        </label>
+        <div class="flex flex-wrap gap-4 items-center">
+          <div class="min-w-40">
+            <label class="block text-xs font-semibold text-gray-500 mb-1">Rate % <span class="text-gray-400">(min 0.80%)</span></label>
+            <input id="recur-cards-rate" type="number" value="1.00" min="0.80" max="5" step="0.01"
+              class="w-full px-3 py-2 border-2 border-indigo-200 rounded-lg text-gray-800 font-bold text-sm focus:outline-none focus:border-indigo-500"
+              oninput="onRecurChange()">
+          </div>
+          <div id="recur-cards-badge" class="hidden bg-indigo-100 border border-indigo-300 rounded-lg px-3 py-2">
+            <p class="text-xs font-bold text-indigo-600 uppercase tracking-wide">Cards Recurring Rate</p>
+            <p id="recur-cards-badge-val" class="text-lg font-black text-indigo-900"></p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Option B: E-Mandate (NACH) -->
+      <div class="border border-gray-100 rounded-xl p-3 bg-emerald-50">
+        <label class="flex items-center gap-2 mb-3 cursor-pointer">
+          <input type="checkbox" id="recur-emand-enabled" onchange="onRecurChange()" class="w-4 h-4 accent-emerald-600">
+          <span class="text-sm font-bold text-emerald-800">Option B — E-Mandate (NACH)</span>
+        </label>
+        <div class="flex flex-wrap gap-4 items-start">
+          <div class="min-w-36">
+            <label class="block text-xs font-semibold text-gray-500 mb-1">Registration Fee (₹)</label>
+            <input id="recur-emand-reg" type="number" value="30" min="0" step="1"
+              class="w-full px-3 py-2 border-2 border-emerald-200 rounded-lg text-gray-800 font-bold text-sm focus:outline-none focus:border-emerald-500"
+              oninput="onRecurChange()">
+          </div>
+          <div class="min-w-36">
+            <label class="block text-xs font-semibold text-gray-500 mb-1">Auto-debit Fee (₹)</label>
+            <input id="recur-emand-debit" type="number" value="25" min="0" step="1"
+              class="w-full px-3 py-2 border-2 border-emerald-200 rounded-lg text-gray-800 font-bold text-sm focus:outline-none focus:border-emerald-500"
+              oninput="onRecurChange()">
+          </div>
+          <div id="recur-emand-note" class="flex-1 min-w-44 bg-emerald-100 border border-emerald-300 rounded-lg px-3 py-2 text-xs text-emerald-800 font-semibold self-start mt-5"></div>
+        </div>
+      </div>
+
+      <!-- Option C: UPI Autopay -->
+      <div class="border border-gray-100 rounded-xl p-3 bg-orange-50">
+        <label class="flex items-center gap-2 mb-3 cursor-pointer">
+          <input type="checkbox" id="recur-upi-enabled" onchange="onRecurChange()" class="w-4 h-4 accent-orange-600">
+          <span class="text-sm font-bold text-orange-800">Option C — UPI Autopay</span>
+        </label>
+        <div class="flex flex-wrap gap-4 items-start">
+          <div class="min-w-36">
+            <label class="block text-xs font-semibold text-gray-500 mb-1">Registration Fee (₹)</label>
+            <input id="recur-upi-reg" type="number" value="10" min="0" step="1"
+              class="w-full px-3 py-2 border-2 border-orange-200 rounded-lg text-gray-800 font-bold text-sm focus:outline-none focus:border-orange-500"
+              oninput="onRecurChange()">
+          </div>
+          <div class="min-w-52">
+            <label class="block text-xs font-semibold text-gray-500 mb-1">Auto-debit by Txn Value (₹ flat/txn)</label>
+            <div class="space-y-1.5">
+              <div class="flex items-center gap-2">
+                <span class="text-xs text-gray-500 w-20 shrink-0">₹0–250</span>
+                <input id="recur-upi-t1" type="number" value="5" min="0" step="1"
+                  class="w-20 px-2 py-1.5 border-2 border-orange-200 rounded-lg text-gray-800 font-bold text-xs focus:outline-none focus:border-orange-500"
+                  oninput="onRecurChange()">
+              </div>
+              <div class="flex items-center gap-2">
+                <span class="text-xs text-gray-500 w-20 shrink-0">₹250–1000</span>
+                <input id="recur-upi-t2" type="number" value="8" min="0" step="1"
+                  class="w-20 px-2 py-1.5 border-2 border-orange-200 rounded-lg text-gray-800 font-bold text-xs focus:outline-none focus:border-orange-500"
+                  oninput="onRecurChange()">
+              </div>
+              <div class="flex items-center gap-2">
+                <span class="text-xs text-gray-500 w-20 shrink-0">&gt;₹1000</span>
+                <input id="recur-upi-t3" type="number" value="18" min="0" step="1"
+                  class="w-20 px-2 py-1.5 border-2 border-orange-200 rounded-lg text-gray-800 font-bold text-xs focus:outline-none focus:border-orange-500"
+                  oninput="onRecurChange()">
+              </div>
+            </div>
+          </div>
+          <div class="flex-1 min-w-44 bg-orange-100 border border-orange-300 rounded-lg px-3 py-2 text-xs text-orange-800 font-semibold self-start mt-5">
+            Base rates from UPI Autopay sheet. All 3 tiers will appear in the PDF.
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
   </div><!-- /addon-cards -->
 
   <!-- Pricing Slab Selector -->
@@ -1183,6 +1286,111 @@ function applyMCCRestrictions(){
   });
 }
 
+// ================================================================
+// METHOD DETAIL MAP — sub-providers for ⓘ info buttons
+// ================================================================
+const METHOD_DETAIL_MAP = {
+  'net-banking':        ['HDFC','ICICI','AXIS','SBI','Kotak'],
+  'net-banking-others': ['City Union','Airtel Payments','Saraswat','Bandhan','Bank of Baroda','Canara','Catholic Syrian','Central Bank','RBL','South Indian','Yes Bank','J&K Bank','Indian Overseas','Indian Bank','Punjab National','AU Small Finance','DCB','Dhanlaxmi','Union Bank','UCO Bank','IDFC First','IndusInd','Federal','DBS'],
+  'mobile-wallets':     ['Google Pay','PhonePe','Amazon Pay','Payzapp','Mobikwik','Airtel Money','JIO Money','OLA Money','Freecharge','Mpesa','SBI Money','Bajaj Pay','CRED'],
+  'recurring':          ['Cards Recurring','E-Mandate HDFC','E-Mandate ICICI','UPI Autopay'],
+  'emi':                ['Cardless EMI (Flexmoney)','Cardless EMI (EarlySalary)','Cardless EMI (Zest)','Bajaj Finserv','Debit Card EMI (HDFC)','Debit Card EMI (IndusInd)','Credit Card EMI (HDFC)','Credit Card EMI (SBI)'],
+};
+
+// Category => MCC method-level key mapping for info popup
+const METHOD_MCC_CAT_MAP = {
+  'net-banking':        'Net Banking',
+  'net-banking-others': 'Net Banking',
+  'mobile-wallets':     'Mobile Wallets',
+  'recurring':          null,
+  'emi':                'EMI',
+};
+
+let _activeInfoPopup=null;
+function showInfoPopup(btn, methodId){
+  // Close existing popup
+  if(_activeInfoPopup){_activeInfoPopup.remove();_activeInfoPopup=null;if(_activeInfoPopup===btn._popup)return;}
+  const providers=METHOD_DETAIL_MAP[methodId];
+  if(!providers||!providers.length) return;
+  const mcc=(document.getElementById('merchant-mcc')?.value||'').trim();
+  const info=mcc.length===4?getMCCInfo(mcc):null;
+  const mccCat=METHOD_MCC_CAT_MAP[methodId];
+  let methodStatus='ok'; // ok / blocked / conditional
+  if(info&&mccCat){
+    if(info.blockedIds.has(methodId)||info.entry.blocked?.includes(mccCat)) methodStatus='blocked';
+    else if(info.conditionalIds.has(methodId)||info.entry.conditional?.includes(mccCat)) methodStatus='conditional';
+  }
+  const popup=document.createElement('div');
+  popup.className='info-popup';
+  popup.style.top=(btn.getBoundingClientRect().bottom+window.scrollY+4)+'px';
+  popup.style.left=(btn.getBoundingClientRect().left+window.scrollX)+'px';
+  let html=`<div style="font-weight:800;font-size:11px;color:#3b5bdb;margin-bottom:6px;padding-bottom:4px;border-bottom:1px solid #e0e7ff;">`;
+  if(mcc.length===4 && info) html+=`MCC ${mcc} · ${mccCat||'N/A'}`;
+  else if(mcc.length===4) html+=`MCC ${mcc} — Not restricted`;
+  else html+=`Sub-providers`;
+  html+='</div>';
+  providers.forEach(p=>{
+    let icon='✅',color='#087f5b';
+    if(methodStatus==='blocked'){icon='🚫';color='#c92a2a';}
+    else if(methodStatus==='conditional'){icon='⚠';color='#92400e';}
+    html+=`<div class="info-popup-item"><span>${icon}</span><span style="color:${color};font-weight:600;">${p}</span></div>`;
+  });
+  if(mcc.length!==4) html+=`<div style="color:#aaa;font-size:9px;margin-top:6px;padding-top:4px;border-top:1px solid #f0f0f0;">Enter MCC above to see per-provider status</div>`;
+  popup.innerHTML=html;
+  document.body.appendChild(popup);
+  _activeInfoPopup=popup;
+  btn._popup=popup;
+  const closeHandler=e=>{if(!popup.contains(e.target)&&e.target!==btn){popup.remove();_activeInfoPopup=null;document.removeEventListener('click',closeHandler,true);}};
+  setTimeout(()=>document.addEventListener('click',closeHandler,true),10);
+}
+
+// ================================================================
+// RECURRING CARD
+// ================================================================
+function toggleRecurringCard(){
+  const body=document.getElementById('recur-body');
+  const chevron=document.getElementById('recur-chevron');
+  if(!body) return;
+  const open=body.classList.toggle('hidden');
+  chevron.style.transform=open?'':'rotate(180deg)';
+  onRecurChange();
+}
+
+function getEmandNote(){
+  const mcc=(document.getElementById('merchant-mcc')?.value||'').trim();
+  if(mcc.length===4){
+    const entry=MCC_DATA[mcc];
+    if(entry){
+      const cat=entry.cat||'';
+      if(cat==='Financial Services'&&entry.sub?.toLowerCase().includes('lend')||entry.sub?.toLowerCase().includes('invest')||entry.sub?.toLowerCase().includes('mutual')||entry.sub?.toLowerCase().includes('lending'))
+        return '⚠ Lending/Investment: Max Registration ₹9, Max Auto-debit ₹12';
+      if(cat==='Real Estate'||entry.sub?.toLowerCase().includes('real estate'))
+        return '⚠ Real Estate: Connect with Abhinav / Adnan for eligibility';
+    }
+  }
+  return '✅ Standard limits apply: Registration ₹30, Auto-debit ₹25';
+}
+
+function getEmandNoteForMCCCat(cat,sub){
+  const s=(sub||'').toLowerCase();
+  if(s.includes('lend')||s.includes('invest')||s.includes('mutual')) return '⚠ Lending/Investment: Max Registration ₹9, Max Auto-debit ₹12';
+  if(s.includes('real estate')||(cat||'').toLowerCase().includes('real estate')) return '⚠ Real Estate: Connect with Abhinav / Adnan';
+  return '✅ Standard limits: Registration ₹30, Auto-debit ₹25';
+}
+
+function onRecurChange(){
+  const emandNote=document.getElementById('recur-emand-note');
+  if(emandNote) emandNote.textContent=getEmandNote();
+  const cardsEnabled=document.getElementById('recur-cards-enabled')?.checked;
+  const badge=document.getElementById('recur-cards-badge');
+  const badgeVal=document.getElementById('recur-cards-badge-val');
+  if(badge&&badgeVal){
+    const rate=+(document.getElementById('recur-cards-rate')?.value)||1.00;
+    badge.classList.toggle('hidden',!cardsEnabled);
+    if(cardsEnabled) badgeVal.textContent=Math.max(0.80,rate).toFixed(2)+'% of txn value';
+  }
+}
+
 function toggleMCCLookup(){
   const panel=document.getElementById('mcc-lookup-panel');
   const btn=document.getElementById('tab-mcc-lookup');
@@ -1482,8 +1690,9 @@ function initTable(sc) {
         </td>`;
       }
     }
+    const infoBtn=METHOD_DETAIL_MAP[m.id]?`<span class="info-btn" onclick="event.stopPropagation();showInfoPopup(this,'${m.id}')" title="Sub-provider details">ⓘ</span>`:'';
     html+=`<tr class="method-row border-b border-gray-50" data-method-id="${m.id}">
-      <td class="py-2.5 pr-2 font-semibold text-gray-700 align-top pt-3 text-xs">${m.label}</td>
+      <td class="py-2.5 pr-2 font-semibold text-gray-700 align-top pt-3 text-xs">${m.label}${infoBtn}</td>
       ${pricingCell(sc,i,m)}${compCell}
       <td class="py-2.5 px-2 text-center align-top pt-3">
         <input id="${pfx}-spl-${i}" type="number" min="0" max="100" step="1" value="${defSpl}"
@@ -2417,6 +2626,27 @@ async function generateAndDownloadPDF(){
       addonsRows.push(['GMV Credit Benefit',cl+' (special benefit - subject to Sales POC agreement)']);
     }
     if(routeRate>0) addonsRows.push(['Razorpay Route',routeRate.toFixed(2)+'% of routed volume']);
+
+    // Recurring rows
+    if(document.getElementById('recur-cards-enabled')?.checked){
+      const r=Math.max(0.80,+(document.getElementById('recur-cards-rate')?.value)||1.00);
+      addonsRows.push(['Cards Recurring',r.toFixed(2)+'% of txn value (Credit + Debit Cards)']);
+    }
+    if(document.getElementById('recur-emand-enabled')?.checked){
+      const reg=+(document.getElementById('recur-emand-reg')?.value)||30;
+      const deb=+(document.getElementById('recur-emand-debit')?.value)||25;
+      const mcc=(document.getElementById('merchant-mcc')?.value||'').trim();
+      const entry=mcc.length===4?MCC_DATA[mcc]:null;
+      const note=entry?getEmandNoteForMCCCat(entry.cat,entry.sub):'Standard limits apply';
+      addonsRows.push(['E-Mandate (NACH)',`Registration ₹${reg} · Auto-debit ₹${deb} | ${note}`]);
+    }
+    if(document.getElementById('recur-upi-enabled')?.checked){
+      const reg=+(document.getElementById('recur-upi-reg')?.value)||10;
+      const t1=+(document.getElementById('recur-upi-t1')?.value)||5;
+      const t2=+(document.getElementById('recur-upi-t2')?.value)||8;
+      const t3=+(document.getElementById('recur-upi-t3')?.value)||18;
+      addonsRows.push(['UPI Autopay',`Registration ₹${reg} | Auto-debit: ₹${t1} (0-250) · ₹${t2} (250-1000) · ₹${t3} (>1000)`]);
+    }
 
     if(addonsRows.length){
       checkPage(10+addonsRows.length*14);
@@ -5285,6 +5515,7 @@ onGMVChange();
 onSettlementChange();
 onMCRateChange();
 checkRouteAvailability();
+onRecurChange();
 // Handle URL action params — must run before normal init
 const _initParams = new URLSearchParams(window.location.search);
 const _initAction = _initParams.get('action');
