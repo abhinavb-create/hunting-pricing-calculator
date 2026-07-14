@@ -6,10 +6,10 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<!-- build: 20260710-v54 -->
+<!-- build: 20260713-v55 -->
 <script>
 (function(){
-  const BUILD='v54';
+  const BUILD='v55';
   const u=new URL(location.href);
   if(u.searchParams.get('b')!==BUILD){u.searchParams.set('b',BUILD);location.replace(u.toString());}
 })();
@@ -3104,9 +3104,24 @@ async function submitAccessRequest(team){
 // Non-admin: just tell them to click the link in the email
 async function checkAccessStatus(){
   const msgEl = document.getElementById('ar-message');
-  if(msgEl){ msgEl.innerHTML = 'Please open the approval email from Abhinav and click the <strong>activation link</strong> inside it. Your access will be granted automatically when you click it.'; msgEl.classList.remove('hidden'); }
   const btn = document.getElementById('ar-check-btn');
-  if(btn) btn.style.display = 'none';
+  if(btn){btn.textContent='Checking…';btn.disabled=true;}
+  try{
+    const{data:users}=await _ghRead('data/users.json');
+    const rec=(users||[]).find(u=>u.email===currentUser?.email);
+    if(rec?.status==='active'){
+      currentUser.accessStatus='active';
+      if(rec.teamGroup) currentUser.teamGroup=rec.teamGroup;
+      localStorage.setItem('rzp_user',JSON.stringify(currentUser));
+      showMainApp();
+      return;
+    }
+    if(msgEl){ msgEl.innerHTML='Not approved yet. Please wait for Abhinav to approve your access.'; msgEl.classList.remove('hidden'); }
+    if(btn){btn.textContent='Check again';btn.disabled=false;}
+  }catch(e){
+    if(msgEl){ msgEl.innerHTML='Could not check status. Please try again in a moment.'; msgEl.classList.remove('hidden'); }
+    if(btn){btn.textContent='Check again';btn.disabled=false;}
+  }
 }
 
 
