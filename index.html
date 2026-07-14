@@ -6,10 +6,10 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<!-- build: 20260714-v56 -->
+<!-- build: 20260714-v57 -->
 <script>
 (function(){
-  const BUILD='v56';
+  const BUILD='v57';
   const u=new URL(location.href);
   if(u.searchParams.get('b')!==BUILD){u.searchParams.set('b',BUILD);location.replace(u.toString());}
 })();
@@ -1983,10 +1983,10 @@ function _openPdfModal(){
   const queuedEl=document.getElementById('pdf-queued-status');
   if(queuedEl) queuedEl.classList.add('hidden');
 
-  // Check if rates were already approved (in-session OR in localStorage)
+  // Check if rates were already approved — only the exact in-session requestId counts
+  // (prevents v1 approval from hiding the approval section for v2)
   const _localAps=JSON.parse(localStorage.getItem('rzp_pending_approvals')||'[]');
-  const _hasApprovedRecord=_localAps.some(a=>a.status==='approved'&&a.merchantName===name);
-  const _alreadyApproved=!!_approvedRequestId||_hasApprovedRecord;
+  const _alreadyApproved=!!_approvedRequestId&&_localAps.some(a=>a.status==='approved'&&a.requestId===_approvedRequestId);
 
   // Check floor violations and populate approval section (admins/ops/partnership bypass approval)
   const violations=(isAdminOrCoAdmin()||currentUser?.teamGroup==='Partnership')?[]:getFloorViolations(activeTab,gmv);
@@ -2528,9 +2528,10 @@ async function generateAndDownloadPDF(){
     const requesterEmail=document.getElementById('pdf-requester-email')?.value.trim()||currentUser?.email||'';
     const pdfBuffer=doc.output('arraybuffer');
 
-    // Check if already approved (in-session flag OR localStorage record for this merchant)
+    // Check if already approved — only match the exact in-session requestId, not any old approval for same merchant
+    // (prevents v1 approval from bypassing v2 approval flow)
     const _localApsGen=JSON.parse(localStorage.getItem('rzp_pending_approvals')||'[]');
-    const _alreadyApprovedGen=!!_approvedRequestId||_localApsGen.some(a=>a.status==='approved'&&a.merchantName===name);
+    const _alreadyApprovedGen=!!_approvedRequestId&&_localApsGen.some(a=>a.status==='approved'&&a.requestId===_approvedRequestId);
 
     if(driveEl){driveEl.classList.remove('hidden');driveEl.innerHTML='<span class="text-gray-400">☁️ Uploading to Drive...</span>';}
 
@@ -2771,6 +2772,11 @@ function redownloadPDF(rowId){
 
 function startNewVersion(rowId, parentGroup, snapJSON){
   _newVersionParentGroup = parentGroup || rowId;
+  // Clear prior approval state — v2 must go through its own approval flow
+  _approvedRequestId=null;
+  pendingApprovalId=null;
+  pendingPDFBuffer=null;
+  pendingFileName=null;
   setPricingLocked(false);
   closeStats();
   if(snapJSON){
