@@ -6,10 +6,10 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<!-- build: 20260714-v59 -->
+<!-- build: 20260714-v60 -->
 <script>
 (function(){
-  const BUILD='v59';
+  const BUILD='v60';
   const u=new URL(location.href);
   if(u.searchParams.get('b')!==BUILD){u.searchParams.set('b',BUILD);location.replace(u.toString());}
 })();
@@ -4723,10 +4723,14 @@ async function loadUserHistory(){
         _ghRead('data/downloads.json'),
       ]);
       // Merge GitHub downloads with local (for full cross-browser admin view)
+      // GitHub wins for snapshot — it has synced snapshots from all users' machines
       if(ghDls&&ghDls.length){
+        const ghSnapshotById=new Map(ghDls.map(g=>[g.rowId,g.snapshot||null]));
+        // Enrich local records with GitHub snapshots where local is missing them
+        const enriched=localDls.map(d=>ghSnapshotById.has(d.rowId)&&!d.snapshot?{...d,snapshot:ghSnapshotById.get(d.rowId)}:d);
         const localIds=new Set(localDls.map(d=>d.rowId));
-        const ghOnly=ghDls.filter(d=>!localIds.has(d.rowId)).map(d=>({...d,statusKey:'downloaded',type:'download',snapshot:null}));
-        if(ghOnly.length) downloads=[...localDls,...ghOnly];
+        const ghOnly=ghDls.filter(d=>!localIds.has(d.rowId)).map(d=>({...d,statusKey:'downloaded',type:'download'}));
+        downloads=[...enriched,...ghOnly];
       }
       // Merge GitHub group map into local — GitHub wins for cross-browser sync
       if(ghGrpMap&&typeof ghGrpMap==='object'){
@@ -4756,16 +4760,37 @@ async function loadUserHistory(){
         _ghRead('data/downloads.json'),
       ]);
       // Revive downloads from GitHub (survives cache clear)
-      if(ghDls&&ghDls.length){
-        const myGhDls=ghDls.filter(g=>g.userEmail===userEmail);
+      const ghDlsArr=ghDls||[];
+      if(ghDlsArr.length){
+        const myGhDls=ghDlsArr.filter(g=>g.userEmail===userEmail);
         const localDlIds=new Set(downloads.map(d=>d.rowId));
-        const revived=myGhDls.filter(g=>!localDlIds.has(g.rowId)).map(g=>({...g,statusKey:'downloaded',type:'download',snapshot:null}));
+        const revived=myGhDls.filter(g=>!localDlIds.has(g.rowId)).map(g=>({...g,statusKey:'downloaded',type:'download',snapshot:g.snapshot||null}));
         if(revived.length){
           const merged=[...downloads,...revived];
           localStorage.setItem('rzp_downloads',JSON.stringify(merged.slice(0,200)));
           downloads=merged;
         }
       }
+      // Auto-sync: push any local snapshots missing in GitHub up to GitHub (background, non-blocking)
+      // This ensures "New Version" works from any device/browser even for pre-v59 downloads
+      (async()=>{
+        try{
+          const ghSnapshotMap=new Map((ghDlsArr).map(g=>[g.rowId,!!g.snapshot]));
+          const needsSync=downloads.filter(d=>d.snapshot&&d.userEmail===userEmail&&!ghSnapshotMap.get(d.rowId));
+          if(needsSync.length){
+            await _ghUpdate('data/downloads.json',existing=>{
+              const arr=Array.isArray(existing)?[...existing]:[];
+              needsSync.forEach(local=>{
+                const idx=arr.findIndex(g=>g.rowId===local.rowId);
+                if(idx>=0) arr[idx]={...arr[idx],snapshot:local.snapshot};
+                else arr.unshift({rowId:local.rowId,fileName:local.fileName||'',merchantName:local.merchantName||'',userEmail:local.userEmail||'',userName:local.userName||'',teamGroup:local.teamGroup||'',driveLink:local.driveLink||'',fileId:'',versionGroup:local.versionGroup||null,snapshot:local.snapshot,timestamp:local.timestamp||Date.now()});
+              });
+              return arr.slice(0,500);
+            },'auto-sync snapshots for '+userEmail);
+            console.log('[Snapshot] Auto-synced',needsSync.length,'snapshot(s) to GitHub');
+          }
+        }catch(e){console.warn('[Snapshot] Auto-sync failed:',e);}
+      })();
       if(ghAps&&ghAps.length){
         // Sync statuses for existing local records
         let changed=false;
