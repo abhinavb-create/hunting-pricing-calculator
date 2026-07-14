@@ -6,10 +6,10 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<!-- build: 20260714-v57 -->
+<!-- build: 20260714-v58 -->
 <script>
 (function(){
-  const BUILD='v57';
+  const BUILD='v58';
   const u=new URL(location.href);
   if(u.searchParams.get('b')!==BUILD){u.searchParams.set('b',BUILD);location.replace(u.toString());}
 })();
@@ -4044,6 +4044,47 @@ async function logApprovalToSheet({requestId,fileName,requesterEmail,merchantNam
   }catch(e){console.warn('logApprovalToSheet(GH) failed silently',e);}
 }
 
+// ── Resend approval request email for any record (admin only) ─────────────
+async function resendApprovalEmail(rowId){
+  if(!isAdminOrCoAdmin()) return;
+  const btn=document.querySelector(`[data-resend-btn="${rowId}"]`);
+  if(btn){btn.textContent='Sending…';btn.disabled=true;}
+  try{
+    // Fetch record from GitHub
+    const{data:ghAps}=await _ghRead('data/approvals.json');
+    const reqId=rowId.replace(/^ap_/,'');
+    const rec=(ghAps||[]).find(g=>g.requestId===reqId||'ap_'+g.requestId===rowId);
+    if(!rec) throw new Error('Record not found in approvals.json');
+    const base='https://abhinavb-create.github.io/hunting-pricing-calculator/';
+    const approveUrl=base+'?action=approve&requestId='+rec.requestId+'&merchant='+encodeURIComponent(rec.merchantName)+'&status=approved';
+    const rejectUrl=base+'?action=approve&requestId='+rec.requestId+'&merchant='+encodeURIComponent(rec.merchantName)+'&status=rejected';
+    const approverEmail=getApproverEmail(rec.teamGroup||'');
+    const fmtRs=v=>v==null?'-':'Rs.'+Math.round(v).toLocaleString('en-IN');
+    const violList=(rec.violations||'').split(';').map(s=>s.trim()).filter(Boolean);
+    const htmlBody=buildApprovalEmailHtml({
+      requesterName:rec.requesterEmail?.split('@')[0]||'Team',
+      requesterEmail:rec.requesterEmail||'',
+      teamGroup:rec.teamGroup||'',
+      merchantName:rec.merchantName,
+      gmv:rec.gmv||0,
+      slabLabel:rec.slabLabel||'',
+      violations:violList.map(v=>{const[label,rate]=v.split(':');return{label:(label||'').trim(),rate:parseFloat(rate)||0};}),
+      positiveNRMethods:[],
+      pgNR:0,settleNR:0,effectiveNR:0,
+      driveLink:rec.driveLink||'',
+      approveUrl,rejectUrl,
+    });
+    const subject=`[Pricing Calculator] Approval Request (Retroactive): ${rec.merchantName} — ${rec.requesterEmail}`;
+    await sendEmailViaGmail({to:approverEmail,subject,htmlBody});
+    if(btn){btn.textContent='✅ Sent';btn.classList.add('text-green-600');}
+    setTimeout(()=>{if(btn){btn.textContent='✉ Resend Approval';btn.disabled=false;btn.classList.remove('text-green-600');}},3000);
+  }catch(e){
+    console.error('[resendApprovalEmail]',e);
+    if(btn){btn.textContent='❌ Failed';btn.disabled=false;}
+    setTimeout(()=>{if(btn){btn.textContent='✉ Resend Approval';btn.disabled=false;}},3000);
+  }
+}
+
 // Correct UTF-8 → base64url (for Gmail API raw MIME). Replaces btoa(unescape(encodeURIComponent()))
 function _utf8B64url(str){
   const bytes=new TextEncoder().encode(str);
@@ -4509,7 +4550,11 @@ function renderStatsTable(rows){
 
     const sendBtn=`<button onclick="openMerchantCompose('${latest.rowId}')" class="mt-1.5 flex items-center gap-1 text-xs font-semibold text-blue-600 hover:text-blue-800 hover:underline" title="Send pricing email to merchant">✉️ Send to Merchant</button>`;
 
-    const pricingCell=`<div data-pricingcell="${latest.rowId}" data-merchantname="${(r.merchantName||'').replace(/"/g,'&quot;')}">${vChips}${linkVerBtn}${newVerBtn}${revampBtn}${sendBtn}</div>`;
+    // Resend approval email button — shown for approval-type rows (admin only)
+    const hasApprovalRow=versions.some(v=>v.type==='approval');
+    const resendBtns=hasApprovalRow?versions.filter(v=>v.type==='approval').map(v=>`<button data-resend-btn="ap_${v.rowId.replace(/^ap_/,'')}" onclick="resendApprovalEmail('${v.rowId}')" class="mt-1 flex items-center gap-1 text-xs font-semibold text-amber-600 hover:text-amber-800 hover:underline">✉ Resend Approval${versions.filter(x=>x.type==='approval').length>1?' v'+(v.version||''):''}${v.statusKey==='approved'?' (approved)':''}</button>`).join(''):'';
+
+    const pricingCell=`<div data-pricingcell="${latest.rowId}" data-merchantname="${(r.merchantName||'').replace(/"/g,'&quot;')}">${vChips}${linkVerBtn}${newVerBtn}${revampBtn}${sendBtn}${resendBtns}</div>`;
     // Keep a live map of merchantName → latestRowId for reply badge injection
     if(!window._merchantRowMap) window._merchantRowMap={};
     window._merchantRowMap[(r.merchantName||'').trim().toLowerCase()]=latest.rowId;
