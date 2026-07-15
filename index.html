@@ -6,10 +6,10 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<!-- build: 20260715-v75 -->
+<!-- build: 20260715-v76 -->
 <script>
 (function(){
-  const BUILD='v75';
+  const BUILD='v76';
   const u=new URL(location.href);
   if(u.searchParams.get('b')!==BUILD){u.searchParams.set('b',BUILD);location.replace(u.toString());}
 })();
@@ -3491,6 +3491,29 @@ function redownloadPDF(rowId){
   setTimeout(()=>{ openModal('pdf-modal'); },300);
 }
 
+// Download approved PDF directly from stats page — no navigation, no modal
+async function downloadApprovedFromStats(rowId){
+  const row=statsAllRows.find(r=>r.rowId===rowId);
+  if(!row||!row.snapshot){alert('Snapshot not available. Please use redownload.');return;}
+  const btn=event?.target;
+  if(btn){btn.textContent='⏳ Generating...';btn.disabled=true;}
+  try{
+    _currentDlRowId=rowId;
+    // Set approved state so generateAndDownloadPDF skips approval checks
+    _approvedRequestId=rowId;
+    try{sessionStorage.setItem('rzp_approved_rid',rowId);}catch(e){}
+    // Restore calculator state into hidden DOM (stats page is showing, main wrap is hidden but DOM is intact)
+    restoreCalculatorState(row.snapshot);
+    await new Promise(r=>setTimeout(r,250)); // let DOM settle
+    await generateAndDownloadPDF();
+  }catch(e){
+    console.error('[downloadApprovedFromStats]',e);
+    alert('Could not generate PDF. Try redownloading from the main page.');
+  }finally{
+    if(btn){btn.textContent='⬇ Download PDF';btn.disabled=false;}
+  }
+}
+
 function startNewVersion(rowId, parentGroup, snapJSON){
   _newVersionParentGroup = parentGroup || rowId;
   // Clear prior approval state — v2 must go through its own approval flow
@@ -5214,7 +5237,12 @@ function renderStatsTable(rows){
   const statusColors={downloaded:'bg-blue-100 text-blue-700',pending:'bg-amber-100 text-amber-700',approved:'bg-green-100 text-green-700',rejected:'bg-red-100 text-red-700'};
 
   const pdfBtn=(v)=>{
-    if(v.snapshot) return `<button onclick="redownloadPDF('${v.rowId}')" class="text-xs text-indigo-500 hover:text-indigo-700 font-semibold">↓ PDF</button>`;
+    if(v.snapshot){
+      // Approved rows → download directly from stats page, no navigation
+      if(v.statusKey==='approved')
+        return `<button onclick="downloadApprovedFromStats('${v.rowId}')" class="text-xs font-bold text-green-600 hover:text-green-800 bg-green-50 hover:bg-green-100 border border-green-300 px-2 py-0.5 rounded-lg transition">⬇ Download PDF</button>`;
+      return `<button onclick="redownloadPDF('${v.rowId}')" class="text-xs text-indigo-500 hover:text-indigo-700 font-semibold">↓ PDF</button>`;
+    }
     if(v.driveLink&&v.statusKey!=='pending') return `<a href="${v.driveLink}" target="_blank" class="text-xs text-blue-500 hover:text-blue-700 font-semibold">📄 PDF</a>`;
     return '';
   };
