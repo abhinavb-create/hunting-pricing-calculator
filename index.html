@@ -6,10 +6,10 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<!-- build: 20260715-v72 -->
+<!-- build: 20260715-v73 -->
 <script>
 (function(){
-  const BUILD='v72';
+  const BUILD='v73';
   const u=new URL(location.href);
   if(u.searchParams.get('b')!==BUILD){u.searchParams.set('b',BUILD);location.replace(u.toString());}
 })();
@@ -2638,6 +2638,27 @@ function _openPdfModal(){
     });
     if(lastGrp) html+='</div></div>';
     methodChecks.innerHTML=html;
+
+    // Auto-uncheck methods blocked by current MCC
+    const mcc=(document.getElementById('merchant-mcc')?.value||'').trim();
+    if(mcc.length===4){
+      const info=getMCCInfo(mcc);
+      if(info&&info.blockedIds.size>0){
+        document.querySelectorAll('.pdf-method-cb').forEach(cb=>{
+          const mid=METHODS[+cb.dataset.idx]?.id;
+          if(mid&&info.blockedIds.has(mid)){
+            cb.checked=false;
+            // Visual cue — grey out the label
+            const lbl=cb.closest('label');
+            if(lbl){
+              lbl.title=`Blocked for MCC ${mcc} (${info.entry.sub})`;
+              lbl.style.opacity='0.4';
+              lbl.style.pointerEvents='none';
+            }
+          }
+        });
+      }
+    }
   }
   showModal('pdf-modal');
 }
