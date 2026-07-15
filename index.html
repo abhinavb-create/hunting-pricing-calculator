@@ -6,10 +6,10 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<!-- build: 20260715-v69 -->
+<!-- build: 20260715-v70 -->
 <script>
 (function(){
-  const BUILD='v69';
+  const BUILD='v70';
   const u=new URL(location.href);
   if(u.searchParams.get('b')!==BUILD){u.searchParams.set('b',BUILD);location.replace(u.toString());}
 })();
@@ -2859,7 +2859,7 @@ async function generateAndDownloadPDF(){
     if(routeRate>0) addonsRows.push(['Razorpay Route',routeRate.toFixed(2)+'% of routed volume']);
     if(document.getElementById('recur-cards-enabled')?.checked){
       const r=Math.max(0.80,+(document.getElementById('recur-cards-rate')?.value)||1.00);
-      addonsRows.push(['Cards Recurring',r.toFixed(2)+'% of txn value (Credit + Debit Cards)']);
+      addonsRows.push(['Cards Recurring',r.toFixed(2)+'% of txn value','Credit + Debit Cards · Over & above PG charges']);
     }
 
     // ── Collect table-style recurring items
@@ -2891,10 +2891,11 @@ async function generateAndDownloadPDF(){
 
       // ── Simple info cards (Settlement, Credit, Route, Cards Recurring)
       if(addonsRows.length){
-        const addonCards=addonsRows.map(r=>({label:r[0],value:r[1]}));
+        const addonCards=addonsRows.map(r=>({label:r[0],value:r[1],sub:r[2]||null}));
+        const hasSub=addonCards.some(c=>c.sub);
         const acols=Math.min(addonCards.length,3);
         const acellW=(CW-(acols-1)*4)/acols;
-        const acellH=18;
+        const acellH=hasSub?24:18;
         const arows=Math.ceil(addonCards.length/acols);
         const agridH=arows*acellH+(arows-1)*3;
         doc.setFillColor(246,248,255);doc.setDrawColor(210,218,240);doc.setLineWidth(0.25);
@@ -2908,9 +2909,13 @@ async function generateAndDownloadPDF(){
           doc.rect(cx+(col===0?2:0),cy+2,acellW-(col===0?2:0)-(col===acols-1?2:0),1.5,'F');
           doc.setFontSize(6.5);doc.setFont('helvetica','bold');doc.setTextColor(100,115,165);
           doc.text(card.label.toUpperCase(),cx+(col===0?5:3),cy+7.5);
-          doc.setFontSize(8);doc.setFont('helvetica','bold');doc.setTextColor(15,25,70);
+          doc.setFontSize(9);doc.setFont('helvetica','bold');doc.setTextColor(15,25,70);
           const vlines=doc.splitTextToSize(safeText(card.value),acellW-8);
-          doc.text(vlines[0],cx+(col===0?5:3),cy+13);
+          doc.text(vlines[0],cx+(col===0?5:3),cy+14);
+          if(card.sub){
+            doc.setFontSize(6.5);doc.setFont('helvetica','normal');doc.setTextColor(110,120,160);
+            doc.text(safeText(card.sub),cx+(col===0?5:3),cy+19.5);
+          }
         });
         y+=agridH+5;
       }
