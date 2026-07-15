@@ -6,10 +6,10 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<!-- build: 20260715-v79 -->
+<!-- build: 20260715-v80 -->
 <script>
 (function(){
-  const BUILD='v79';
+  const BUILD='v80';
   const u=new URL(location.href);
   if(u.searchParams.get('b')!==BUILD){u.searchParams.set('b',BUILD);location.replace(u.toString());}
 })();
@@ -3513,6 +3513,18 @@ async function downloadApprovedFromStats(rowId){
     const realRequestId=apRecord?.requestId||rowId.replace(/^ap_/,'');
     _approvedRequestId=realRequestId;
     try{sessionStorage.setItem('rzp_approved_rid',realRequestId);}catch(e){}
+
+    // ── Ensure localStorage has this approved record so generateAndDownloadPDF trusts it
+    // (SA may be on new device/session where localStorage was never synced)
+    const statsRow=statsAllRows.find(r=>r.rowId===rowId);
+    const lsMatch=localAps.find(a=>a.requestId===realRequestId);
+    if(!lsMatch){
+      localAps.push({requestId:realRequestId,status:'approved',merchantName:statsRow?.merchantName||'',timestamp:Date.now(),rowId});
+      localStorage.setItem('rzp_pending_approvals',JSON.stringify(localAps));
+    } else if(lsMatch.status!=='approved'){
+      lsMatch.status='approved';
+      localStorage.setItem('rzp_pending_approvals',JSON.stringify(localAps));
+    }
 
     // Restore pricing state into hidden calculator DOM
     restoreCalculatorState(snap);
