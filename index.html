@@ -6,10 +6,10 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<!-- build: 20260715-v82 -->
+<!-- build: 20260715-v83 -->
 <script>
 (function(){
-  const BUILD='v82';
+  const BUILD='v83';
   const u=new URL(location.href);
   if(u.searchParams.get('b')!==BUILD){u.searchParams.set('b',BUILD);location.replace(u.toString());}
 })();
@@ -3295,8 +3295,14 @@ async function generateAndDownloadPDF(){
           snapshot:snapshotCalculatorState(),
         });
         if(driveEl){
-          if(approvalResult.success) driveEl.innerHTML='<span class="text-green-600">✅ Queued & approval email sent</span>';
-          else driveEl.innerHTML=`<span class="text-red-500">⚠️ Sheet error: ${approvalResult.error||'unknown'}. Check Apps Script.</span>`;
+          if(approvalResult.success){
+            driveEl.innerHTML='<span class="text-green-600">✅ Queued & approval email sent</span>';
+          } else {
+            // Email failed to send — request IS logged to GitHub, just notify manually
+            const approverEmail=getApproverEmail(currentUser?.teamGroup||'');
+            driveEl.innerHTML=`<span class="text-amber-600 font-semibold">⚠️ Request queued but email failed to send automatically.<br>
+            Please <a href="mailto:${approverEmail}?subject=${encodeURIComponent('[Approval Needed] '+name+' | '+currentUser.name)}&body=${encodeURIComponent('Hi,\n\nPlease approve the pricing request for '+name+' in the pricing calculator.\n\nThanks')}" style="color:#2563eb;text-decoration:underline" target="_blank">click here to send approval email manually →</a></span>`;
+          }
         }
       }catch(e){
         console.error('Approval request error:',e);
