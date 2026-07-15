@@ -6,10 +6,10 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<!-- build: 20260715-v67 -->
+<!-- build: 20260715-v68 -->
 <script>
 (function(){
-  const BUILD='v67';
+  const BUILD='v68';
   const u=new URL(location.href);
   if(u.searchParams.get('b')!==BUILD){u.searchParams.set('b',BUILD);location.replace(u.toString());}
 })();
@@ -576,13 +576,14 @@
       <h2 class="font-bold text-gray-800">🔍 MCC Lookup — Payment Method Restrictions</h2>
       <button onclick="toggleMCCLookup()" class="text-gray-400 hover:text-gray-600 text-lg font-bold">✕</button>
     </div>
-    <div class="flex gap-3 mb-4">
-      <input id="mcc-lookup-input" type="text" maxlength="4" placeholder="Enter MCC code (e.g. 7230)"
+    <div class="flex gap-3 mb-2">
+      <input id="mcc-lookup-input" type="text" maxlength="60" placeholder="Search by MCC code or category (e.g. 7230 or 'grocery')"
         class="flex-1 px-4 py-2.5 border-2 border-gray-200 rounded-xl text-gray-800 font-bold text-sm focus:outline-none focus:border-amber-400 transition"
-        oninput="this.value=this.value.replace(/\D/g,'').slice(0,4);showMCCLookup();">
+        oninput="showMCCLookup()">
       <button onclick="showMCCLookup()" class="px-5 py-2.5 bg-amber-500 hover:bg-amber-600 text-white font-bold rounded-xl text-sm transition">Look up</button>
     </div>
-    <div id="mcc-lookup-result" class="text-sm text-gray-400">Enter a 4-digit MCC code above</div>
+    <p class="text-xs text-gray-400 mb-3">Enter a 4-digit MCC code <span class="text-gray-300 mx-1">·</span> or search by business type / category name</p>
+    <div id="mcc-lookup-result" class="text-sm text-gray-400">Enter a MCC code or keyword above</div>
   </div>
 
   <!-- ===== WITH COMPETITION ===== -->
@@ -1542,22 +1543,10 @@ function toggleMCCLookup(){
   if(!isOpen) document.getElementById('mcc-lookup-input')?.focus();
 }
 
-function showMCCLookup(){
-  const mcc=(document.getElementById('mcc-lookup-input')?.value||'').trim();
-  const out=document.getElementById('mcc-lookup-result');
-  if(!out) return;
-  if(mcc.length!==4){out.innerHTML='<p class="text-gray-400 text-sm">Enter a 4-digit MCC code above</p>';return;}
-  const entry=MCC_DATA[mcc];
-  if(!entry){
-    out.innerHTML=`<div class="p-4 bg-green-50 rounded-xl border border-green-200">
-      <p class="font-bold text-green-700">✅ MCC ${mcc} — No restrictions</p>
-      <p class="text-xs text-gray-500 mt-1">All payment methods are available for this MCC.</p>
-    </div>`;
-    return;
-  }
-  const blocked=entry.blocked||[];
-  const conditional=entry.conditional||[];
-  // Only show restricted methods
+function renderMCCDetail(mcc,entry){
+  // entry may be undefined (no restriction) or have blocked/conditional arrays
+  const blocked=(entry?.blocked)||[];
+  const conditional=(entry?.conditional)||[];
   const blockedRows=blocked.map(m=>`
     <div class="flex items-center justify-between py-2.5 px-4 bg-red-50 rounded-xl border border-red-200">
       <span class="text-sm font-bold text-red-800">${m}</span>
@@ -1569,21 +1558,98 @@ function showMCCLookup(){
       <span class="text-xs font-bold text-amber-800 bg-amber-100 border border-amber-300 px-2.5 py-1 rounded-full">⚠ Only for Registered merchants</span>
     </div>`).join('');
   const hasRestrictions=blocked.length||conditional.length;
-  out.innerHTML=`<div class="space-y-2">
+  // Look up sub/cat from MCC_DATA even if entry is the restriction object
+  const info=MCC_DATA[mcc];
+  return `<div class="space-y-2">
     <div class="bg-gray-50 rounded-xl px-4 py-3 mb-1">
       <div class="flex items-baseline gap-2">
         <span class="text-lg font-black text-gray-800">MCC ${mcc}</span>
-        <span class="text-xs font-semibold text-gray-400 uppercase tracking-wider">${entry.cat}</span>
+        ${info?`<span class="text-xs font-semibold text-gray-400 uppercase tracking-wider">${info.cat}</span>`:''}
       </div>
-      <p class="text-sm font-semibold text-gray-600 mt-0.5">${entry.sub}</p>
-      ${entry.upiMCC&&entry.upiMCC!==mcc?`<p class="text-xs text-blue-500 mt-1">UPI uses MCC ${entry.upiMCC}</p>`:''}
+      ${info?`<p class="text-sm font-semibold text-gray-600 mt-0.5">${info.sub}</p>`:''}
+      ${info&&info.upiMCC&&info.upiMCC!==mcc?`<p class="text-xs text-blue-500 mt-1">UPI uses MCC ${info.upiMCC}</p>`:''}
     </div>
     ${hasRestrictions
       ? `<p class="text-xs font-bold text-gray-500 uppercase tracking-wider px-1 pt-1">Methods not available / restricted</p>
          ${blockedRows}${condRows}
          ${conditional.length?`<p class="text-xs text-gray-400 px-1 pt-1">⚠ "Only for Registered merchants" = blocked if merchant is Unregistered or has no website</p>`:''}`
-      : `<div class="p-3 bg-green-50 rounded-xl border border-green-200 text-green-700 text-sm font-semibold">✅ All methods available</div>`
+      : `<div class="p-3 bg-green-50 rounded-xl border border-green-200 text-green-700 text-sm font-semibold">✅ All payment methods available</div>`
     }
+  </div>`;
+}
+
+function showMCCLookup(){
+  const raw=(document.getElementById('mcc-lookup-input')?.value||'').trim();
+  const out=document.getElementById('mcc-lookup-result');
+  if(!out) return;
+  if(!raw){out.innerHTML='<p class="text-gray-400 text-sm">Enter a MCC code or keyword above</p>';return;}
+
+  // ── Direct 4-digit MCC lookup
+  if(/^\d{4}$/.test(raw)){
+    const entry=MCC_DATA[raw]; // MCC_DATA has ALL mccs (incl unrestricted) — but it only stores restricted ones
+    // Check if it's in our restriction map
+    // MCC_DATA in the restriction sense: let's check the raw data
+    // Actually MCC_DATA only has entries WITH restrictions; unrestricted MCCs aren't in it
+    // But the full MCC list is also in MCC_DATA (we inlined all 252 entries)
+    // Let's just render using MCC_DATA for description and restriction data
+    out.innerHTML=renderMCCDetail(raw, entry);
+    return;
+  }
+
+  // ── Keyword / category search across MCC_DATA
+  const q=raw.toLowerCase();
+  // Search all MCC codes (need full lookup table — MCC_DATA has sub/cat for restricted ones)
+  // Build matches from MCC_DATA entries that have sub/cat
+  const matches=[];
+  Object.entries(MCC_DATA).forEach(([code,data])=>{
+    if(!data||typeof data!=='object') return;
+    const sub=(data.sub||'').toLowerCase();
+    const cat=(data.cat||'').toLowerCase();
+    if(sub.includes(q)||cat.includes(q)||code.includes(q)){
+      matches.push({code,data});
+    }
+  });
+
+  if(!matches.length){
+    out.innerHTML=`<div class="p-4 bg-gray-50 rounded-xl border border-gray-200 text-gray-500 text-sm">
+      No MCC found matching <strong>"${raw}"</strong>. Try a different keyword or enter the 4-digit code directly.
+    </div>`;
+    return;
+  }
+
+  if(matches.length===1){
+    // Directly show detail for single match
+    out.innerHTML=renderMCCDetail(matches[0].code, matches[0].data);
+    return;
+  }
+
+  // ── Multiple matches — show as a searchable list, click to drill in
+  const MAX_SHOW=30;
+  const shown=matches.slice(0,MAX_SHOW);
+  const rows=shown.map(({code,data})=>{
+    const hasBlock=(data.blocked?.length||0)>0;
+    const hasCond=(data.conditional?.length||0)>0;
+    const badge=hasBlock
+      ?`<span class="text-xs font-bold text-red-700 bg-red-50 border border-red-200 px-2 py-0.5 rounded-full">🚫 Restrictions</span>`
+      :hasCond
+      ?`<span class="text-xs font-bold text-amber-700 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-full">⚠ Conditional</span>`
+      :`<span class="text-xs font-bold text-green-700 bg-green-50 border border-green-200 px-2 py-0.5 rounded-full">✅ Available</span>`;
+    return `<div class="flex items-center justify-between py-2.5 px-4 rounded-xl border border-gray-100 bg-white hover:bg-amber-50 hover:border-amber-200 cursor-pointer transition"
+        onclick="document.getElementById('mcc-lookup-input').value='${code}';showMCCLookup()">
+      <div>
+        <span class="font-black text-gray-800 text-sm">${code}</span>
+        <span class="text-xs text-gray-400 mx-1.5">·</span>
+        <span class="text-xs font-semibold text-gray-500 uppercase tracking-wide">${data.cat||''}</span>
+        <p class="text-xs text-gray-600 mt-0.5">${data.sub||''}</p>
+      </div>
+      ${badge}
+    </div>`;
+  }).join('');
+
+  out.innerHTML=`<div class="space-y-1.5">
+    <p class="text-xs font-bold text-gray-500 uppercase tracking-wide mb-2">${matches.length} result${matches.length>1?'s':''} for "${raw}"${matches.length>MAX_SHOW?` — showing first ${MAX_SHOW}`:''}</p>
+    ${rows}
+    ${matches.length>MAX_SHOW?`<p class="text-xs text-gray-400 text-center pt-1">+ ${matches.length-MAX_SHOW} more — refine your search</p>`:''}
   </div>`;
 }
 
