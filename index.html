@@ -6,10 +6,10 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<!-- build: 20260715-v77 -->
+<!-- build: 20260715-v78 -->
 <script>
 (function(){
-  const BUILD='v77';
+  const BUILD='v78';
   const u=new URL(location.href);
   if(u.searchParams.get('b')!==BUILD){u.searchParams.set('b',BUILD);location.replace(u.toString());}
 })();
@@ -3499,17 +3499,27 @@ async function downloadApprovedFromStats(rowId){
   if(statsBtn){statsBtn.textContent='⏳ Generating...';statsBtn.disabled=true;}
   try{
     _currentDlRowId=rowId;
-    _approvedRequestId=rowId;
-    try{sessionStorage.setItem('rzp_approved_rid',rowId);}catch(e){}
+
+    // ── Resolve the actual requestId (localStorage stores 'requestId', not rowId)
+    // rowId is 'ap_<requestId>' for approval rows; strip the prefix
+    const localAps=JSON.parse(localStorage.getItem('rzp_pending_approvals')||'[]');
+    const apRecord=localAps.find(a=>a.rowId===rowId&&a.status==='approved')
+      ||localAps.find(a=>('ap_'+a.requestId)===rowId);
+    const realRequestId=apRecord?.requestId||rowId.replace(/^ap_/,'');
+    _approvedRequestId=realRequestId;
+    try{sessionStorage.setItem('rzp_approved_rid',realRequestId);}catch(e){}
+
     // Restore pricing state into the hidden calculator DOM
     restoreCalculatorState(row.snapshot);
-    await new Promise(r=>setTimeout(r,250));
-    // openPDFModal populates method checkboxes + intro/closing text — required by generateAndDownloadPDF
-    // It also calls showModal; we immediately close the overlay so user stays on stats page
+    await new Promise(r=>setTimeout(r,300));
+
+    // openPDFModal populates method checkboxes + intro/closing text (needed by generateAndDownloadPDF)
+    // Show modal briefly, then close overlay so user stays on stats
     openPDFModal();
-    await new Promise(r=>setTimeout(r,50));
-    closeModal('pdf-modal'); // dismiss overlay — DOM state (checkboxes etc.) is already set
-    // Now generate straight to download
+    await new Promise(r=>setTimeout(r,80));
+    closeModal('pdf-modal');
+
+    // Generate & download — _approvedRequestId is set so approval flow is skipped
     await generateAndDownloadPDF();
   }catch(e){
     console.error('[downloadApprovedFromStats]',e);
