@@ -6,10 +6,10 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<!-- build: 20260715-v73 -->
+<!-- build: 20260715-v74 -->
 <script>
 (function(){
-  const BUILD='v73';
+  const BUILD='v74';
   const u=new URL(location.href);
   if(u.searchParams.get('b')!==BUILD){u.searchParams.set('b',BUILD);location.replace(u.toString());}
 })();
@@ -2606,8 +2606,8 @@ function _openPdfModal(){
       if(_genBtn){_genBtn.textContent='⬇ Download Approved PDF';_genBtn.disabled=false;_genBtn.className='flex-1 bg-gradient-to-r from-green-600 to-emerald-600 text-white font-bold py-2.5 rounded-xl text-sm shadow-lg hover:opacity-90';}
     }
   }
-  // If there's an active pending approval, show option to start fresh or check status
-  if(pendingApprovalId&&queuedEl){
+  // If there's an active pending approval (and NOT already approved), show queued status
+  if(pendingApprovalId&&!_alreadyApproved&&queuedEl){
     queuedEl.innerHTML=`<div class="flex items-center justify-between gap-3">
       <span>⏳ A previous proposal is awaiting approval.</span>
       <button onclick="pendingApprovalId=null;pendingPDFBuffer=null;pendingFileName=null;document.getElementById('pdf-queued-status').classList.add('hidden');const b=document.getElementById('pdf-generate-btn');if(b){b.textContent='Generate & Download PDF';b.disabled=false;b.className='flex-1 bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-bold py-2.5 rounded-xl text-sm shadow-lg hover:from-blue-700 hover:to-indigo-700 transition-all';}" class="shrink-0 text-xs font-bold px-3 py-1 bg-white border border-amber-300 text-amber-700 rounded-lg hover:bg-amber-50">New Pricing ↺</button>
