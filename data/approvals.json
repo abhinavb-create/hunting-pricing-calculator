@@ -3618,5 +3618,16 @@
       }
     },
     "timestamp": 1784113143258
+  },
+  {
+    "requestId": "mrlyqfp14rxh1r",
+    "merchantName": "Kniwealth advisors Pvt ltd",
+    "requesterEmail": "",
+    "status": "approved",
+    "resolvedAt": "2026-07-15T11:37:57.230Z",
+    "teamGroup": "",
+    "gmv": 0,
+    "slabLabel": "",
+    "timestamp": 1784115477230
   }
 ]
