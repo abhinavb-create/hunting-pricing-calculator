@@ -6,10 +6,10 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<!-- build: 20260715-v83 -->
+<!-- build: 20260715-v84 -->
 <script>
 (function(){
-  const BUILD='v83';
+  const BUILD='v84';
   const u=new URL(location.href);
   if(u.searchParams.get('b')!==BUILD){u.searchParams.set('b',BUILD);location.replace(u.toString());}
 })();
@@ -3532,8 +3532,8 @@ async function downloadApprovedFromStats(rowId){
     closeStats();
     restoreCalculatorState(snap);
     await new Promise(r=>setTimeout(r,350));
-    openPDFModal();
-    await new Promise(r=>setTimeout(r,80));
+    _openPdfModal();
+    await new Promise(r=>setTimeout(r,150));
     closeModal('pdf-modal');
     await generateAndDownloadPDF();
     // Return to stats after download completes
