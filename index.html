@@ -6,10 +6,10 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<!-- build: 20260715-v74 -->
+<!-- build: 20260715-v75 -->
 <script>
 (function(){
-  const BUILD='v74';
+  const BUILD='v75';
   const u=new URL(location.href);
   if(u.searchParams.get('b')!==BUILD){u.searchParams.set('b',BUILD);location.replace(u.toString());}
 })();
@@ -2571,6 +2571,11 @@ function _openPdfModal(){
   // Check if rates were already approved — only the exact in-session requestId counts
   // (prevents v1 approval from hiding the approval section for v2)
   const _localAps=JSON.parse(localStorage.getItem('rzp_pending_approvals')||'[]');
+  // Restore approved requestId from sessionStorage if in-memory was lost (e.g. page refresh)
+  if(!_approvedRequestId){
+    const _sessRid=sessionStorage.getItem('rzp_approved_rid');
+    if(_sessRid&&_localAps.some(a=>a.status==='approved'&&a.requestId===_sessRid)) _approvedRequestId=_sessRid;
+  }
   const _alreadyApproved=!!_approvedRequestId&&_localAps.some(a=>a.status==='approved'&&a.requestId===_approvedRequestId);
 
   // Check floor violations and populate approval section (admins/ops/partnership bypass approval)
@@ -4675,6 +4680,7 @@ function startFreshCalculator(){
   _currentDlRowId=null;
   _newVersionParentGroup=null;
   _approvedRequestId=null;
+  try{sessionStorage.removeItem('rzp_approved_rid');}catch(e){}
   setPricingLocked(false);
   // Reset all fields
   document.getElementById('merchant-name').value='';
@@ -4996,6 +5002,7 @@ function handleApprovalResolved(requestId,status){
 
   if(status==='approved'){
     _approvedRequestId=requestId; // allow next download to bypass approval flow
+    try{sessionStorage.setItem('rzp_approved_rid',requestId);}catch(e){}
     if(driveEl) driveEl.innerHTML='✅ <span class="text-green-600 font-semibold">Approved! Click Download PDF to get your file.</span>';
     if(queuedEl){
       queuedEl.textContent='✅ Approved! You can now download the PDF.';
