@@ -6,10 +6,10 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<!-- build: 20260715-v80 -->
+<!-- build: 20260715-v81 -->
 <script>
 (function(){
-  const BUILD='v80';
+  const BUILD='v81';
   const u=new URL(location.href);
   if(u.searchParams.get('b')!==BUILD){u.searchParams.set('b',BUILD);location.replace(u.toString());}
 })();
@@ -3491,56 +3491,52 @@ function redownloadPDF(rowId){
   setTimeout(()=>{ openModal('pdf-modal'); },300);
 }
 
-// Download approved PDF directly from stats page — initialises modal state then auto-generates
+// Download approved PDF from stats — navigate to main, generate, return to stats
 async function downloadApprovedFromStats(rowId){
   const statsBtn=event?.target;
   if(statsBtn){statsBtn.textContent='⏳ Generating...';statsBtn.disabled=true;}
   try{
-    // ── Resolve snapshot from all possible sources (cache → statsAllRows → GitHub)
+    // ── Resolve snapshot
     let snap=window._snapCache?.[rowId]||statsAllRows.find(r=>r.rowId===rowId)?.snapshot||null;
-    if(!snap){
-      try{snap=await _resolveSnap(rowId);}catch(e){console.warn('[downloadApprovedFromStats] _resolveSnap failed',e);}
-    }
-    if(!snap){alert('Snapshot not found for this version. Please regenerate from the calculator.');return;}
+    if(!snap){try{snap=await _resolveSnap(rowId);}catch(e){}}
+    if(!snap){alert('Snapshot not found. Please regenerate from the main calculator.');return;}
 
     _currentDlRowId=rowId;
 
-    // ── Resolve actual requestId — localStorage uses 'requestId', row uses 'ap_<requestId>'
+    // ── Resolve actual requestId
     const localAps=JSON.parse(localStorage.getItem('rzp_pending_approvals')||'[]');
     const apRecord=localAps.find(a=>a.rowId===rowId&&a.status==='approved')
-      ||localAps.find(a=>('ap_'+a.requestId)===rowId)
-      ||localAps.find(a=>a.status==='approved'&&statsAllRows.find(r=>r.rowId===rowId)?.merchantName===a.merchantName);
+      ||localAps.find(a=>('ap_'+a.requestId)===rowId);
     const realRequestId=apRecord?.requestId||rowId.replace(/^ap_/,'');
     _approvedRequestId=realRequestId;
     try{sessionStorage.setItem('rzp_approved_rid',realRequestId);}catch(e){}
 
-    // ── Ensure localStorage has this approved record so generateAndDownloadPDF trusts it
-    // (SA may be on new device/session where localStorage was never synced)
+    // ── Seed localStorage so generateAndDownloadPDF approval gate passes
     const statsRow=statsAllRows.find(r=>r.rowId===rowId);
     const lsMatch=localAps.find(a=>a.requestId===realRequestId);
     if(!lsMatch){
       localAps.push({requestId:realRequestId,status:'approved',merchantName:statsRow?.merchantName||'',timestamp:Date.now(),rowId});
       localStorage.setItem('rzp_pending_approvals',JSON.stringify(localAps));
-    } else if(lsMatch.status!=='approved'){
+    }else if(lsMatch.status!=='approved'){
       lsMatch.status='approved';
       localStorage.setItem('rzp_pending_approvals',JSON.stringify(localAps));
     }
 
-    // Restore pricing state into hidden calculator DOM
+    // ── Navigate to main page so all DOM is live, restore state, generate, return
+    closeStats();
     restoreCalculatorState(snap);
-    await new Promise(r=>setTimeout(r,300));
-
-    // openPDFModal populates method checkboxes + intro/closing text required by generateAndDownloadPDF
+    await new Promise(r=>setTimeout(r,350));
     openPDFModal();
     await new Promise(r=>setTimeout(r,80));
     closeModal('pdf-modal');
-
     await generateAndDownloadPDF();
+    // Return to stats after download completes
+    await new Promise(r=>setTimeout(r,400));
+    showStats();
   }catch(e){
     console.error('[downloadApprovedFromStats]',e);
-    alert('Could not generate PDF. Please try from the main calculator page.');
-  }finally{
-    if(statsBtn){statsBtn.textContent='⬇ Download PDF';statsBtn.disabled=false;}
+    alert('Error: '+e.message+'\nPlease try generating from the main calculator page.');
+    showStats(); // always return to stats on error
   }
 }
 
