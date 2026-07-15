@@ -6,10 +6,10 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<!-- build: 20260714-v66 -->
+<!-- build: 20260715-v67 -->
 <script>
 (function(){
-  const BUILD='v66';
+  const BUILD='v67';
   const u=new URL(location.href);
   if(u.searchParams.get('b')!==BUILD){u.searchParams.set('b',BUILD);location.replace(u.toString());}
 })();
@@ -2775,6 +2775,7 @@ async function generateAndDownloadPDF(){
     const creditAmt=getGMVCreditAmount();
     const routeRate=getRouteRate();
 
+    // ── Collect simple addon cards (settlement, credit, route, cards recurring)
     const addonsRows=[];
     addonsRows.push(['Settlement Cycle',settleText]);
     if(creditAmt>0){
@@ -2782,65 +2783,130 @@ async function generateAndDownloadPDF(){
       addonsRows.push(['GMV Credit Benefit',cl+' (special benefit - subject to Sales POC agreement)']);
     }
     if(routeRate>0) addonsRows.push(['Razorpay Route',routeRate.toFixed(2)+'% of routed volume']);
-
-    // Recurring rows
     if(document.getElementById('recur-cards-enabled')?.checked){
       const r=Math.max(0.80,+(document.getElementById('recur-cards-rate')?.value)||1.00);
       addonsRows.push(['Cards Recurring',r.toFixed(2)+'% of txn value (Credit + Debit Cards)']);
     }
+
+    // ── Collect table-style recurring items
+    let emandData=null, upiData=null;
     if(document.getElementById('recur-emand-enabled')?.checked){
       const reg=+(document.getElementById('recur-emand-reg')?.value)||30;
       const deb=+(document.getElementById('recur-emand-debit')?.value)||25;
       const mcc=(document.getElementById('merchant-mcc')?.value||'').trim();
       const entry=mcc.length===4?MCC_DATA[mcc]:null;
       const note=entry?getEmandNoteForMCCCat(entry.cat,entry.sub):'Standard limits apply';
-      addonsRows.push(['E-Mandate (NACH)',`Registration ₹${reg} · Auto-debit ₹${deb} | ${note}`]);
+      emandData={reg,deb,note};
     }
     if(document.getElementById('recur-upi-enabled')?.checked){
-      const r1=+(document.getElementById('recur-upi-reg1')?.value)||2;
-      const r2=+(document.getElementById('recur-upi-reg2')?.value)||7;
-      const r3=+(document.getElementById('recur-upi-reg3')?.value)||7;
-      const t1=+(document.getElementById('recur-upi-t1')?.value)||5;
-      const t2=+(document.getElementById('recur-upi-t2')?.value)||8;
-      const t3=+(document.getElementById('recur-upi-t3')?.value)||18;
-      addonsRows.push(['UPI Autopay',
-        `Txn ₹0–250: Reg ₹${r1} · Debit ₹${t1}` +
-        ` | Txn ₹250–1000: Reg ₹${r2} · Debit ₹${t2}` +
-        ` | Txn >₹1000: Reg ₹${r3} · Debit ₹${t3}`
-      ]);
+      upiData={
+        r1:+(document.getElementById('recur-upi-reg1')?.value)||2,
+        r2:+(document.getElementById('recur-upi-reg2')?.value)||7,
+        r3:+(document.getElementById('recur-upi-reg3')?.value)||7,
+        t1:+(document.getElementById('recur-upi-t1')?.value)||5,
+        t2:+(document.getElementById('recur-upi-t2')?.value)||8,
+        t3:+(document.getElementById('recur-upi-t3')?.value)||18,
+      };
     }
 
-    if(addonsRows.length){
-      checkPage(10+addonsRows.length*14);
+    const hasAddons=addonsRows.length||emandData||upiData;
+    if(hasAddons){
+      const estimatedH=10+(addonsRows.length?Math.ceil(addonsRows.length/3)*21:0)+(emandData?32:0)+(upiData?46:0);
+      checkPage(estimatedH);
       sectionTitle('Additional Terms',31,63,163);
-      // Render as a card grid — N cards side by side (up to 3 per row)
-      const addonCards=addonsRows.map(r=>({label:r[0],value:r[1]}));
-      const acols=Math.min(addonCards.length,3);
-      const acellW=(CW-(acols-1)*4)/acols;
-      const acellH=18;
-      const arows=Math.ceil(addonCards.length/acols);
-      const agridH=arows*acellH+(arows-1)*3;
-      // outer wrapper
-      doc.setFillColor(246,248,255);doc.setDrawColor(210,218,240);doc.setLineWidth(0.25);
-      doc.roundedRect(M,y,CW,agridH,2,2,'FD');
-      addonCards.forEach((card,idx)=>{
-        const col=idx%acols, row=Math.floor(idx/acols);
-        const cx=M+col*(acellW+4), cy=y+row*(acellH+3);
-        // card bg
-        doc.setFillColor(255,255,255);doc.setDrawColor(210,220,245);doc.setLineWidth(0.2);
-        doc.roundedRect(cx+(col===0?2:0),cy+2,acellW-(col===0?2:0)-(col===acols-1?2:0),acellH-4,1,1,'FD');
-        // top accent line
-        doc.setFillColor(31,63,163);
-        doc.rect(cx+(col===0?2:0),cy+2,acellW-(col===0?2:0)-(col===acols-1?2:0),1.5,'F');
-        // label
-        doc.setFontSize(6.5);doc.setFont('helvetica','bold');doc.setTextColor(100,115,165);
-        doc.text(card.label.toUpperCase(),cx+(col===0?5:3),cy+7.5);
-        // value — wrap if needed
-        doc.setFontSize(8);doc.setFont('helvetica','bold');doc.setTextColor(15,25,70);
-        const vlines=doc.splitTextToSize(safeText(card.value),acellW-8);
-        doc.text(vlines[0],cx+(col===0?5:3),cy+13);
-      });
-      y+=agridH+6;
+
+      // ── Simple info cards (Settlement, Credit, Route, Cards Recurring)
+      if(addonsRows.length){
+        const addonCards=addonsRows.map(r=>({label:r[0],value:r[1]}));
+        const acols=Math.min(addonCards.length,3);
+        const acellW=(CW-(acols-1)*4)/acols;
+        const acellH=18;
+        const arows=Math.ceil(addonCards.length/acols);
+        const agridH=arows*acellH+(arows-1)*3;
+        doc.setFillColor(246,248,255);doc.setDrawColor(210,218,240);doc.setLineWidth(0.25);
+        doc.roundedRect(M,y,CW,agridH,2,2,'FD');
+        addonCards.forEach((card,idx)=>{
+          const col=idx%acols, row=Math.floor(idx/acols);
+          const cx=M+col*(acellW+4), cy=y+row*(acellH+3);
+          doc.setFillColor(255,255,255);doc.setDrawColor(210,220,245);doc.setLineWidth(0.2);
+          doc.roundedRect(cx+(col===0?2:0),cy+2,acellW-(col===0?2:0)-(col===acols-1?2:0),acellH-4,1,1,'FD');
+          doc.setFillColor(31,63,163);
+          doc.rect(cx+(col===0?2:0),cy+2,acellW-(col===0?2:0)-(col===acols-1?2:0),1.5,'F');
+          doc.setFontSize(6.5);doc.setFont('helvetica','bold');doc.setTextColor(100,115,165);
+          doc.text(card.label.toUpperCase(),cx+(col===0?5:3),cy+7.5);
+          doc.setFontSize(8);doc.setFont('helvetica','bold');doc.setTextColor(15,25,70);
+          const vlines=doc.splitTextToSize(safeText(card.value),acellW-8);
+          doc.text(vlines[0],cx+(col===0?5:3),cy+13);
+        });
+        y+=agridH+5;
+      }
+
+      // Helper: draw a mini-table with header row + data rows
+      const drawMiniTable=(title,accentRGB,headers,rows)=>{
+        const colW=headers.map(h=>h.w);
+        const rowH=7.5;
+        const hdrH=8;
+        const tableW=CW;
+        const tableH=hdrH+rows.length*rowH+1;
+        checkPage(tableH+10);
+        // Section label
+        doc.setFontSize(7.5);doc.setFont('helvetica','bold');doc.setTextColor(...accentRGB);
+        doc.text(title,M,y+4);y+=7;
+        // Header row bg
+        doc.setFillColor(...accentRGB);
+        doc.roundedRect(M,y,tableW,hdrH,1,1,'F');
+        // Header text
+        let hx=M;
+        headers.forEach(h=>{
+          doc.setFontSize(7);doc.setFont('helvetica','bold');doc.setTextColor(255,255,255);
+          doc.text(h.label,hx+3,y+5.5);
+          hx+=h.w;
+        });
+        y+=hdrH;
+        // Data rows
+        rows.forEach((row,ri)=>{
+          doc.setFillColor(ri%2===0?248:255,ri%2===0?250:255,ri%2===0?255:255);
+          doc.rect(M,y,tableW,rowH,'F');
+          doc.setDrawColor(220,225,240);doc.setLineWidth(0.15);
+          doc.line(M,y+rowH,M+tableW,y+rowH);
+          let rx=M;
+          row.forEach((cell,ci)=>{
+            doc.setFontSize(7.5);doc.setFont('helvetica',ci===0?'bold':'normal');doc.setTextColor(20,30,70);
+            doc.text(safeText(cell),rx+3,y+5);
+            rx+=headers[ci].w;
+          });
+          y+=rowH;
+        });
+        // Outer border
+        doc.setDrawColor(...accentRGB.map(v=>Math.min(255,v+40)));doc.setLineWidth(0.3);
+        doc.roundedRect(M,y-hdrH-rows.length*rowH,tableW,hdrH+rows.length*rowH,1,1,'S');
+        y+=5;
+      };
+
+      // ── E-Mandate table
+      if(emandData){
+        const noteLines=doc.splitTextToSize(emandData.note,CW-6);
+        drawMiniTable('E-Mandate (NACH)',[16,120,80],
+          [{label:'Type',w:60},{label:'Amount (₹)',w:CW-60}],
+          [
+            ['Registration Fee',`₹${emandData.reg} per mandate`],
+            ['Auto-debit Fee',`₹${emandData.deb} per transaction`],
+            ['Note',emandData.note],
+          ]
+        );
+      }
+
+      // ── UPI Autopay table
+      if(upiData){
+        drawMiniTable('UPI Autopay',[220,100,10],
+          [{label:'Transaction Value',w:55},{label:'Registration Fee (₹)',w:(CW-55)/2},{label:'Auto-debit Fee (₹)',w:(CW-55)/2}],
+          [
+            ['₹0 – ₹250',`₹${upiData.r1}`,`₹${upiData.t1}`],
+            ['₹251 – ₹1,000',`₹${upiData.r2}`,`₹${upiData.t2}`],
+            ['Above ₹1,000',`₹${upiData.r3}`,`₹${upiData.t3}`],
+          ]
+        );
+      }
     }
 
     // ══════════════════════════════════════════
