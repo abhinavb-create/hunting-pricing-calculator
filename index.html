@@ -6,10 +6,10 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<!-- build: 20260715-v68 -->
+<!-- build: 20260715-v69 -->
 <script>
 (function(){
-  const BUILD='v68';
+  const BUILD='v69';
   const u=new URL(location.href);
   if(u.searchParams.get('b')!==BUILD){u.searchParams.set('b',BUILD);location.replace(u.toString());}
 })();
@@ -579,7 +579,9 @@
     <div class="flex gap-3 mb-2">
       <input id="mcc-lookup-input" type="text" maxlength="60" placeholder="Search by MCC code or category (e.g. 7230 or 'grocery')"
         class="flex-1 px-4 py-2.5 border-2 border-gray-200 rounded-xl text-gray-800 font-bold text-sm focus:outline-none focus:border-amber-400 transition"
-        oninput="showMCCLookup()">
+        autocomplete="off" spellcheck="false"
+        oninput="debounceMCCLookup()"
+        onkeydown="if(event.key==='Enter'){event.preventDefault();showMCCLookup();}">
       <button onclick="showMCCLookup()" class="px-5 py-2.5 bg-amber-500 hover:bg-amber-600 text-white font-bold rounded-xl text-sm transition">Look up</button>
     </div>
     <p class="text-xs text-gray-400 mb-3">Enter a 4-digit MCC code <span class="text-gray-300 mx-1">·</span> or search by business type / category name</p>
@@ -1541,6 +1543,12 @@ function toggleMCCLookup(){
   panel.classList.toggle('hidden',isOpen);
   if(btn){btn.classList.toggle('bg-amber-200',!isOpen);btn.classList.toggle('bg-amber-50',isOpen);}
   if(!isOpen) document.getElementById('mcc-lookup-input')?.focus();
+}
+
+let _mccLookupTimer=null;
+function debounceMCCLookup(){
+  clearTimeout(_mccLookupTimer);
+  _mccLookupTimer=setTimeout(showMCCLookup, 300);
 }
 
 function renderMCCDetail(mcc,entry){
