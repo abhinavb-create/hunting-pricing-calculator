@@ -6,10 +6,10 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<!-- build: 20260715-v81 -->
+<!-- build: 20260715-v82 -->
 <script>
 (function(){
-  const BUILD='v81';
+  const BUILD='v82';
   const u=new URL(location.href);
   if(u.searchParams.get('b')!==BUILD){u.searchParams.set('b',BUILD);location.replace(u.toString());}
 })();
@@ -4846,12 +4846,14 @@ async function resendApprovalEmail(rowId){
       approveUrl,rejectUrl,
     });
     const subject=`[Pricing Calculator] Approval Request (Retroactive): ${rec.merchantName} — ${rec.requesterEmail}`;
-    await sendEmailViaGmail({to:approverEmail,subject,htmlBody});
+    const resendResult=await sendEmailViaGmail({to:approverEmail,subject,htmlBody});
+    if(!resendResult.success) throw new Error(resendResult.error||'Gmail send failed');
     if(btn){btn.textContent='✅ Sent';btn.classList.add('text-green-600');}
     setTimeout(()=>{if(btn){btn.textContent='✉ Resend Approval';btn.disabled=false;btn.classList.remove('text-green-600');}},3000);
   }catch(e){
     console.error('[resendApprovalEmail]',e);
     if(btn){btn.textContent='❌ Failed';btn.disabled=false;}
+    alert('Resend failed: '+e.message);
     setTimeout(()=>{if(btn){btn.textContent='✉ Resend Approval';btn.disabled=false;}},3000);
   }
 }
@@ -4873,7 +4875,8 @@ function rfc2047Subject(s){
 // ── Send HTML email via Gmail API ──────────────────────────────────────
 async function sendEmailViaGmail({to,subject,htmlBody},forceConsent=false){
   const tok=await _getToken(forceConsent);
-  if(!tok.success)return{success:false,error:tok.error};
+  if(!tok.success)return{success:false,error:tok.error||'Token fetch failed'};
+  if(!currentUser?.email) return{success:false,error:'Not signed in — please refresh and sign in again'};
   const mime=[
     'To: '+to,
     'From: '+currentUser.email,
