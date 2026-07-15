@@ -1819,5 +1819,16 @@
       }
     },
     "timestamp": 1784111800179
+  },
+  {
+    "requestId": "mrly7lzrdpsi4i",
+    "merchantName": "Meera Jaipur",
+    "requesterEmail": "",
+    "status": "approved",
+    "resolvedAt": "2026-07-15T10:48:28.758Z",
+    "teamGroup": "",
+    "gmv": 0,
+    "slabLabel": "",
+    "timestamp": 1784112508758
   }
 ]
