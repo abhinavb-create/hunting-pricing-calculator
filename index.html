@@ -6,10 +6,10 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<!-- build: 20260715-v71 -->
+<!-- build: 20260715-v72 -->
 <script>
 (function(){
-  const BUILD='v71';
+  const BUILD='v72';
   const u=new URL(location.href);
   if(u.searchParams.get('b')!==BUILD){u.searchParams.set('b',BUILD);location.replace(u.toString());}
 })();
@@ -1563,7 +1563,10 @@ function applyMCCFromLookup(mcc){
 let _mccLookupTimer=null;
 function debounceMCCLookup(){
   clearTimeout(_mccLookupTimer);
-  _mccLookupTimer=setTimeout(showMCCLookup, 300);
+  const val=(document.getElementById('mcc-lookup-input')?.value||'').trim();
+  // Fire immediately for exact 4-digit codes; debounce keyword search
+  if(/^\d{4}$/.test(val)){showMCCLookup();}
+  else{_mccLookupTimer=setTimeout(showMCCLookup,300);}
 }
 
 function renderMCCDetail(mcc,entry){
