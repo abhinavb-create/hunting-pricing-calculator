@@ -6,10 +6,10 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<!-- build: 20260715-v76 -->
+<!-- build: 20260715-v77 -->
 <script>
 (function(){
-  const BUILD='v76';
+  const BUILD='v77';
   const u=new URL(location.href);
   if(u.searchParams.get('b')!==BUILD){u.searchParams.set('b',BUILD);location.replace(u.toString());}
 })();
@@ -3491,26 +3491,31 @@ function redownloadPDF(rowId){
   setTimeout(()=>{ openModal('pdf-modal'); },300);
 }
 
-// Download approved PDF directly from stats page — no navigation, no modal
+// Download approved PDF directly from stats page — initialises modal state then auto-generates
 async function downloadApprovedFromStats(rowId){
   const row=statsAllRows.find(r=>r.rowId===rowId);
-  if(!row||!row.snapshot){alert('Snapshot not available. Please use redownload.');return;}
-  const btn=event?.target;
-  if(btn){btn.textContent='⏳ Generating...';btn.disabled=true;}
+  if(!row||!row.snapshot){alert('Snapshot not available.');return;}
+  const statsBtn=event?.target;
+  if(statsBtn){statsBtn.textContent='⏳ Generating...';statsBtn.disabled=true;}
   try{
     _currentDlRowId=rowId;
-    // Set approved state so generateAndDownloadPDF skips approval checks
     _approvedRequestId=rowId;
     try{sessionStorage.setItem('rzp_approved_rid',rowId);}catch(e){}
-    // Restore calculator state into hidden DOM (stats page is showing, main wrap is hidden but DOM is intact)
+    // Restore pricing state into the hidden calculator DOM
     restoreCalculatorState(row.snapshot);
-    await new Promise(r=>setTimeout(r,250)); // let DOM settle
+    await new Promise(r=>setTimeout(r,250));
+    // openPDFModal populates method checkboxes + intro/closing text — required by generateAndDownloadPDF
+    // It also calls showModal; we immediately close the overlay so user stays on stats page
+    openPDFModal();
+    await new Promise(r=>setTimeout(r,50));
+    closeModal('pdf-modal'); // dismiss overlay — DOM state (checkboxes etc.) is already set
+    // Now generate straight to download
     await generateAndDownloadPDF();
   }catch(e){
     console.error('[downloadApprovedFromStats]',e);
-    alert('Could not generate PDF. Try redownloading from the main page.');
+    alert('Could not generate PDF. Please try from the main calculator page.');
   }finally{
-    if(btn){btn.textContent='⬇ Download PDF';btn.disabled=false;}
+    if(statsBtn){statsBtn.textContent='⬇ Download PDF';statsBtn.disabled=false;}
   }
 }
 
