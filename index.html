@@ -6,10 +6,10 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<!-- build: 20260715-v85 -->
+<!-- build: 20260715-v86 -->
 <script>
 (function(){
-  const BUILD='v85';
+  const BUILD='v86';
   const u=new URL(location.href);
   if(u.searchParams.get('b')!==BUILD){u.searchParams.set('b',BUILD);location.replace(u.toString());}
 })();
@@ -3867,7 +3867,14 @@ async function submitAccessRequest(team){
       method:'POST',headers:{'Authorization':'Bearer '+tok.token,'Content-Type':'application/json'},
       body:JSON.stringify({raw:encoded}),
     });
-    if(!res.ok) throw new Error('Email failed: '+res.status);
+    const resData=await res.json();
+    if(!res.ok||resData.error){
+      // Gmail API failed — show manual fallback mailto link
+      const mailtoLink=`mailto:${ADMIN_EMAIL}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent('Hi Abhinav,\n\nI would like to request access to the Pricing Calculator.\n\nName: '+(currentUser.name||currentUser.email)+'\nTeam: '+team+'\n\nThanks')}`;
+      document.querySelectorAll('#request-access-screen button[onclick^="submitAccessRequest"]').forEach(b=>{b.disabled=false;b.classList.remove('opacity-50');});
+      if(statusEl) statusEl.innerHTML=`<span style="color:#d97706;font-weight:600">⚠️ Auto-email failed. <a href="${mailtoLink}" target="_blank" style="color:#2563eb;text-decoration:underline">Click here to send request manually →</a></span>`;
+      // Still register in GitHub
+    }
     // Register user in GitHub so admin sees them in Platform Users panel
     const now=new Date().toISOString();
     _ghUpdate('data/users.json',arr=>{
@@ -3877,7 +3884,7 @@ async function submitAccessRequest(team){
       else{a.push({email:currentUser.email,name:currentUser.name||'',teamGroup:team,registeredAt:now,lastSeen:now,status:'pending'});}
       return a;
     },'register user: '+currentUser.email).catch(()=>{});
-    showAccessPending();
+    if(!resData.error&&res.ok) showAccessPending();
   }catch(e){
     console.error('[submitAccessRequest]',e);
     document.querySelectorAll('#request-access-screen button[onclick^="submitAccessRequest"]').forEach(b=>{b.disabled=false;b.classList.remove('opacity-50');});
