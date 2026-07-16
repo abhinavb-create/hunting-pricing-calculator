@@ -118,5 +118,13 @@
     "registeredAt": "2026-07-13T09:37:34.422Z",
     "lastSeen": "2026-07-13T09:38:45.758Z",
     "status": "active"
+  },
+  {
+    "email": "arpit.shukla@razorpay.com",
+    "name": "Arpit Shukla",
+    "teamGroup": "Competition Hunting",
+    "registeredAt": "2026-07-16T06:42:40.657Z",
+    "lastSeen": "2026-07-16T06:42:40.657Z",
+    "status": "pending"
   }
 ]
