@@ -6,10 +6,10 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<!-- build: 20260715-v86 -->
+<!-- build: 20260715-v87 -->
 <script>
 (function(){
-  const BUILD='v86';
+  const BUILD='v87';
   const u=new URL(location.href);
   if(u.searchParams.get('b')!==BUILD){u.searchParams.set('b',BUILD);location.replace(u.toString());}
 })();
@@ -2158,15 +2158,31 @@ function onGMVChange(){
   const gmv=getGMV();
   document.getElementById('gmv-label').textContent=gmv?lakh(gmv):'';
   const shouldLock=gmv>0&&gmv<500000;
+  const upiIdx=METHODS.findIndex(m=>m.id==='upi');
   if(shouldLock&&!isLocked){
     isLocked=true;
     document.getElementById('comp-table-card').classList.add('locked');
     document.querySelectorAll('#comp-tbody input,#nocomp-tbody input,#mc-tbody input').forEach(el=>el.disabled=true);
+    // Set UPI to 1% default for sub-5L merchants
+    if(upiIdx>=0){
+      const cUpi=document.getElementById(`c-mdr-${upiIdx}`);
+      const mcUpi=document.getElementById(`mc-mdr-${upiIdx}`);
+      if(cUpi&&!cUpi._userEdited) cUpi.value='1.00';
+      if(mcUpi&&!mcUpi._userEdited) mcUpi.value='1.00';
+    }
     showModal('lock-modal');
   }else if(!shouldLock&&isLocked){
     isLocked=false;
     document.getElementById('comp-table-card').classList.remove('locked');
     document.querySelectorAll('#comp-tbody input,#nocomp-tbody input,#mc-tbody input').forEach(el=>el.disabled=false);
+    // Reset UPI back to standard default when unlocked
+    if(upiIdx>=0){
+      const cUpi=document.getElementById(`c-mdr-${upiIdx}`);
+      const mcUpi=document.getElementById(`mc-mdr-${upiIdx}`);
+      const stdRate=METHODS[upiIdx]?.compRate??0.25;
+      if(cUpi&&!cUpi._userEdited) cUpi.value=stdRate.toFixed(2);
+      if(mcUpi&&!mcUpi._userEdited) mcUpi.value=(METHODS[upiIdx]?.mcRate??stdRate).toFixed(2);
+    }
   }
   updateOutputs();
   checkRouteAvailability();
