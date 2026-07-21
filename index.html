@@ -6,10 +6,10 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<!-- build: 20260715-v88 -->
+<!-- build: 20260715-v89 -->
 <script>
 (function(){
-  const BUILD='v88';
+  const BUILD='v89';
   const u=new URL(location.href);
   if(u.searchParams.get('b')!==BUILD){u.searchParams.set('b',BUILD);location.replace(u.toString());}
 })();
@@ -171,6 +171,7 @@
           <button onclick="submitAccessRequest('Shopify Hunting')" class="w-full px-4 py-3 rounded-xl border-2 border-gray-200 hover:border-green-500 hover:bg-green-50 font-semibold text-gray-800 text-sm transition-all flex items-center gap-3">🛍️ Shopify Hunting</button>
           <button onclick="submitAccessRequest('Competition Hunting')" class="w-full px-4 py-3 rounded-xl border-2 border-gray-200 hover:border-orange-500 hover:bg-orange-50 font-semibold text-gray-800 text-sm transition-all flex items-center gap-3">⚔️ Competition / Retribution Hunting</button>
           <button onclick="submitAccessRequest('MM Hunting')" class="w-full px-4 py-3 rounded-xl border-2 border-gray-200 hover:border-purple-500 hover:bg-purple-50 font-semibold text-gray-800 text-sm transition-all flex items-center gap-3">🏢 MM Hunting</button>
+          <button onclick="submitAccessRequest('Enterprise Hunting')" class="w-full px-4 py-3 rounded-xl border-2 border-gray-200 hover:border-indigo-500 hover:bg-indigo-50 font-semibold text-gray-800 text-sm transition-all flex items-center gap-3">🏛️ Enterprise Hunting</button>
           <button onclick="submitAccessRequest('EB Farming')" class="w-full px-4 py-3 rounded-xl border-2 border-gray-200 hover:border-teal-500 hover:bg-teal-50 font-semibold text-gray-800 text-sm transition-all flex items-center gap-3">🌱 EB Farming</button>
           <button onclick="submitAccessRequest('EB Hunting')" class="w-full px-4 py-3 rounded-xl border-2 border-gray-200 hover:border-cyan-500 hover:bg-cyan-50 font-semibold text-gray-800 text-sm transition-all flex items-center gap-3">🎯 EB Hunting</button>
           <button onclick="submitAccessRequest('EB <> Pricing')" class="w-full px-4 py-3 rounded-xl border-2 border-gray-200 hover:border-rose-500 hover:bg-rose-50 font-semibold text-gray-800 text-sm transition-all flex items-center gap-3">💹 EB &lt;&gt; Pricing</button>
@@ -951,6 +952,7 @@
         <option value="Shopify Hunting">🛍️ Shopify</option>
         <option value="Competition Hunting">⚔️ Competition</option>
         <option value="MM Hunting">🏢 MM</option>
+        <option value="Enterprise Hunting">🏛️ Enterprise</option>
         <option value="EB Farming">🌱 EB Farming</option>
         <option value="EB Hunting">🎯 EB Hunting</option>
         <option value="EB <> Pricing">💹 EB Pricing</option>
@@ -1116,6 +1118,9 @@
         </button>
         <button onclick="selectTeamGroup('MM Hunting')" class="team-group-btn w-full text-left px-4 py-3.5 rounded-xl border-2 border-gray-200 hover:border-purple-500 hover:bg-purple-50 font-semibold text-gray-800 text-sm transition-all flex items-center gap-3">
           <span class="text-xl">🏢</span><span>MM Hunting</span>
+        </button>
+        <button onclick="selectTeamGroup('Enterprise Hunting')" class="team-group-btn w-full text-left px-4 py-3.5 rounded-xl border-2 border-gray-200 hover:border-indigo-500 hover:bg-indigo-50 font-semibold text-gray-800 text-sm transition-all flex items-center gap-3">
+          <span class="text-xl">🏛️</span><span>Enterprise Hunting</span>
         </button>
         <button onclick="selectTeamGroup('EB Farming')" class="team-group-btn w-full text-left px-4 py-3.5 rounded-xl border-2 border-gray-200 hover:border-teal-500 hover:bg-teal-50 font-semibold text-gray-800 text-sm transition-all flex items-center gap-3">
           <span class="text-xl">🌱</span><span>EB Farming</span>
@@ -4011,7 +4016,7 @@ async function revokeUser(email){
 
 async function editUserTeam(email, currentTeam, userName){
   if(!isAdminOrCoAdmin()) return;
-  const TEAM_OPTIONS=['Startup Hunting','Shopify Hunting','Competition Hunting','MM Hunting','EB Farming','EB Hunting','EB <> Pricing','Partnership'];
+  const TEAM_OPTIONS=['Startup Hunting','Shopify Hunting','Competition Hunting','MM Hunting','Enterprise Hunting','EB Farming','EB Hunting','EB <> Pricing','Partnership'];
   // Build a small inline modal using a prompt-style select
   const modal=document.createElement('div');
   modal.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:9999;display:flex;align-items:center;justify-content:center;font-family:Arial,sans-serif';
