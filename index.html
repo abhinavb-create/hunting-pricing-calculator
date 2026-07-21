@@ -6,10 +6,10 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<!-- build: 20260715-v87 -->
+<!-- build: 20260715-v88 -->
 <script>
 (function(){
-  const BUILD='v87';
+  const BUILD='v88';
   const u=new URL(location.href);
   if(u.searchParams.get('b')!==BUILD){u.searchParams.set('b',BUILD);location.replace(u.toString());}
 })();
@@ -2815,27 +2815,40 @@ async function generateAndDownloadPDF(){
 
     const cols=2;
     const cellW=CW/cols;
-    const cellH=14;
-    const rows=Math.ceil(detailCells.length/cols);
-    const gridH=rows*cellH;
+    const cellPad=5, baseH=14, lineH=4.2;
+    // Pre-compute wrapped lines for each cell to determine row heights
+    doc.setFontSize(9);doc.setFont('helvetica','bold');
+    const cellLines=detailCells.map(cell=>doc.splitTextToSize(safeText(cell.value),cellW-cellPad*2));
+    const numRows=Math.ceil(detailCells.length/cols);
+    const rowHeights=[];
+    for(let r=0;r<numRows;r++){
+      let maxLines=1;
+      for(let c=0;c<cols;c++){const idx=r*cols+c;if(cellLines[idx]) maxLines=Math.max(maxLines,cellLines[idx].length);}
+      rowHeights.push(Math.max(baseH, 8 + maxLines*lineH));
+    }
+    const gridH=rowHeights.reduce((a,b)=>a+b,0);
 
     // outer card
     doc.setFillColor(246,248,255);doc.setDrawColor(210,218,240);doc.setLineWidth(0.25);
     doc.roundedRect(M,y,CW,gridH,2,2,'FD');
 
+    let rowY=y;
     detailCells.forEach((cell,idx)=>{
       const col=idx%cols, row=Math.floor(idx/cols);
-      const cx=M+col*cellW, cy=y+row*cellH;
+      const cx=M+col*cellW, cy=rowY+(col===0&&row>0?0:0);
+      // recalculate cy from accumulated row heights
+      const actualCY=y+rowHeights.slice(0,row).reduce((a,b)=>a+b,0);
+      const rh=rowHeights[row];
       // cell border right (except last col)
-      if(col<cols-1){doc.setDrawColor(210,218,240);doc.setLineWidth(0.2);doc.line(cx+cellW,cy+2,cx+cellW,cy+cellH-2);}
+      if(col<cols-1){doc.setDrawColor(210,218,240);doc.setLineWidth(0.2);doc.line(cx+cellW,actualCY+2,cx+cellW,actualCY+rh-2);}
       // cell border bottom (except last row)
-      if(row<rows-1){doc.setDrawColor(210,218,240);doc.setLineWidth(0.2);doc.line(cx+4,cy+cellH,cx+cellW-4,cy+cellH);}
+      if(row<numRows-1){doc.setDrawColor(210,218,240);doc.setLineWidth(0.2);doc.line(cx+4,actualCY+rh,cx+cellW-4,actualCY+rh);}
       // label
       doc.setFontSize(6.5);doc.setFont('helvetica','bold');doc.setTextColor(120,135,175);
-      doc.text(cell.label,cx+5,cy+5.5);
-      // value
+      doc.text(cell.label,cx+cellPad,actualCY+5.5);
+      // value — wrapped
       doc.setFontSize(9);doc.setFont('helvetica','bold');doc.setTextColor(15,25,65);
-      doc.text(safeText(cell.value),cx+5,cy+11);
+      doc.text(cellLines[idx],cx+cellPad,actualCY+11);
     });
     y+=gridH+7;
 
