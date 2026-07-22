@@ -295,5 +295,16 @@
     "resolvedAt": "",
     "teamGroup": "Competition Hunting",
     "timestamp": "2026-07-22T06:15:03.684Z"
+  },
+  {
+    "requestId": "fa_mrvpsohc0epl4a",
+    "merchantName": "Meera Jaipur",
+    "requesterEmail": "milind.singhbora@razorpay.com",
+    "versionIds": "dl_1784702280933",
+    "notes": "Magic Checkout COD charges: Free for the first 6 months, then 0.15% thereafter.",
+    "status": "pending",
+    "resolvedAt": "",
+    "teamGroup": "Competition Hunting",
+    "timestamp": "2026-07-22T06:41:53.137Z"
   }
 ]
