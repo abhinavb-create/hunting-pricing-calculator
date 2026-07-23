@@ -372,5 +372,16 @@
     "resolvedAt": "",
     "teamGroup": "Competition Hunting",
     "timestamp": "2026-07-23T06:40:07.800Z"
+  },
+  {
+    "requestId": "fa_mrxho3e16vn3wt",
+    "merchantName": "Coolbeds",
+    "requesterEmail": "anam.imteyaz@razorpay.com",
+    "versionIds": "dl_1784809783235",
+    "notes": "",
+    "status": "pending",
+    "resolvedAt": "",
+    "teamGroup": "Shopify Hunting",
+    "timestamp": "2026-07-23T12:29:54.602Z"
   }
 ]
