@@ -383,5 +383,16 @@
     "resolvedAt": "",
     "teamGroup": "Shopify Hunting",
     "timestamp": "2026-07-23T12:29:54.602Z"
+  },
+  {
+    "requestId": "fa_mrxi6pykshs1m5",
+    "merchantName": "Mavin Club",
+    "requesterEmail": "anam.imteyaz@razorpay.com",
+    "versionIds": "dl_1784798305978",
+    "notes": "Magic Checkout at 0.3%",
+    "status": "pending",
+    "resolvedAt": "",
+    "teamGroup": "Shopify Hunting",
+    "timestamp": "2026-07-23T12:44:23.661Z"
   }
 ]
