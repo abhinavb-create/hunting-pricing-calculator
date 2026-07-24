@@ -6,10 +6,10 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<!-- build: 20260724-v90 -->
+<!-- build: 20260724-v91 -->
 <script>
 (function(){
-  const BUILD='v90';
+  const BUILD='v91';
   const u=new URL(location.href);
   if(u.searchParams.get('b')!==BUILD){u.searchParams.set('b',BUILD);location.replace(u.toString());}
 })();
@@ -7883,40 +7883,51 @@ function _buildMerchantEmailHtml({merchantName,intro,snap}){
     if(negNR.length>0){
       const totalNR=typeof computePGNR==='function'?computePGNR(tab,gmv):0;
       const rows=negNR.map(v=>`<tr class="border-b border-white/10"><td class="py-1.5 pr-3 text-white/90 text-xs">${v.label}</td><td class="py-1.5 pr-2 text-red-300 font-bold text-xs">${v.mdr}%</td><td class="py-1.5 pr-2 text-white/50 text-xs">${v.bc}%</td><td class="py-1.5 pr-2 text-amber-300 text-xs">${v.floor}%</td><td class="py-1.5 text-green-300 font-bold text-xs">${v.minRate}%</td></tr>`).join('');
-      _addMsg('assistant',`<div class="font-bold text-red-300 mb-2">🚫 Negative NR — Download Blocked</div>
+
+      if(totalNR<0){
+        // Hard block — overall deal is loss-making
+        _addMsg('assistant',`<div class="font-bold text-red-300 mb-2">🚫 Negative NR — Download Blocked</div>
 <p class="text-xs text-white/70 mb-2">Total NR is <strong class="text-red-300">₹${Math.abs(+totalNR.toFixed(0)).toLocaleString()}/month loss</strong>. These methods are priced below Razorpay's cost:</p>
 <table class="w-full mb-3"><thead><tr class="border-b border-white/20 text-[10px] uppercase text-white/40"><th class="pb-1 text-left pr-3">Method</th><th class="pb-1 text-left pr-2">Offered</th><th class="pb-1 text-left pr-2">Our Cost</th><th class="pb-1 text-left pr-2">Floor</th><th class="pb-1 text-left">Min Viable ✅</th></tr></thead><tbody>${rows}</tbody></table>
 <p class="text-xs text-white/60">💡 Set rates to at least <strong>Min Viable</strong> to break even. These already account for both cost and floor rates.</p>`,true);
 
-      return new Promise(res=>{
-        _chips(['✏️ Auto-fix to minimum rates','✏️ I\'ll revise manually','⚠️ Proceed anyway (needs approval)']);
-        document.getElementById('ai-chips').querySelectorAll('button').forEach(btn=>{
-          btn.onclick=async()=>{
-            _chips([]);
-            const txt=btn.textContent;
-            _addMsg('user',txt);
-            if(txt.includes('Auto-fix')){
-              negNR.forEach(v=>{
-                const el=document.getElementById(`${pfx}-mdr-${v.idx}`);
-                if(el){ el.value=v.minRate; el.dispatchEvent(new Event('input')); }
-              });
-              if(typeof updateOutputs==='function') updateOutputs();
-              _addMsg('assistant',`✅ Auto-set ${negNR.length} method(s) to minimum viable rates. Re-running checks…`);
-              const ok=await _runGuardrails();
-              res(ok);
-            } else if(txt.includes('manually')){
-              const methods=negNR.map(v=>`${v.label} (min ${v.minRate}%)`).join(', ');
-              _state.step=SETUP_STEPS.indexOf('ourRates');
-              _state.mode='setup';
-              _ask(_md(`Please give revised rates for:\n**${methods}**`),['Skip — fill manually']);
-              res(false);
-            } else {
-              _addMsg('assistant','⚠️ Proceeding with negative NR — this will require Abhinav\'s approval.');
-              res(true);
-            }
-          };
+        return new Promise(res=>{
+          _chips(['✏️ Auto-fix to minimum rates','✏️ I\'ll revise manually','⚠️ Proceed anyway (needs approval)']);
+          document.getElementById('ai-chips').querySelectorAll('button').forEach(btn=>{
+            btn.onclick=async()=>{
+              _chips([]);
+              const txt=btn.textContent;
+              _addMsg('user',txt);
+              if(txt.includes('Auto-fix')){
+                negNR.forEach(v=>{
+                  const el=document.getElementById(`${pfx}-mdr-${v.idx}`);
+                  if(el){ el.value=v.minRate; el.dispatchEvent(new Event('input')); }
+                });
+                if(typeof updateOutputs==='function') updateOutputs();
+                _addMsg('assistant',`✅ Auto-set ${negNR.length} method(s) to minimum viable rates. Re-running checks…`);
+                const ok=await _runGuardrails();
+                res(ok);
+              } else if(txt.includes('manually')){
+                const methods=negNR.map(v=>`${v.label} (min ${v.minRate}%)`).join(', ');
+                _state.step=SETUP_STEPS.indexOf('ourRates');
+                _state.mode='setup';
+                _ask(_md(`Please give revised rates for:\n**${methods}**`),['Skip — fill manually']);
+                res(false);
+              } else {
+                _addMsg('assistant','⚠️ Proceeding with negative NR — this will require Abhinav\'s approval.');
+                res(true);
+              }
+            };
+          });
         });
-      });
+      } else {
+        // Total NR is positive — some methods below cost but deal is still profitable overall, just warn
+        _addMsg('assistant',`<div class="font-bold text-amber-300 mb-2">⚠️ Note: Some methods priced below cost</div>
+<p class="text-xs text-white/70 mb-2">Overall NR is <strong class="text-green-300">₹${Math.round(totalNR).toLocaleString()}/month</strong> ✅ — but these individual methods are below Razorpay's cost (offset by other methods):</p>
+<table class="w-full mb-3"><thead><tr class="border-b border-white/20 text-[10px] uppercase text-white/40"><th class="pb-1 text-left pr-3">Method</th><th class="pb-1 text-left pr-2">Offered</th><th class="pb-1 text-left pr-2">Our Cost</th><th class="pb-1 text-left pr-2">Floor</th><th class="pb-1 text-left">Min Viable</th></tr></thead><tbody>${rows}</tbody></table>
+<p class="text-xs text-white/60">Deal is profitable overall — proceeding.</p>`,true);
+        // don't block, continue to next guardrail
+      }
     }
 
     // ── GUARDRAIL 2: Below floor rates ──
