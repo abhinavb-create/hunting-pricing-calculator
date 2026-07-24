@@ -6,10 +6,10 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<!-- build: 20260724-v109 -->
+<!-- build: 20260724-v110 -->
 <script>
 (function(){
-  const BUILD='v109';
+  const BUILD='v110';
   const u=new URL(location.href);
   if(u.searchParams.get('b')!==BUILD){u.searchParams.set('b',BUILD);location.replace(u.toString());}
 })();
@@ -565,15 +565,20 @@
   </div>
 
   <!-- DUPLICATE MERCHANT BANNER -->
-  <div id="dup-merchant-banner" class="hidden mb-4 bg-amber-50 border-2 border-amber-300 rounded-2xl px-5 py-4">
-    <div class="flex items-start gap-3">
-      <span class="text-2xl shrink-0">⚠️</span>
-      <div class="flex-1 min-w-0">
-        <p class="text-sm font-black text-amber-900">Existing pricing found for this merchant</p>
-        <div id="dup-merchant-list" class="mt-2 space-y-2"></div>
+  <div id="dup-merchant-banner" class="hidden mb-4 rounded-2xl overflow-hidden border-2">
+    <!-- header bar — colour set by JS -->
+    <div id="dup-merchant-header" class="px-5 py-3 flex items-center justify-between gap-3">
+      <div class="flex items-center gap-2">
+        <span id="dup-merchant-icon" class="text-lg">⚠️</span>
+        <div>
+          <p id="dup-merchant-title" class="text-sm font-black"></p>
+          <p id="dup-merchant-subtitle" class="text-xs opacity-80 mt-0.5"></p>
+        </div>
       </div>
-      <button onclick="document.getElementById('dup-merchant-banner').classList.add('hidden')" class="shrink-0 text-amber-400 hover:text-amber-700 text-lg font-bold">✕</button>
+      <button onclick="document.getElementById('dup-merchant-banner').classList.add('hidden')" class="shrink-0 opacity-60 hover:opacity-100 text-lg font-bold leading-none">✕</button>
     </div>
+    <!-- match rows -->
+    <div id="dup-merchant-list" class="px-5 pb-4 pt-2 space-y-2 bg-white"></div>
   </div>
 
   <!-- REQUEST DETAILS MODAL -->
@@ -5835,47 +5840,100 @@ async function _checkDuplicateMerchant(){
     banner?.classList.add('hidden');return;
   }
   const myEmail=(currentUser?.email||'').toLowerCase();
+  const isAdmin=isAdminOrCoAdmin();
   const all=await _loadAllDownloads();
-  // Find matches by other users
-  const matches=[];
-  const seen=new Set();
+
+  // Find matches by OTHER users
+  const byOwner=new Map();
   all.forEach(r=>{
-    if((r.userEmail||'').toLowerCase()===myEmail) return; // skip own records
+    if((r.userEmail||'').toLowerCase()===myEmail) return;
     const rName=(r.merchantName||'').toLowerCase();
     const rEmail=(r.merchantEmail||r.snapshot?.merchantEmail||'').toLowerCase();
-    const nameMatch=nameVal.length>=3&&rName&&rName.includes(nameVal);
+    const nameMatch=nameVal.length>=3&&rName&&(rName.includes(nameVal)||nameVal.includes(rName.split(' ')[0]));
     const emailMatch=emailVal.length>=5&&rEmail&&rEmail===emailVal;
     if(!nameMatch&&!emailMatch) return;
-    const key=(r.userEmail||'')+'|'+(r.merchantName||'');
-    if(seen.has(key)) return;
-    seen.add(key);
-    matches.push(r);
-  });
-  if(!matches.length){banner?.classList.add('hidden');return;}
-  // Group by owner — show most recent per owner
-  const byOwner=new Map();
-  matches.forEach(r=>{
-    const oe=r.userEmail||'unknown';
+    const oe=(r.userEmail||'unknown').toLowerCase();
     const existing=byOwner.get(oe);
     if(!existing||r.timestamp>existing.timestamp) byOwner.set(oe,r);
   });
+
+  if(!byOwner.size){banner?.classList.add('hidden');return;}
+
+  // Style banner differently for admin vs member
+  const header=document.getElementById('dup-merchant-header');
+  const titleEl=document.getElementById('dup-merchant-title');
+  const subEl=document.getElementById('dup-merchant-subtitle');
+  const iconEl=document.getElementById('dup-merchant-icon');
+  if(isAdmin){
+    banner.className='mb-4 rounded-2xl overflow-hidden border-2 border-blue-300';
+    header.className='px-5 py-3 flex items-center justify-between gap-3 bg-blue-600';
+    header.style.color='#fff';
+    iconEl.textContent='👀';
+    titleEl.textContent='Existing pricing found — '+byOwner.size+' POC'+(byOwner.size>1?'s are':'is')+' in touch with this merchant';
+    subEl.textContent='As admin you can view history directly — no approval needed';
+  } else {
+    banner.className='mb-4 rounded-2xl overflow-hidden border-2 border-amber-300';
+    header.className='px-5 py-3 flex items-center justify-between gap-3 bg-amber-50';
+    header.style.color='';
+    iconEl.textContent='⚠️';
+    titleEl.textContent='Someone else has priced this merchant';
+    titleEl.style.color='#92400e';
+    subEl.textContent='Request details from your approver to avoid duplicate outreach';
+    subEl.style.color='#b45309';
+  }
+
   list.innerHTML='';
   byOwner.forEach((r,oe)=>{
-    const ownerName=r.userName||oe;
+    const ownerName=r.userName||oe.split('@')[0];
     const lastDate=r.timestamp?new Date(r.timestamp).toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'}):'Unknown date';
     const team=r.teamGroup||'Unknown team';
+    // Which approver mapped to this POC's team
+    const ownerApprover=getApproverEmail(team);
+    const approverLabel=ownerApprover===CO_ADMIN_EMAIL?'→ Adnan':'→ Abhinav';
+    // Count versions for this merchant from this owner
+    const versionCount=all.filter(x=>(x.userEmail||'').toLowerCase()===oe&&(x.merchantName||'').toLowerCase()===(r.merchantName||'').toLowerCase()).length;
+
     const div=document.createElement('div');
-    div.className='flex items-center justify-between gap-3 bg-white border border-amber-200 rounded-xl px-4 py-3';
-    div.innerHTML=`
+    div.className='flex items-center justify-between gap-3 border rounded-xl px-4 py-3 '+(isAdmin?'border-blue-100 bg-blue-50':'border-amber-100 bg-amber-50');
+
+    const infoHtml=`
       <div class="flex-1 min-w-0">
-        <p class="text-xs font-black text-gray-800 truncate">${r.merchantName||'—'}</p>
-        <p class="text-xs text-gray-500 mt-0.5">By <span class="font-semibold text-gray-700">${ownerName}</span> · ${team} · Last downloaded <span class="font-semibold">${lastDate}</span></p>
-      </div>
-      <button onclick="_openDupRequest(${JSON.stringify({rowId:r.rowId,ownerEmail:oe,ownerName,merchantName:r.merchantName||'',lastDate,team})})"
-        class="shrink-0 text-xs bg-amber-500 hover:bg-amber-600 text-white font-bold px-3 py-1.5 rounded-lg">Request Details</button>`;
+        <div class="flex items-center gap-2 flex-wrap">
+          <p class="text-xs font-black text-gray-800">${r.merchantName||'—'}</p>
+          <span class="text-xs px-2 py-0.5 rounded-full font-semibold ${isAdmin?'bg-blue-100 text-blue-700':'bg-amber-100 text-amber-700'}">${team}</span>
+          <span class="text-xs text-gray-400 font-semibold">${approverLabel}</span>
+        </div>
+        <p class="text-xs text-gray-600 mt-1">
+          POC: <span class="font-bold text-gray-800">${ownerName}</span>
+          <span class="text-gray-400 mx-1">·</span>
+          Last activity: <span class="font-semibold">${lastDate}</span>
+          <span class="text-gray-400 mx-1">·</span>
+          <span class="font-semibold">${versionCount} version${versionCount!==1?'s':''}</span>
+        </p>
+      </div>`;
+
+    const actionHtml=isAdmin
+      ? `<button onclick="_viewMerchantHistory(${JSON.stringify(r.merchantName||'')})"
+           class="shrink-0 text-xs bg-blue-600 hover:bg-blue-700 text-white font-bold px-3 py-1.5 rounded-lg flex items-center gap-1">
+           <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
+           View History
+         </button>`
+      : `<button onclick="_openDupRequest(${JSON.stringify({rowId:r.rowId,ownerEmail:oe,ownerName,merchantName:r.merchantName||'',lastDate,team})})"
+           class="shrink-0 text-xs bg-amber-500 hover:bg-amber-600 text-white font-bold px-3 py-1.5 rounded-lg">Request Details</button>`;
+
+    div.innerHTML=infoHtml+actionHtml;
     list.appendChild(div);
   });
   banner?.classList.remove('hidden');
+}
+
+function _viewMerchantHistory(merchantName){
+  // Navigate to Stats page filtered by this merchant
+  showStats();
+  setTimeout(()=>{
+    const searchEl=document.getElementById('stats-search');
+    if(searchEl){searchEl.value=merchantName;filterStats();}
+  },400);
 }
 
 function _openDupRequest(info){
