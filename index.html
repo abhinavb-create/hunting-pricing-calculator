@@ -6,10 +6,10 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<!-- build: 20260724-v107 -->
+<!-- build: 20260724-v108 -->
 <script>
 (function(){
-  const BUILD='v107';
+  const BUILD='v108';
   const u=new URL(location.href);
   if(u.searchParams.get('b')!==BUILD){u.searchParams.set('b',BUILD);location.replace(u.toString());}
 })();
@@ -549,17 +549,17 @@
         <div id="mcc-info-badge" class="text-xs mt-1 font-semibold leading-snug" style="min-height:16px;max-width:320px;"></div>
       </div>
       <div class="flex-1 min-w-44">
-        <div class="flex items-center justify-between mb-1.5">
-          <label class="text-xs font-semibold text-gray-500">Monthly GMV (₹) <span class="text-red-400">*</span></label>
-          <div id="split-check" class="text-xs font-bold px-2 py-0.5 rounded-md bg-green-100 text-green-700">—</div>
-        </div>
+        <label class="block text-xs font-semibold text-gray-500 mb-1.5">Monthly GMV (₹) <span class="text-red-400">*</span></label>
         <div class="relative">
           <span class="absolute left-3 top-2.5 text-gray-400 font-semibold text-sm">₹</span>
           <input id="gmv" type="number" value="5600000" min="0" step="100000"
             class="w-full pl-7 pr-3 py-2.5 border-2 border-gray-200 rounded-xl text-gray-800 font-bold text-sm focus:outline-none focus:border-blue-500"
             oninput="onGMVChange()">
         </div>
-        <p id="gmv-label" class="text-xs text-blue-500 font-semibold mt-1"></p>
+        <div class="flex items-center gap-2 mt-1">
+          <p id="gmv-label" class="text-xs text-blue-500 font-semibold"></p>
+          <span id="split-check" class="text-xs font-bold px-2 py-0.5 rounded-full bg-green-100 text-green-700 hidden">—</span>
+        </div>
       </div>
     </div>
   </div>
@@ -2805,8 +2805,15 @@ function updateOutputs(){
   // Split check
   const activeSplit=activeTab==='competition'?cSplit:activeTab==='magic-checkout'?mSplit:0;
   const sc2=document.getElementById('split-check');
-  sc2.textContent=activeSplit.toFixed(1)+'% split';
-  sc2.className=`text-sm font-bold px-3 py-1.5 rounded-lg ${Math.abs(activeSplit-100)<0.5?'bg-green-100 text-green-700':'bg-amber-100 text-amber-700'}`;
+  if(sc2){
+    if(activeSplit>0){
+      sc2.textContent=activeSplit.toFixed(0)+'% split';
+      sc2.className=`text-xs font-bold px-2 py-0.5 rounded-full ${Math.abs(activeSplit-100)<0.5?'bg-green-100 text-green-700':'bg-amber-100 text-amber-700'}`;
+      sc2.classList.remove('hidden');
+    } else {
+      sc2.classList.add('hidden');
+    }
+  }
   splitWarn('comp-split-warn',cSplit);splitWarn('mc-split-warn',mSplit);
   checkFloorWarnings();
 }
