@@ -54,6 +54,31 @@
   .info-popup{position:absolute;z-index:500;background:white;border:1.5px solid #c0ccf0;border-radius:10px;box-shadow:0 4px 20px rgba(0,0,0,.15);padding:10px 12px;min-width:200px;max-width:280px;font-size:11px;}
   .info-popup-item{display:flex;align-items:center;gap:6px;padding:3px 0;border-bottom:1px solid #f0f0f0;}
   .info-popup-item:last-child{border-bottom:none;}
+  /* ── Dark theme ── */
+  body.dark-theme{background:#0f1117!important;color:#e2e8f0;}
+  body.dark-theme .max-w-6xl{--tw-bg-opacity:1;}
+  body.dark-theme h1,body.dark-theme h2,body.dark-theme h3{color:#f1f5f9!important;}
+  body.dark-theme p.text-gray-400,body.dark-theme p.text-gray-500,body.dark-theme span.text-gray-400{color:#94a3b8!important;}
+  body.dark-theme .bg-white{background:#1e2235!important;border-color:#2d3555!important;}
+  body.dark-theme .bg-gray-50{background:#161929!important;}
+  body.dark-theme .border-gray-100,body.dark-theme .border-gray-200{border-color:#2d3555!important;}
+  body.dark-theme input,body.dark-theme select,body.dark-theme textarea{background:#161929!important;border-color:#3d4a6a!important;color:#e2e8f0!important;}
+  body.dark-theme input::placeholder,body.dark-theme textarea::placeholder{color:#64748b!important;}
+  body.dark-theme .text-gray-800,body.dark-theme .text-gray-700,body.dark-theme .text-gray-600{color:#cbd5e1!important;}
+  body.dark-theme .text-gray-500{color:#94a3b8!important;}
+  body.dark-theme .border-gray-200.bg-white,body.dark-theme [class*="rounded"][class*="bg-white"]{background:#1e2235!important;}
+  body.dark-theme .shadow-sm{box-shadow:0 1px 3px rgba(0,0,0,.4)!important;}
+  body.dark-theme #user-name{color:#e2e8f0!important;}
+  body.dark-theme .bg-gray-100{background:#1e2235!important;}
+  body.dark-theme table thead tr{border-color:#2d3555!important;}
+  body.dark-theme table tbody tr{border-color:#2d3555!important;}
+  body.dark-theme .bg-indigo-50{background:#1e2045!important;}
+  body.dark-theme .bg-green-50{background:#0f2320!important;}
+  body.dark-theme .bg-amber-50{background:#231c0a!important;}
+  body.dark-theme .bg-blue-50{background:#0f1e35!important;}
+  body.dark-theme #theme-icon-dark{display:block!important;}
+  body.dark-theme #theme-icon-light{display:none!important;}
+  body.dark-theme .rounded-full.bg-white,body.dark-theme div.bg-white.border.border-gray-200.rounded-full{background:#1e2235!important;}
 </style>
 </head>
 <body class="min-h-screen p-4 md:p-6">
@@ -108,6 +133,46 @@
 </div>
 
 <!-- ===== LOCK MODAL ===== -->
+<!-- EMAIL PROPOSAL MODAL -->
+<div id="email-modal" class="modal">
+  <div class="bg-white rounded-2xl shadow-2xl max-w-lg w-full mx-4 overflow-hidden">
+    <div class="bg-gradient-to-r from-blue-600 to-indigo-600 px-6 py-4 flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
+        <h3 class="text-white font-bold text-lg">Email Proposal</h3>
+      </div>
+      <button onclick="closeModal('email-modal')" class="text-white/70 hover:text-white text-2xl font-bold leading-none">×</button>
+    </div>
+    <div class="p-6 space-y-4">
+      <div>
+        <label class="block text-xs font-semibold text-gray-500 mb-1.5">To (Merchant Email)</label>
+        <input id="email-to" type="email" placeholder="merchant@company.com" class="w-full px-3 py-2.5 border-2 border-gray-200 rounded-xl text-sm focus:outline-none focus:border-blue-500">
+      </div>
+      <div>
+        <label class="block text-xs font-semibold text-gray-500 mb-1.5">CC (optional)</label>
+        <input id="email-cc" type="email" placeholder="colleague@razorpay.com" class="w-full px-3 py-2.5 border-2 border-gray-200 rounded-xl text-sm focus:outline-none focus:border-blue-500">
+      </div>
+      <div>
+        <label class="block text-xs font-semibold text-gray-500 mb-1.5">Subject</label>
+        <input id="email-subject" type="text" class="w-full px-3 py-2.5 border-2 border-gray-200 rounded-xl text-sm focus:outline-none focus:border-blue-500">
+      </div>
+      <div>
+        <label class="block text-xs font-semibold text-gray-500 mb-1.5">Message</label>
+        <textarea id="email-body" rows="5" class="w-full px-3 py-2.5 border-2 border-gray-200 rounded-xl text-sm focus:outline-none focus:border-blue-500 resize-none"></textarea>
+      </div>
+      <p class="text-xs text-gray-400">📎 The PDF proposal will be attached automatically when you send.</p>
+      <div id="email-status" class="hidden text-sm font-semibold"></div>
+      <div class="flex gap-3 pt-1">
+        <button onclick="sendProposalEmail()" class="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-bold py-2.5 rounded-xl text-sm flex items-center justify-center gap-2">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"/></svg>
+          Send Email
+        </button>
+        <button onclick="closeModal('email-modal')" class="px-5 bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold py-2.5 rounded-xl text-sm">Cancel</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <div id="lock-modal" class="modal">
   <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full mx-4 overflow-hidden">
     <div class="bg-amber-500 px-6 py-4 flex items-center gap-3">
@@ -225,6 +290,16 @@
       <div id="google-signin-btn"></div>
       <!-- User profile (shown when signed in) -->
       <div id="user-profile" class="hidden flex items-center gap-2">
+        <!-- Theme toggle -->
+        <button id="theme-toggle-btn" onclick="toggleTheme()" title="Toggle dark/light mode" class="text-gray-500 hover:text-indigo-600 px-2 py-1.5 rounded-lg hover:bg-indigo-50 border border-gray-200 bg-white shadow-sm">
+          <svg id="theme-icon-dark" class="w-4 h-4 hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"/></svg>
+          <svg id="theme-icon-light" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
+        </button>
+        <!-- Email proposal -->
+        <button onclick="openEmailProposal()" title="Email proposal to merchant" class="text-xs text-gray-500 hover:text-blue-600 font-semibold px-3 py-1.5 rounded-lg hover:bg-blue-50 flex items-center gap-1 border border-gray-200 bg-white shadow-sm">
+          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
+          Email
+        </button>
         <button id="notif-btn" onclick="toggleNotifications()" class="relative text-gray-500 hover:text-indigo-600 px-2 py-1.5 rounded-lg hover:bg-indigo-50 border border-gray-200 bg-white shadow-sm">
           <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/></svg>
           <span id="notif-count" class="hidden absolute -top-1 -right-1 w-4 h-4 bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center">0</span>
@@ -4248,6 +4323,51 @@ function updateUserUI(){
     greetEl.classList.remove('hidden');
   }
   setTimeout(_buildNotifications,500);
+}
+
+// ── Theme toggle ──
+function toggleTheme(){
+  const isDark=document.body.classList.toggle('dark-theme');
+  localStorage.setItem('rzp_theme',isDark?'dark':'light');
+}
+(function(){
+  if(localStorage.getItem('rzp_theme')==='dark') document.body.classList.add('dark-theme');
+})();
+
+// ── Email proposal ──
+function openEmailProposal(){
+  const name=document.getElementById('merchant-name')?.value.trim()||'';
+  const customer=document.getElementById('customer-name')?.value.trim()||'';
+  const gmv=getGMV();
+  // Pre-fill subject and body
+  const subj=`Razorpay Payment Gateway Proposal${name?' — '+name:''}`;
+  const body=`Dear ${customer||'Sir/Madam'},\n\nThank you for your interest in Razorpay's payment solutions.\n\nPlease find attached our commercial pricing proposal${name?' for '+name:''}. We look forward to your feedback.\n\nBest regards,\n${currentUser?.name||''}${currentUser?.email?'\n'+currentUser.email:''}`;
+  document.getElementById('email-to').value='';
+  document.getElementById('email-cc').value=currentUser?.email||'';
+  document.getElementById('email-subject').value=subj;
+  document.getElementById('email-body').value=body;
+  document.getElementById('email-status').classList.add('hidden');
+  showModal('email-modal');
+}
+async function sendProposalEmail(){
+  const to=document.getElementById('email-to').value.trim();
+  const cc=document.getElementById('email-cc').value.trim();
+  const subject=document.getElementById('email-subject').value.trim();
+  const body=document.getElementById('email-body').value.trim();
+  const statusEl=document.getElementById('email-status');
+  if(!to){alert('Please enter the recipient email address.');return;}
+  if(!subject){alert('Please enter a subject.');return;}
+  statusEl.classList.remove('hidden');
+  statusEl.style.color='#6366f1';
+  statusEl.textContent='📤 Opening email…';
+  // Step 1 — download PDF so user has it ready to attach
+  try{ downloadPDF(); }catch(e){}
+  // Step 2 — open mailto (attach PDF manually)
+  const mailtoLink=`mailto:${to}${cc?'?cc='+encodeURIComponent(cc)+'&':'?'}subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+  setTimeout(()=>window.open(mailtoLink,'_self'),600);
+  statusEl.style.color='#16a34a';
+  statusEl.textContent='✅ PDF downloaded + email client opened. Please attach the PDF and send.';
+  setTimeout(()=>closeModal('email-modal'),3500);
 }
 
 function signOut(){
