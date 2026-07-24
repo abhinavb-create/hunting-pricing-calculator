@@ -6,10 +6,10 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<!-- build: 20260724-v108 -->
+<!-- build: 20260724-v109 -->
 <script>
 (function(){
-  const BUILD='v108';
+  const BUILD='v109';
   const u=new URL(location.href);
   if(u.searchParams.get('b')!==BUILD){u.searchParams.set('b',BUILD);location.replace(u.toString());}
 })();
@@ -597,6 +597,55 @@
         <div class="flex gap-3">
           <button onclick="closeModal('dup-request-modal')" class="flex-1 py-2.5 border-2 border-gray-200 rounded-xl text-sm font-bold text-gray-600 hover:bg-gray-50">Cancel</button>
           <button onclick="submitDupRequest()" class="flex-1 py-2.5 bg-amber-500 hover:bg-amber-600 text-white rounded-xl text-sm font-black">Send Request</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- PRODUCT FEEDBACK MODAL -->
+  <div id="product-feedback-modal" class="modal">
+    <div class="bg-white rounded-2xl shadow-2xl max-w-lg w-full mx-4 overflow-hidden">
+      <div class="bg-indigo-600 px-6 py-4 flex items-center gap-3">
+        <svg class="w-6 h-6 text-white shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/></svg>
+        <h2 class="text-white font-black text-lg">Suggest a Feature / Report a Bug</h2>
+      </div>
+      <div class="px-6 py-5">
+        <!-- Type -->
+        <div class="mb-4">
+          <label class="block text-xs font-bold text-gray-500 uppercase mb-2">Type</label>
+          <div class="flex gap-2">
+            <button id="fb-type-feature" onclick="setFeedbackType('feature')"
+              class="flex-1 py-2 rounded-xl border-2 border-indigo-500 bg-indigo-50 text-indigo-700 text-sm font-bold">💡 Feature Request</button>
+            <button id="fb-type-bug" onclick="setFeedbackType('bug')"
+              class="flex-1 py-2 rounded-xl border-2 border-gray-200 text-gray-500 text-sm font-bold hover:border-red-300 hover:bg-red-50 hover:text-red-600">🐛 Bug Report</button>
+            <button id="fb-type-other" onclick="setFeedbackType('other')"
+              class="flex-1 py-2 rounded-xl border-2 border-gray-200 text-gray-500 text-sm font-bold hover:border-gray-400">💬 Other</button>
+          </div>
+        </div>
+        <!-- Title -->
+        <div class="mb-4">
+          <label class="block text-xs font-bold text-gray-500 uppercase mb-1.5">Title <span class="text-red-400">*</span></label>
+          <input id="fb-title" type="text" placeholder="e.g. Add export to Excel, Split validation bug..."
+            class="w-full px-3 py-2.5 border-2 border-gray-200 rounded-xl text-gray-800 font-semibold text-sm focus:outline-none focus:border-indigo-400">
+        </div>
+        <!-- Description -->
+        <div class="mb-4">
+          <label class="block text-xs font-bold text-gray-500 uppercase mb-1.5">Description <span class="text-red-400">*</span></label>
+          <textarea id="fb-desc" rows="3" placeholder="Describe what you need or what went wrong. Include steps to reproduce for bugs."
+            class="w-full px-3 py-2.5 border-2 border-gray-200 rounded-xl text-sm text-gray-800 focus:outline-none focus:border-indigo-400 resize-none"></textarea>
+        </div>
+        <!-- Priority -->
+        <div class="mb-5">
+          <label class="block text-xs font-bold text-gray-500 uppercase mb-2">Priority</label>
+          <div class="flex gap-2">
+            <button id="fb-pri-low" onclick="setFeedbackPriority('low')" class="flex-1 py-1.5 rounded-lg border-2 border-gray-200 text-gray-500 text-xs font-bold hover:border-green-300">🟢 Low</button>
+            <button id="fb-pri-medium" onclick="setFeedbackPriority('medium')" class="flex-1 py-1.5 rounded-lg border-2 border-amber-400 bg-amber-50 text-amber-700 text-xs font-bold">🟡 Medium</button>
+            <button id="fb-pri-high" onclick="setFeedbackPriority('high')" class="flex-1 py-1.5 rounded-lg border-2 border-gray-200 text-gray-500 text-xs font-bold hover:border-red-300">🔴 High</button>
+          </div>
+        </div>
+        <div class="flex gap-3">
+          <button onclick="closeModal('product-feedback-modal')" class="flex-1 py-2.5 border-2 border-gray-200 rounded-xl text-sm font-bold text-gray-600 hover:bg-gray-50">Cancel</button>
+          <button onclick="submitProductFeedback()" class="flex-1 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-sm font-black">Send to Abhinav →</button>
         </div>
       </div>
     </div>
@@ -1377,7 +1426,7 @@
         Request Escalation
       </button>
     </div>
-    <div class="px-5 py-4 flex items-center justify-between">
+    <div class="px-5 py-4 flex items-center justify-between border-b border-gray-100">
       <div>
         <p class="text-sm font-semibold text-gray-700">Download History</p>
         <p class="text-xs text-gray-400 mt-0.5">Export your pricing history as a CSV file</p>
@@ -1385,6 +1434,16 @@
       <button onclick="exportMyHistory()" class="text-xs bg-gray-700 text-white font-bold px-3 py-2 rounded-xl hover:bg-gray-800 flex items-center gap-1.5">
         <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
         Export CSV
+      </button>
+    </div>
+    <div class="px-5 py-4 flex items-center justify-between">
+      <div>
+        <p class="text-sm font-semibold text-gray-700">Suggest a Feature / Report a Bug</p>
+        <p class="text-xs text-gray-400 mt-0.5">Request improvements or new features for the pricing calculator</p>
+      </div>
+      <button onclick="openProductFeedback()" class="text-xs bg-indigo-600 text-white font-bold px-3 py-2 rounded-xl hover:bg-indigo-700 flex items-center gap-1.5">
+        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/></svg>
+        Submit Feedback
       </button>
     </div>
   </div>
@@ -5980,6 +6039,62 @@ function saveSettingsDefaultTab(){
 
 function requestEscalation(){
   alert('Escalation request feature — opens a mailto to Abhinav with context.\n\nThis will be wired to the approval system in a future update.');
+}
+
+let _fbType='feature';
+let _fbPriority='medium';
+
+function openProductFeedback(){
+  _fbType='feature';_fbPriority='medium';
+  document.getElementById('fb-title').value='';
+  document.getElementById('fb-desc').value='';
+  setFeedbackType('feature');setFeedbackPriority('medium');
+  showModal('product-feedback-modal');
+}
+
+function setFeedbackType(t){
+  _fbType=t;
+  const styles={
+    feature:{active:'border-indigo-500 bg-indigo-50 text-indigo-700',inactive:'border-gray-200 text-gray-500'},
+    bug:{active:'border-red-400 bg-red-50 text-red-600',inactive:'border-gray-200 text-gray-500'},
+    other:{active:'border-gray-500 bg-gray-100 text-gray-700',inactive:'border-gray-200 text-gray-500'},
+  };
+  ['feature','bug','other'].forEach(k=>{
+    const btn=document.getElementById('fb-type-'+k);
+    if(!btn) return;
+    const isActive=k===t;
+    btn.className='flex-1 py-2 rounded-xl border-2 text-sm font-bold '+(isActive?styles[k].active:styles[k].inactive);
+  });
+}
+
+function setFeedbackPriority(p){
+  _fbPriority=p;
+  const styles={
+    low:{active:'border-green-400 bg-green-50 text-green-700',inactive:'border-gray-200 text-gray-500'},
+    medium:{active:'border-amber-400 bg-amber-50 text-amber-700',inactive:'border-gray-200 text-gray-500'},
+    high:{active:'border-red-400 bg-red-50 text-red-600',inactive:'border-gray-200 text-gray-500'},
+  };
+  ['low','medium','high'].forEach(k=>{
+    const btn=document.getElementById('fb-pri-'+k);
+    if(!btn) return;
+    const isActive=k===p;
+    btn.className='flex-1 py-1.5 rounded-lg border-2 text-xs font-bold '+(isActive?styles[k].active:styles[k].inactive);
+  });
+}
+
+function submitProductFeedback(){
+  const title=(document.getElementById('fb-title')?.value||'').trim();
+  const desc=(document.getElementById('fb-desc')?.value||'').trim();
+  if(!title||!desc){alert('Please fill in the title and description.');return;}
+  const typeLabel=_fbType==='feature'?'💡 Feature Request':_fbType==='bug'?'🐛 Bug Report':'💬 Other';
+  const priLabel=_fbPriority==='high'?'🔴 High':_fbPriority==='medium'?'🟡 Medium':'🟢 Low';
+  const from=currentUser?.name||currentUser?.email||'Unknown';
+  const team=currentUser?.teamGroup||'Unknown team';
+  const subject=`[${typeLabel}] ${title} — from ${from}`;
+  const body=`Type: ${typeLabel}\nPriority: ${priLabel}\nFrom: ${from} (${currentUser?.email||''}) · ${team}\nBuild: ${typeof BUILD!=='undefined'?BUILD:'?'}\n\n${desc}`;
+  window.open(`mailto:${ADMIN_EMAIL}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`,'_blank');
+  closeModal('product-feedback-modal');
+  _toast('Feedback sent to Abhinav!');
 }
 
 function exportMyHistory(){
