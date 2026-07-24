@@ -6,10 +6,10 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<!-- build: 20260724-v94 -->
+<!-- build: 20260724-v95 -->
 <script>
 (function(){
-  const BUILD='v94';
+  const BUILD='v95';
   const u=new URL(location.href);
   if(u.searchParams.get('b')!==BUILD){u.searchParams.set('b',BUILD);location.replace(u.toString());}
 })();
@@ -7432,13 +7432,82 @@ function _buildMerchantEmailHtml({merchantName,intro,snap}){
     }
     if(extracted.splitMap&&Object.keys(extracted.splitMap).length&&!_state.data.split){
       _state.data.split=extracted.splitMap;
-      const labels={0:'CC',1:'DC≤2k',2:'DC>2k',3:'RuPay',8:'UPI',12:'NB',13:'NB Others',14:'Wallets'};
+      const labels={0:'CC',1:'DC≤2k',2:'DC>2k',3:'RuPay',8:'UPI',12:'NB Major',13:'NB Others',14:'Wallets'};
       const parts=Object.entries(extracted.splitMap).map(([i,v])=>`${labels[i]||'#'+i} ${v}%`);
       Object.entries(extracted.splitMap).forEach(([i,v])=>{
         const el=document.getElementById(`c-spl-${i}`); if(el){el.value=v;el.dispatchEvent(new Event('input'));}
       });
       if(typeof updateOutputs==='function') updateOutputs();
       applied.push(`Split: <strong>${parts.join(', ')}</strong>`);
+      // Check if clarification needed for NB or DC
+      const sm=extracted.splitMap;
+      const needsNBClarify=sm[12]!==undefined&&sm[13]===undefined; // NB detected but no Major/Others distinction
+      const needsDCClarify=sm[1]!==undefined&&sm[1]===sm[2]&&sm[2]!==undefined; // generic DC split equally to both slabs
+      if(needsNBClarify||needsDCClarify){
+        if(applied.length) _addMsg('assistant',`✅ Got it:<br>${applied.map(a=>`• ${a}`).join('<br>')}`,true);
+        applied.length=0;
+        if(needsNBClarify){
+          const nbVal=sm[12];
+          _state.data._pendingNBClarify=nbVal;
+          _addMsg('assistant',`For the <strong>${nbVal}% Net Banking</strong> — is this Major banks (HDFC/ICICI/SBI/Axis) or Others, or split between them?`,true);
+          _chips(['All Major banks','All Others','Split Major & Others']);
+          await new Promise(res=>{
+            document.getElementById('ai-chips').querySelectorAll('button').forEach(btn=>{
+              btn.onclick=()=>{
+                _chips([]);_addMsg('user',btn.textContent);
+                const txt=btn.textContent;
+                if(txt.includes('Major')){
+                  // keep index 12, remove 13
+                  delete sm[13];
+                }else if(txt.includes('Others')){
+                  sm[13]=nbVal; delete sm[12];
+                  const el12=document.getElementById('c-spl-12'); if(el12){el12.value=0;el12.dispatchEvent(new Event('input'));}
+                  const el13=document.getElementById('c-spl-13'); if(el13){el13.value=nbVal;el13.dispatchEvent(new Event('input'));}
+                  if(typeof updateOutputs==='function') updateOutputs();
+                }else{
+                  // Split — ask breakdown
+                  const half=Math.round(nbVal/2);
+                  sm[12]=half; sm[13]=nbVal-half;
+                  const el12=document.getElementById('c-spl-12'); if(el12){el12.value=sm[12];el12.dispatchEvent(new Event('input'));}
+                  const el13=document.getElementById('c-spl-13'); if(el13){el13.value=sm[13];el13.dispatchEvent(new Event('input'));}
+                  if(typeof updateOutputs==='function') updateOutputs();
+                  _addMsg('assistant',`Split equally: NB Major ${sm[12]}%, NB Others ${sm[13]}%. Adjust in the calculator if needed.`,true);
+                }
+                res();
+              };
+            });
+          });
+        }
+        if(needsDCClarify){
+          const dcVal=sm[1];
+          _addMsg('assistant',`For the <strong>${dcVal}% Debit Cards</strong> — is this mostly ≤₹2k txns or >₹2k, or split between them? (Rates and costs differ)`,true);
+          _chips(['Mostly ≤₹2k','Mostly >₹2k','Split ≤2k & >2k']);
+          await new Promise(res=>{
+            document.getElementById('ai-chips').querySelectorAll('button').forEach(btn=>{
+              btn.onclick=()=>{
+                _chips([]);_addMsg('user',btn.textContent);
+                const txt=btn.textContent;
+                if(txt.includes('≤₹2k')){
+                  delete sm[2];
+                  const el2=document.getElementById('c-spl-2'); if(el2){el2.value=0;el2.dispatchEvent(new Event('input'));}
+                }else if(txt.includes('>₹2k')){
+                  sm[2]=dcVal; delete sm[1];
+                  const el1=document.getElementById('c-spl-1'); if(el1){el1.value=0;el1.dispatchEvent(new Event('input'));}
+                  const el2=document.getElementById('c-spl-2'); if(el2){el2.value=dcVal;el2.dispatchEvent(new Event('input'));}
+                }else{
+                  const half=Math.round(dcVal/2);
+                  sm[1]=half;sm[2]=dcVal-half;
+                  const el1=document.getElementById('c-spl-1'); if(el1){el1.value=sm[1];el1.dispatchEvent(new Event('input'));}
+                  const el2=document.getElementById('c-spl-2'); if(el2){el2.value=sm[2];el2.dispatchEvent(new Event('input'));}
+                  _addMsg('assistant',`Split: DC≤2k ${sm[1]}%, DC>2k ${sm[2]}%. Adjust in the calculator if needed.`,true);
+                }
+                if(typeof updateOutputs==='function') updateOutputs();
+                res();
+              };
+            });
+          });
+        }
+      }
     }
     if(extracted.hasComp&&extracted.compRates?.length){
       _applyCompRates(extracted.compRates);
@@ -8242,12 +8311,12 @@ function _buildMerchantEmailHtml({merchantName,intro,snap}){
     });
     kws.sort((a,b)=>a.start-b.start);
 
-    // Build % position list (require explicit % sign)
+    // Build % position list — % sign optional (e.g. "10 NB" or "NB 10" works)
     const pcts=[];
-    const pctRe=/(\d+(?:\.\d+)?)\s*%/g; let pm;
+    const pctRe=/(\d+(?:\.\d+)?)\s*%?/g; let pm;
     while((pm=pctRe.exec(t))!==null){
       const val=parseFloat(pm[1]);
-      if(val>0&&val<=100) pcts.push({val,start:pm.index,end:pm.index+pm[0].length});
+      if(val>0&&val<=100) pcts.push({val,start:pm.index,end:pm.index+pm[0].length,hasPct:pm[0].includes('%')});
     }
 
     // For each keyword, find nearest unused % (no penalty — "60% UPI" and "UPI 60%" are equally valid)
