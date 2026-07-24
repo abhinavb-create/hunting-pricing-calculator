@@ -6,10 +6,10 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<!-- build: 20260724-v106 -->
+<!-- build: 20260724-v107 -->
 <script>
 (function(){
-  const BUILD='v106';
+  const BUILD='v107';
   const u=new URL(location.href);
   if(u.searchParams.get('b')!==BUILD){u.searchParams.set('b',BUILD);location.replace(u.toString());}
 })();
@@ -527,13 +527,14 @@
         <label class="block text-xs font-semibold text-gray-500 mb-1.5">Business Name <span class="text-red-400">*</span></label>
         <input id="merchant-name" type="text" placeholder="e.g. Acme Pvt Ltd"
           class="w-full px-3 py-2.5 border-2 border-gray-200 rounded-xl text-gray-800 font-bold text-sm focus:outline-none focus:border-blue-500 transition"
-          oninput="validateMerchant()">
+          oninput="validateMerchant();_debounceMerchantCheck()">
         <p id="name-err" class="text-xs text-red-500 mt-1 hidden">Required</p>
       </div>
       <div class="flex-1 min-w-44">
         <label class="block text-xs font-semibold text-gray-500 mb-1.5">Merchant Email <span class="text-gray-300 font-normal">(optional)</span></label>
         <input id="merchant-email" type="email" placeholder="e.g. finance@acme.com"
-          class="w-full px-3 py-2.5 border-2 border-gray-200 rounded-xl text-gray-800 font-bold text-sm focus:outline-none focus:border-blue-500 transition">
+          class="w-full px-3 py-2.5 border-2 border-gray-200 rounded-xl text-gray-800 font-bold text-sm focus:outline-none focus:border-blue-500 transition"
+          oninput="_debounceMerchantCheck()">
       </div>
       <div class="flex-1 min-w-36">
         <label class="block text-xs font-semibold text-gray-500 mb-1.5">MID <span class="text-gray-300 font-normal">(optional)</span></label>
@@ -559,6 +560,44 @@
             oninput="onGMVChange()">
         </div>
         <p id="gmv-label" class="text-xs text-blue-500 font-semibold mt-1"></p>
+      </div>
+    </div>
+  </div>
+
+  <!-- DUPLICATE MERCHANT BANNER -->
+  <div id="dup-merchant-banner" class="hidden mb-4 bg-amber-50 border-2 border-amber-300 rounded-2xl px-5 py-4">
+    <div class="flex items-start gap-3">
+      <span class="text-2xl shrink-0">⚠️</span>
+      <div class="flex-1 min-w-0">
+        <p class="text-sm font-black text-amber-900">Existing pricing found for this merchant</p>
+        <div id="dup-merchant-list" class="mt-2 space-y-2"></div>
+      </div>
+      <button onclick="document.getElementById('dup-merchant-banner').classList.add('hidden')" class="shrink-0 text-amber-400 hover:text-amber-700 text-lg font-bold">✕</button>
+    </div>
+  </div>
+
+  <!-- REQUEST DETAILS MODAL -->
+  <div id="dup-request-modal" class="modal">
+    <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full mx-4 overflow-hidden">
+      <div class="bg-amber-500 px-6 py-4 flex items-center gap-3">
+        <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"/></svg>
+        <h2 class="text-white font-black text-lg">Request Pricing Details</h2>
+      </div>
+      <div class="px-6 py-5">
+        <p class="text-sm text-gray-600 mb-4">You're requesting access to pricing details previously created for <strong id="dup-req-merchant" class="text-gray-800"></strong>. This requires approval from your mapped approver.</p>
+        <div class="bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 mb-4 text-sm">
+          <p class="font-bold text-amber-800">Original by: <span id="dup-req-owner" class="font-semibold"></span></p>
+          <p class="text-amber-700 mt-0.5">Last downloaded: <span id="dup-req-date" class="font-semibold"></span></p>
+          <p class="text-amber-700 mt-0.5">Approver: <span id="dup-req-approver" class="font-semibold"></span></p>
+        </div>
+        <div class="mb-4">
+          <label class="block text-xs font-bold text-gray-500 uppercase mb-1.5">Reason for request <span class="text-red-400">*</span></label>
+          <textarea id="dup-req-reason" rows="2" placeholder="e.g. Following up on the same deal as lead handover from..." class="w-full px-3 py-2.5 border-2 border-gray-200 rounded-xl text-sm text-gray-800 focus:outline-none focus:border-amber-400 resize-none"></textarea>
+        </div>
+        <div class="flex gap-3">
+          <button onclick="closeModal('dup-request-modal')" class="flex-1 py-2.5 border-2 border-gray-200 rounded-xl text-sm font-bold text-gray-600 hover:bg-gray-50">Cancel</button>
+          <button onclick="submitDupRequest()" class="flex-1 py-2.5 bg-amber-500 hover:bg-amber-600 text-white rounded-xl text-sm font-black">Send Request</button>
+        </div>
       </div>
     </div>
   </div>
@@ -5702,6 +5741,105 @@ function isAdminOrCoAdmin(){return isAdmin()||isCoAdmin()||isOps();}
 
 // Returns which email should receive pricing/approval emails for a given team
 // Reads coverage toggles from localStorage (set by admins via Team page)
+// ── Duplicate merchant detection ──────────────────────────────────────────
+let _dupCheckTimer=null;
+let _dupAllDownloads=null; // cached from GitHub
+let _dupPendingRequest=null; // {rowId, ownerEmail, ownerName, merchantName, lastDate}
+
+async function _loadAllDownloads(){
+  if(_dupAllDownloads) return _dupAllDownloads;
+  try{
+    const{data}=await _ghRead('data/downloads.json');
+    _dupAllDownloads=(data||[]);
+  }catch(e){_dupAllDownloads=[];}
+  return _dupAllDownloads;
+}
+
+function _debounceMerchantCheck(){
+  clearTimeout(_dupCheckTimer);
+  _dupCheckTimer=setTimeout(_checkDuplicateMerchant,700);
+}
+
+async function _checkDuplicateMerchant(){
+  const nameVal=(document.getElementById('merchant-name')?.value||'').trim().toLowerCase();
+  const emailVal=(document.getElementById('merchant-email')?.value||'').trim().toLowerCase();
+  const banner=document.getElementById('dup-merchant-banner');
+  const list=document.getElementById('dup-merchant-list');
+  if((!nameVal||nameVal.length<3)&&(!emailVal||emailVal.length<5)){
+    banner?.classList.add('hidden');return;
+  }
+  const myEmail=(currentUser?.email||'').toLowerCase();
+  const all=await _loadAllDownloads();
+  // Find matches by other users
+  const matches=[];
+  const seen=new Set();
+  all.forEach(r=>{
+    if((r.userEmail||'').toLowerCase()===myEmail) return; // skip own records
+    const rName=(r.merchantName||'').toLowerCase();
+    const rEmail=(r.merchantEmail||r.snapshot?.merchantEmail||'').toLowerCase();
+    const nameMatch=nameVal.length>=3&&rName&&rName.includes(nameVal);
+    const emailMatch=emailVal.length>=5&&rEmail&&rEmail===emailVal;
+    if(!nameMatch&&!emailMatch) return;
+    const key=(r.userEmail||'')+'|'+(r.merchantName||'');
+    if(seen.has(key)) return;
+    seen.add(key);
+    matches.push(r);
+  });
+  if(!matches.length){banner?.classList.add('hidden');return;}
+  // Group by owner — show most recent per owner
+  const byOwner=new Map();
+  matches.forEach(r=>{
+    const oe=r.userEmail||'unknown';
+    const existing=byOwner.get(oe);
+    if(!existing||r.timestamp>existing.timestamp) byOwner.set(oe,r);
+  });
+  list.innerHTML='';
+  byOwner.forEach((r,oe)=>{
+    const ownerName=r.userName||oe;
+    const lastDate=r.timestamp?new Date(r.timestamp).toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'}):'Unknown date';
+    const team=r.teamGroup||'Unknown team';
+    const div=document.createElement('div');
+    div.className='flex items-center justify-between gap-3 bg-white border border-amber-200 rounded-xl px-4 py-3';
+    div.innerHTML=`
+      <div class="flex-1 min-w-0">
+        <p class="text-xs font-black text-gray-800 truncate">${r.merchantName||'—'}</p>
+        <p class="text-xs text-gray-500 mt-0.5">By <span class="font-semibold text-gray-700">${ownerName}</span> · ${team} · Last downloaded <span class="font-semibold">${lastDate}</span></p>
+      </div>
+      <button onclick="_openDupRequest(${JSON.stringify({rowId:r.rowId,ownerEmail:oe,ownerName,merchantName:r.merchantName||'',lastDate,team})})"
+        class="shrink-0 text-xs bg-amber-500 hover:bg-amber-600 text-white font-bold px-3 py-1.5 rounded-lg">Request Details</button>`;
+    list.appendChild(div);
+  });
+  banner?.classList.remove('hidden');
+}
+
+function _openDupRequest(info){
+  _dupPendingRequest=info;
+  document.getElementById('dup-req-merchant').textContent=info.merchantName;
+  document.getElementById('dup-req-owner').textContent=info.ownerName+' ('+info.ownerEmail+')';
+  document.getElementById('dup-req-date').textContent=info.lastDate;
+  const approverEmail=getApproverEmail(currentUser?.teamGroup||'');
+  const approverFirst=approverEmail===CO_ADMIN_EMAIL?'Adnan':'Abhinav';
+  document.getElementById('dup-req-approver').textContent=approverFirst+' ('+approverEmail+')';
+  document.getElementById('dup-req-reason').value='';
+  showModal('dup-request-modal');
+}
+
+async function submitDupRequest(){
+  const reason=(document.getElementById('dup-req-reason')?.value||'').trim();
+  if(!reason){alert('Please enter a reason for the request.');return;}
+  const req=_dupPendingRequest;
+  if(!req){closeModal('dup-request-modal');return;}
+  const approverEmail=getApproverEmail(currentUser?.teamGroup||'');
+  const myName=currentUser?.name||currentUser?.email||'';
+  const subject=`[Details Request] ${req.merchantName} pricing — from ${myName}`;
+  const body=`Hi,\n\n${myName} (${currentUser?.email}) has requested access to pricing details for "${req.merchantName}".\n\nOriginal pricing by: ${req.ownerName} (${req.ownerEmail})\nLast downloaded: ${req.lastDate}\n\nReason: ${reason}\n\nPlease share the pricing details if appropriate.\n\nThanks`;
+  // Also CC the original owner
+  const mailLink=`mailto:${approverEmail}?cc=${encodeURIComponent(req.ownerEmail)}&subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+  window.open(mailLink,'_blank');
+  closeModal('dup-request-modal');
+  _toast('Request sent to '+approverEmail.split('@')[0]+'!');
+}
+
 function getApproverEmail(teamGroup){
   const ebTeam=EB_TEAMS.includes(teamGroup);
   const abhinavAvail=localStorage.getItem('rzp_abhinav_avail')!=='false';
