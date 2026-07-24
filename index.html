@@ -6,10 +6,10 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<!-- build: 20260724-v93 -->
+<!-- build: 20260724-v94 -->
 <script>
 (function(){
-  const BUILD='v93';
+  const BUILD='v94';
   const u=new URL(location.href);
   if(u.searchParams.get('b')!==BUILD){u.searchParams.set('b',BUILD);location.replace(u.toString());}
 })();
@@ -7828,6 +7828,49 @@ function _buildMerchantEmailHtml({merchantName,intro,snap}){
     if(/download|pdf/i.test(t)&&!/re.?download|past|previous/i.test(t)){ await _cmdDownloadPDF(false); return; }
     if(/approv/i.test(t)&&!/revamp/i.test(t)){ await _cmdDownloadPDF(false); return; } // approval is triggered by generateAndDownloadPDF if violations exist
     if(/revamp/i.test(t)){ await _cmdPricingRevamp(); return; }
+    // Rate revision: "revised UPI to 0.80%" / "change CC to 1.90%" / "set net banking to 1.65%"
+    const rateMatch=text.match(/(?:revise[d]?|change[d]?|set|update[d]?|make)\s+(.+?)\s+to\s+([\d.]+)\s*%/i)
+      || text.match(/([\w\s\-\/]+?)\s+(?:to|@|at)\s+([\d.]+)\s*%/i);
+    if(rateMatch){
+      const methodQuery=rateMatch[1].trim().toLowerCase();
+      const newRate=parseFloat(rateMatch[2]);
+      if(!isNaN(newRate)){
+        const tab=activeTab||'competition'; const pfx=tab==='competition'?'c':'mc';
+        // fuzzy match method label
+        const METHOD_ALIASES={'upi':['upi'],'cc':['credit'],'credit card':['credit'],'debit':['debit'],'netbanking':['net-bank','net banking'],'net banking':['net-bank','net banking'],'nb':['net-bank'],'emi':['emi'],'amex':['amex'],'wallet':['wallet'],'international':['intl'],'corporate':['corp'],'rupay':['rupay'],'upi cc':['upi-cc'],'upi credit':['upi-cc']};
+        let matched=null;
+        METHODS.forEach((m,i)=>{
+          const lbl=m.label.toLowerCase();
+          const id=m.id.toLowerCase();
+          if(lbl.includes(methodQuery)||id.includes(methodQuery)||methodQuery.includes(lbl.split(' ')[0])){
+            if(!matched) matched={m,i};
+          }
+        });
+        // also try aliases
+        if(!matched){
+          for(const [alias,keys] of Object.entries(METHOD_ALIASES)){
+            if(methodQuery.includes(alias)||alias.includes(methodQuery)){
+              METHODS.forEach((m,i)=>{if(!matched&&keys.some(k=>m.id.includes(k)||m.label.toLowerCase().includes(k))) matched={m,i};});
+            }
+          }
+        }
+        if(matched){
+          const el=document.getElementById(`${pfx}-mdr-${matched.i}`);
+          if(el){
+            el.value=newRate.toFixed(2);
+            el._userEdited=true;
+            el.dispatchEvent(new Event('input'));
+            if(typeof updateOutputs==='function') updateOutputs();
+            _addMsg('assistant',`✅ Updated <strong>${matched.m.label}</strong> to <strong>${newRate.toFixed(2)}%</strong>. Re-running checks…`);
+            const ok=await _runGuardrails();
+            if(ok) _enterCommandMode();
+            return;
+          }
+        }
+        _addMsg('assistant',`❓ Couldn't find a method matching "<strong>${rateMatch[1]}</strong>". Try being more specific (e.g. "UPI", "Credit Cards", "Net Banking").`,true);
+        return;
+      }
+    }
     // JS fallback — broader keyword matching
     if(/download|pdf|print/i.test(t)){ await _cmdDownloadPDF(false); return; }
     if(/new|reset|fresh|another|start/i.test(t)){ _state.mode='setup'; _state.step=0; _start(); return; }
