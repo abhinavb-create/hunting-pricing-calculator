@@ -126,5 +126,13 @@
     "registeredAt": "2026-07-16T06:42:40.657Z",
     "lastSeen": "2026-07-24T05:42:16.768Z",
     "status": "active"
+  },
+  {
+    "email": "rauli.sikarwar@razorpay.com",
+    "name": "Rauli Sikarwar",
+    "teamGroup": "Enterprise Hunting",
+    "registeredAt": "2026-07-24T07:11:52.169Z",
+    "lastSeen": "2026-07-24T07:11:52.169Z",
+    "status": "pending"
   }
 ]
