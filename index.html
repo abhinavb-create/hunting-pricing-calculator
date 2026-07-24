@@ -2549,11 +2549,20 @@ const SHEET_ID = '1AvZfg_j7Dt2vL7jGPUvZTlTs18nGMIeLJDRes3qkf8I';
 // ================================================================
 // PDF — OPEN MODAL
 // ================================================================
+function _getTotalSplit(tab){
+  const pfx=tab==='competition'?'c':'mc';
+  let total=0;
+  METHODS.forEach((_,i)=>{total+=+(document.getElementById(`${pfx}-spl-${i}`)?.value)||0;});
+  return total;
+}
 function downloadPDF(){
   const name=document.getElementById('merchant-name').value.trim();
   const gmv=getGMV();
   if(!name){validateMerchant();alert('Please enter Business Name before downloading PDF.');return;}
   if(!gmv){document.getElementById('gmv').focus();alert('Please enter Monthly GMV before downloading PDF.');return;}
+  const split=_getTotalSplit(activeTab||'competition');
+  if(split<0.5){alert('Please fill in the GMV split (%) across payment methods before downloading.');return;}
+  if(Math.abs(split-100)>1){alert(`GMV split adds up to ${split.toFixed(1)}% — please adjust to 100% before downloading.`);return;}
   // Always sync teamGroup from GitHub before opening modal so routing is current
   if(currentUser&&!isAdminOrCoAdmin()){
     _ghRead('data/users.json').then(({data})=>{
