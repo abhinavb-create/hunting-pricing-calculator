@@ -6,10 +6,10 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<!-- build: 20260724-v105 -->
+<!-- build: 20260724-v106 -->
 <script>
 (function(){
-  const BUILD='v105';
+  const BUILD='v106';
   const u=new URL(location.href);
   if(u.searchParams.get('b')!==BUILD){u.searchParams.set('b',BUILD);location.replace(u.toString());}
 })();
@@ -454,6 +454,10 @@
           <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
           My Stats
         </button>
+        <button onclick="showSettings()" class="text-xs text-gray-500 hover:text-gray-700 font-semibold px-3 py-1.5 rounded-lg hover:bg-gray-100 flex items-center gap-1 border border-gray-200 bg-white shadow-sm">
+          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><circle cx="12" cy="12" r="3"/></svg>
+          Settings
+        </button>
         <button id="team-btn" onclick="showTeamPage()" class="hidden text-xs text-gray-500 hover:text-purple-600 font-semibold px-3 py-1.5 rounded-lg hover:bg-purple-50 flex items-center gap-1 border border-gray-200 bg-white shadow-sm">
           👥 Team
         </button>
@@ -544,7 +548,10 @@
         <div id="mcc-info-badge" class="text-xs mt-1 font-semibold leading-snug" style="min-height:16px;max-width:320px;"></div>
       </div>
       <div class="flex-1 min-w-44">
-        <label class="block text-xs font-semibold text-gray-500 mb-1.5">Monthly GMV (₹) <span class="text-red-400">*</span></label>
+        <div class="flex items-center justify-between mb-1.5">
+          <label class="text-xs font-semibold text-gray-500">Monthly GMV (₹) <span class="text-red-400">*</span></label>
+          <div id="split-check" class="text-xs font-bold px-2 py-0.5 rounded-md bg-green-100 text-green-700">—</div>
+        </div>
         <div class="relative">
           <span class="absolute left-3 top-2.5 text-gray-400 font-semibold text-sm">₹</span>
           <input id="gmv" type="number" value="5600000" min="0" step="100000"
@@ -552,10 +559,6 @@
             oninput="onGMVChange()">
         </div>
         <p id="gmv-label" class="text-xs text-blue-500 font-semibold mt-1"></p>
-      </div>
-      <div class="min-w-28 text-right self-end pb-1">
-        <div class="text-xs text-gray-400 font-bold uppercase tracking-wide mb-1">GMV Split</div>
-        <div id="split-check" class="text-sm font-bold px-3 py-1.5 rounded-lg bg-green-100 text-green-700">—</div>
       </div>
     </div>
   </div>
@@ -1245,6 +1248,154 @@
     </div>
   </div>
   <p class="text-xs text-gray-400 text-center mt-3" id="stats-row-count"></p>
+</div>
+
+<!-- ===== SETTINGS PAGE ===== -->
+<div id="settings-page" class="hidden max-w-3xl mx-auto py-6 px-4">
+  <div class="flex items-center gap-3 mb-6">
+    <button onclick="closeSettings()" class="text-gray-400 hover:text-gray-600 p-1.5 rounded-lg hover:bg-gray-100">
+      <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
+    </button>
+    <div>
+      <h2 class="text-xl font-black text-gray-800">Settings</h2>
+      <p class="text-xs text-gray-400 mt-0.5">Preferences &amp; account settings</p>
+    </div>
+  </div>
+
+  <!-- Profile -->
+  <div class="bg-white rounded-2xl border border-gray-100 shadow-sm mb-4 overflow-hidden">
+    <div class="px-5 py-3 border-b border-gray-100 bg-gray-50">
+      <p class="text-xs font-bold text-gray-400 uppercase tracking-wider">👤 Profile</p>
+    </div>
+    <div class="px-5 py-4 flex items-center gap-4">
+      <img id="settings-pic" src="" class="w-14 h-14 rounded-full object-cover bg-indigo-100 border-2 border-indigo-100" alt="">
+      <div>
+        <p id="settings-name" class="text-base font-black text-gray-800"></p>
+        <p id="settings-email" class="text-sm text-gray-500"></p>
+        <span id="settings-role-badge" class="inline-block mt-1 text-xs font-bold px-2.5 py-0.5 rounded-full bg-indigo-100 text-indigo-700"></span>
+      </div>
+      <button onclick="signOut()" class="ml-auto text-xs text-red-500 hover:text-red-700 font-semibold px-3 py-1.5 rounded-lg border border-red-200 hover:bg-red-50">Sign out</button>
+    </div>
+  </div>
+
+  <!-- Preferences -->
+  <div class="bg-white rounded-2xl border border-gray-100 shadow-sm mb-4 overflow-hidden">
+    <div class="px-5 py-3 border-b border-gray-100 bg-gray-50">
+      <p class="text-xs font-bold text-gray-400 uppercase tracking-wider">🎨 Preferences</p>
+    </div>
+    <!-- Theme -->
+    <div class="px-5 py-4 flex items-center justify-between border-b border-gray-100">
+      <div>
+        <p class="text-sm font-semibold text-gray-700">Theme</p>
+        <p class="text-xs text-gray-400 mt-0.5">Switch between light and dark mode</p>
+      </div>
+      <button onclick="toggleTheme();updateSettingsThemeBtn()" id="settings-theme-btn"
+        class="flex items-center gap-2 px-4 py-2 rounded-xl border-2 border-gray-200 bg-gray-50 text-sm font-semibold text-gray-600 hover:border-indigo-400 hover:bg-indigo-50 hover:text-indigo-700 transition">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
+        <span id="settings-theme-label">Light Mode</span>
+      </button>
+    </div>
+    <!-- Default GMV -->
+    <div class="px-5 py-4 flex items-center justify-between border-b border-gray-100">
+      <div>
+        <p class="text-sm font-semibold text-gray-700">Default GMV</p>
+        <p class="text-xs text-gray-400 mt-0.5">Pre-fill the GMV field when you start a new calculation</p>
+      </div>
+      <div class="flex items-center gap-2">
+        <span class="text-sm text-gray-400 font-semibold">₹</span>
+        <input id="settings-default-gmv" type="number" min="500000" step="100000" placeholder="5600000"
+          class="w-36 px-3 py-2 border-2 border-gray-200 rounded-xl text-gray-800 font-bold text-sm focus:outline-none focus:border-blue-500 text-center"
+          onchange="saveSettingsDefaultGMV()">
+        <button onclick="saveSettingsDefaultGMV()" class="text-xs bg-indigo-600 text-white font-bold px-3 py-2 rounded-xl hover:bg-indigo-700">Save</button>
+      </div>
+    </div>
+    <!-- Default Tab -->
+    <div class="px-5 py-4 flex items-center justify-between">
+      <div>
+        <p class="text-sm font-semibold text-gray-700">Default Tab</p>
+        <p class="text-xs text-gray-400 mt-0.5">Which pricing tab opens by default</p>
+      </div>
+      <select id="settings-default-tab" onchange="saveSettingsDefaultTab()"
+        class="px-3 py-2 border-2 border-gray-200 rounded-xl text-gray-800 font-semibold text-sm focus:outline-none focus:border-blue-500 bg-white">
+        <option value="competition">⚔️ PG (Competition)</option>
+        <option value="magic-checkout">✨ PG + Magic Checkout</option>
+      </select>
+    </div>
+  </div>
+
+  <!-- Requests & Limits (non-admin users) -->
+  <div id="settings-requests-section" class="bg-white rounded-2xl border border-gray-100 shadow-sm mb-4 overflow-hidden">
+    <div class="px-5 py-3 border-b border-gray-100 bg-gray-50">
+      <p class="text-xs font-bold text-gray-400 uppercase tracking-wider">📋 Requests &amp; Limits</p>
+    </div>
+    <div class="px-5 py-4 flex items-center justify-between border-b border-gray-100">
+      <div>
+        <p class="text-sm font-semibold text-gray-700">Approval Escalation</p>
+        <p class="text-xs text-gray-400 mt-0.5">Request Abhinav to review a previously rejected pricing</p>
+      </div>
+      <button onclick="requestEscalation()" class="text-xs bg-amber-500 text-white font-bold px-3 py-2 rounded-xl hover:bg-amber-600 flex items-center gap-1.5">
+        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 11l5-5m0 0l5 5m-5-5v12"/></svg>
+        Request Escalation
+      </button>
+    </div>
+    <div class="px-5 py-4 flex items-center justify-between">
+      <div>
+        <p class="text-sm font-semibold text-gray-700">Download History</p>
+        <p class="text-xs text-gray-400 mt-0.5">Export your pricing history as a CSV file</p>
+      </div>
+      <button onclick="exportMyHistory()" class="text-xs bg-gray-700 text-white font-bold px-3 py-2 rounded-xl hover:bg-gray-800 flex items-center gap-1.5">
+        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+        Export CSV
+      </button>
+    </div>
+  </div>
+
+  <!-- Admin Controls — only shown to admin/co-admin -->
+  <div id="settings-admin-section" class="hidden bg-white rounded-2xl border border-red-100 shadow-sm mb-4 overflow-hidden">
+    <div class="px-5 py-3 border-b border-red-100 bg-red-50">
+      <p class="text-xs font-bold text-red-400 uppercase tracking-wider">🔐 Admin Controls</p>
+    </div>
+    <div class="px-5 py-4 flex items-center justify-between border-b border-gray-100">
+      <div>
+        <p class="text-sm font-semibold text-gray-700">Floor Rate Override</p>
+        <p class="text-xs text-gray-400 mt-0.5">Temporarily allow rates below floor for a specific merchant (use with caution)</p>
+      </div>
+      <button onclick="showModal('floor-override-modal')" class="text-xs bg-red-600 text-white font-bold px-3 py-2 rounded-xl hover:bg-red-700 flex items-center gap-1.5">
+        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg>
+        Override Floors
+      </button>
+    </div>
+    <div class="px-5 py-4 flex items-center justify-between border-b border-gray-100">
+      <div>
+        <p class="text-sm font-semibold text-gray-700">Manage Access</p>
+        <p class="text-xs text-gray-400 mt-0.5">Approve or revoke user access to the calculator</p>
+      </div>
+      <button onclick="closeSettings();showStats();" class="text-xs bg-indigo-600 text-white font-bold px-3 py-2 rounded-xl hover:bg-indigo-700">Go to My Stats →</button>
+    </div>
+    <div class="px-5 py-4 flex items-center justify-between">
+      <div>
+        <p class="text-sm font-semibold text-gray-700">Export All Logs</p>
+        <p class="text-xs text-gray-400 mt-0.5">Download the full team pricing log as CSV</p>
+      </div>
+      <button onclick="exportAllLogs()" class="text-xs bg-gray-700 text-white font-bold px-3 py-2 rounded-xl hover:bg-gray-800 flex items-center gap-1.5">
+        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+        Export All CSV
+      </button>
+    </div>
+  </div>
+
+  <!-- App Info -->
+  <div class="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+    <div class="px-5 py-3 border-b border-gray-100 bg-gray-50">
+      <p class="text-xs font-bold text-gray-400 uppercase tracking-wider">ℹ️ App Info</p>
+    </div>
+    <div class="px-5 py-4 grid grid-cols-2 gap-3 text-sm">
+      <div><span class="text-gray-400">Version</span><span id="settings-build" class="ml-2 font-bold text-gray-700"></span></div>
+      <div><span class="text-gray-400">Environment</span><span id="settings-env" class="ml-2 font-bold text-gray-700"></span></div>
+      <div><span class="text-gray-400">Hosted on</span><span class="ml-2 font-bold text-gray-700">Flash + GitHub Pages</span></div>
+      <div><span class="text-gray-400">Built for</span><span class="ml-2 font-bold text-gray-700">Razorpay Hunting</span></div>
+    </div>
+  </div>
 </div>
 
 <!-- ===== TEAM PAGE (admin only) ===== -->
@@ -5610,6 +5761,111 @@ function closeStats(){
   document.getElementById('main-wrap')?.classList.remove('hidden');
 }
 
+function showSettings(){
+  document.getElementById('main-wrap')?.classList.add('hidden');
+  document.getElementById('stats-page')?.classList.add('hidden');
+  const pg=document.getElementById('settings-page');
+  if(!pg) return;
+  pg.classList.remove('hidden');
+  // Populate profile
+  if(currentUser){
+    const pic=document.getElementById('settings-pic');
+    if(pic) pic.src=currentUser.picture||'';
+    const nm=document.getElementById('settings-name');
+    if(nm) nm.textContent=currentUser.name||currentUser.email;
+    const em=document.getElementById('settings-email');
+    if(em) em.textContent=currentUser.email;
+    const rb=document.getElementById('settings-role-badge');
+    if(rb){
+      if(isAdminOrCoAdmin()) rb.textContent='Admin';
+      else rb.textContent='Team Member';
+    }
+  }
+  // Admin section visibility
+  const adminSec=document.getElementById('settings-admin-section');
+  if(adminSec) adminSec.classList.toggle('hidden',!isAdminOrCoAdmin());
+  // Theme button label
+  updateSettingsThemeBtn();
+  // Build info
+  const bld=document.getElementById('settings-build');
+  if(bld&&typeof BUILD!=='undefined') bld.textContent=BUILD;
+  const env=document.getElementById('settings-env');
+  if(env){
+    const h=window.location.hostname;
+    env.textContent=h.includes('flash.razorpay')?'Flash (Production)':h.includes('github')?'GitHub Pages':'Local Dev';
+  }
+  // Load saved prefs
+  const dg=localStorage.getItem('rzp_default_gmv');
+  const dgEl=document.getElementById('settings-default-gmv');
+  if(dgEl) dgEl.value=dg||'5600000';
+  const dt=localStorage.getItem('rzp_default_tab');
+  const dtEl=document.getElementById('settings-default-tab');
+  if(dtEl&&dt) dtEl.value=dt;
+}
+
+function closeSettings(){
+  document.getElementById('settings-page')?.classList.add('hidden');
+  document.getElementById('main-wrap')?.classList.remove('hidden');
+}
+
+function updateSettingsThemeBtn(){
+  const isDark=document.body.classList.contains('dark-theme');
+  const btn=document.getElementById('settings-theme-btn');
+  const lbl=document.getElementById('settings-theme-label');
+  if(lbl) lbl.textContent=isDark?'Dark Mode (click for Light)':'Light Mode (click for Dark)';
+}
+
+function saveSettingsDefaultGMV(){
+  const val=document.getElementById('settings-default-gmv')?.value;
+  if(val&&+val>=0){
+    localStorage.setItem('rzp_default_gmv',val);
+    const gEl=document.getElementById('gmv');
+    if(gEl){gEl.value=val;onGMVChange();}
+    _toast('Default GMV saved!');
+  }
+}
+
+function saveSettingsDefaultTab(){
+  const val=document.getElementById('settings-default-tab')?.value;
+  if(val){
+    localStorage.setItem('rzp_default_tab',val);
+    _toast('Default tab saved!');
+  }
+}
+
+function requestEscalation(){
+  alert('Escalation request feature — opens a mailto to Abhinav with context.\n\nThis will be wired to the approval system in a future update.');
+}
+
+function exportMyHistory(){
+  if(!statsAllRows||!statsAllRows.length){alert('No history to export yet.');return;}
+  const myRows=statsAllRows.filter(r=>r.requester===currentUser?.email||r.userId===currentUser?.email);
+  if(!myRows.length){alert('No history found for your account.');return;}
+  const hdr='Date,Merchant,GMV,Slab,Status,Type';
+  const rows=myRows.map(r=>[r.date||'',r.merchantName||'',r.gmvDisplay||'',r.slabLabel||'',r.statusKey||'',r.type||''].map(v=>'"'+String(v).replace(/"/g,'""')+'"').join(','));
+  const csv=[hdr,...rows].join('\n');
+  const a=document.createElement('a');a.href='data:text/csv;charset=utf-8,'+encodeURIComponent(csv);
+  a.download='my-pricing-history.csv';a.click();
+}
+
+function exportAllLogs(){
+  if(!statsAllRows||!statsAllRows.length){alert('No logs to export.');return;}
+  const hdr='Date,Merchant,Requester,Team,GMV,Slab,Status,Type';
+  const rows=statsAllRows.map(r=>[r.date||'',r.merchantName||'',r.requester||'',r.teamGroup||'',r.gmvDisplay||'',r.slabLabel||'',r.statusKey||'',r.type||''].map(v=>'"'+String(v).replace(/"/g,'""')+'"').join(','));
+  const csv=[hdr,...rows].join('\n');
+  const a=document.createElement('a');a.href='data:text/csv;charset=utf-8,'+encodeURIComponent(csv);
+  a.download='all-pricing-logs.csv';a.click();
+}
+
+function _toast(msg,type='success'){
+  const t=document.createElement('div');
+  t.className='fixed bottom-5 right-5 z-50 px-4 py-2.5 rounded-xl shadow-lg text-sm font-bold text-white';
+  t.style.background=type==='error'?'#dc2626':'#16a34a';
+  t.textContent=msg;
+  document.body.appendChild(t);
+  setTimeout(()=>t.remove(),2500);
+}
+
 function clearStatsFilters(){
   ['stats-search','stats-filter-status','stats-filter-type','stats-filter-date','stats-filter-team','stats-sort'].forEach(id=>{
     const el=document.getElementById(id);
@@ -6361,6 +6617,9 @@ document.addEventListener('click',e=>{
 // INIT
 // ================================================================
 initTables();
+// Apply saved default GMV if set
+const _savedGMV=localStorage.getItem('rzp_default_gmv');
+if(_savedGMV){const _gEl=document.getElementById('gmv');if(_gEl){_gEl.value=_savedGMV;}}
 onGMVChange();
 onSettlementChange();
 onMCRateChange();
