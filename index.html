@@ -6,10 +6,10 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<!-- build: 20260715-v89 -->
+<!-- build: 20260724-v90 -->
 <script>
 (function(){
-  const BUILD='v89';
+  const BUILD='v90';
   const u=new URL(location.href);
   if(u.searchParams.get('b')!==BUILD){u.searchParams.set('b',BUILD);location.replace(u.toString());}
 })();
@@ -3879,7 +3879,7 @@ async function submitAccessRequest(team){
     const tok=await _getToken(true);
     if(!tok.success) throw new Error('Sign-in required. Please allow the permissions popup.');
     // Build approve URL — admin clicks this link in email, no sheet reads needed for the user
-    const base='https://abhinavb-create.github.io/hunting-pricing-calculator/';
+    const base=(()=>{const _u=window.location;return _u.origin+_u.pathname.replace(/(?:index.html)?$/, '').replace(//+$/, '')+'/';})();
     const approveUrl=base+'?action=approve-user&email='+encodeURIComponent(currentUser.email)+'&name='+encodeURIComponent(currentUser.name||'')+'&team='+encodeURIComponent(team);
     // Email admin — NO sheet writes on user side
     const subject=`[Pricing Calculator] Access Request: ${currentUser.name||currentUser.email} (${team})`;
@@ -4458,7 +4458,7 @@ async function sendFinalApprovalEmail(){
   const requesterEmail=currentUser?.email||'';
   const requesterName=requesterEmail.split('@')[0]||'Unknown';
 
-  const base='https://abhinavb-create.github.io/hunting-pricing-calculator/';
+  const base=(()=>{const _u=window.location;return _u.origin+_u.pathname.replace(/(?:index.html)?$/, '').replace(//+$/, '')+'/';})();
   const approveUrl=base+'?action=final-approve&requestId='+requestId+'&merchant='+encodeURIComponent(merchantName);
   const rejectUrl=base+'?action=final-reject&requestId='+requestId+'&merchant='+encodeURIComponent(merchantName);
 
@@ -4871,7 +4871,7 @@ async function resendApprovalEmail(rowId){
     const reqId=rowId.replace(/^ap_/,'');
     const rec=(ghAps||[]).find(g=>g.requestId===reqId||'ap_'+g.requestId===rowId);
     if(!rec) throw new Error('Record not found in approvals.json');
-    const base='https://abhinavb-create.github.io/hunting-pricing-calculator/';
+    const base=(()=>{const _u=window.location;return _u.origin+_u.pathname.replace(/(?:index.html)?$/, '').replace(//+$/, '')+'/';})();
     const approveUrl=base+'?action=approve&requestId='+rec.requestId+'&merchant='+encodeURIComponent(rec.merchantName)+'&status=approved';
     const rejectUrl=base+'?action=approve&requestId='+rec.requestId+'&merchant='+encodeURIComponent(rec.merchantName)+'&status=rejected';
     const approverEmail=getApproverEmail(rec.teamGroup||'');
@@ -5042,7 +5042,7 @@ async function runEmailTest(){
 
 async function requestApproval({requestId,requesterEmail,requesterName,merchantName,gmv,slabLabel,violations,positiveNRMethods,pgNR,settleNR,effectiveNR,versionGroup,fileId,driveLink,fileName,pdfBuffer,snapshot}){
   const teamGroup=currentUser?.teamGroup||'';
-  const base='https://abhinavb-create.github.io/hunting-pricing-calculator/';
+  const base=(()=>{const _u=window.location;return _u.origin+_u.pathname.replace(/(?:index.html)?$/, '').replace(//+$/, '')+'/';})();
   const approveUrl=base+'?action=approve&requestId='+requestId+'&merchant='+encodeURIComponent(merchantName);
   const rejectUrl=base+'?action=reject&requestId='+requestId+'&merchant='+encodeURIComponent(merchantName);
 
