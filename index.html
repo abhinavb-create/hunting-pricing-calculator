@@ -414,6 +414,24 @@
     </div>
   </div>
 
+  <!-- SETUP COST -->
+  <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-5 mb-4">
+    <p class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">🛠️ Setup Cost <span class="text-gray-300 font-normal">(one-time · exclusive of GST)</span></p>
+    <p class="text-xs text-gray-400 mb-3">Min Rs. 5,000. Enter <strong>0</strong> to waive — will show as <span class="line-through">Rs. 5,000</span> <span class="text-green-600 font-bold">FREE</span> in the PDF.</p>
+    <div class="flex flex-wrap gap-4 items-center">
+      <div class="min-w-52">
+        <div class="relative">
+          <span class="absolute left-3 top-2.5 text-gray-400 font-semibold text-sm">Rs.</span>
+          <input id="setup-cost" type="number" min="0" step="500" value="5000" placeholder="0 = waived"
+            class="w-full pl-9 pr-3 py-2.5 border-2 border-gray-200 rounded-xl text-gray-800 font-bold text-sm focus:outline-none focus:border-indigo-500"
+            oninput="onSetupCostChange()">
+        </div>
+        <p id="setup-cost-warn" class="hidden text-xs font-semibold text-red-500 mt-1">⚠ Minimum is Rs. 5,000 (or enter 0 to waive)</p>
+      </div>
+      <div id="setup-cost-preview-badge" class="hidden px-3 py-1.5 rounded-lg bg-gray-50 border border-gray-200 text-sm font-semibold"></div>
+    </div>
+  </div>
+
   <!-- RAZORPAY ROUTE (Add-on) -->
   <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-5 mb-4">
     <p class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">Razorpay Route <span class="text-gray-300 font-normal">(optional · min GMV Rs. 40L)</span></p>
@@ -2091,6 +2109,36 @@ function onGMVCreditChange(){
   }
 }
 
+function onSetupCostChange(){
+  const el=document.getElementById('setup-cost');
+  const warn=document.getElementById('setup-cost-warn');
+  const badge=document.getElementById('setup-cost-preview-badge');
+  const val=+(el?.value);
+  const isWaived=el?.value===''?false:(val===0);
+  const isBelowMin=val>0&&val<5000;
+  if(warn) warn.classList.toggle('hidden',!isBelowMin);
+  if(el) el.classList.toggle('border-red-400',isBelowMin);
+  if(badge){
+    if(isWaived){
+      badge.classList.remove('hidden');
+      badge.innerHTML='<span class="line-through text-gray-400">Rs.5,000</span> <span class="text-green-600 ml-1">FREE</span>';
+    } else if(val>=5000){
+      badge.classList.remove('hidden');
+      badge.innerHTML='<span class="text-gray-700">Rs.'+val.toLocaleString('en-IN')+'</span> <span class="text-gray-400 text-xs ml-1">+ GST</span>';
+    } else {
+      badge.classList.add('hidden');
+    }
+  }
+}
+
+function getSetupCost(){
+  const el=document.getElementById('setup-cost');
+  const raw=el?.value;
+  const val=raw===''?5000:+(raw)||5000;
+  const waived=(raw!==''&&+(raw)===0);
+  return {amount:waived?5000:val, waived};
+}
+
 function getGMVCreditAmount(){
   const sel=document.getElementById('gmv-credit').value;
   if(sel==='0') return 0;
@@ -3074,6 +3122,49 @@ async function generateAndDownloadPDF(){
     }
 
     // ══════════════════════════════════════════
+    // SETUP COST (one-time, exclusive of GST)
+    // ══════════════════════════════════════════
+    {
+      const sc=getSetupCost();
+      if(sc.amount>0){
+        checkPage(30);
+        sectionTitle('Setup Cost',31,63,163);
+        const scValStr=sc.waived
+          ? `Rs.${sc.amount.toLocaleString('en-IN')}  (Waived)`
+          : `Rs.${sc.amount.toLocaleString('en-IN')}`;
+        doc.autoTable({
+          startY:y,
+          head:[['Item','Amount (one-time, exclusive of GST)']],
+          body:[['Setup Cost',scValStr]],
+          theme:'grid',
+          margin:{left:M,right:M},
+          headStyles:{fillColor:[31,63,163],fontStyle:'bold',fontSize:9,textColor:[255,255,255],cellPadding:3},
+          bodyStyles:{fontSize:8.5,textColor:[30,40,70],cellPadding:2.5},
+          columnStyles:{0:{cellWidth:130,fontStyle:'bold'},1:{halign:'center',fontStyle:'bold'}},
+          alternateRowStyles:{fillColor:[249,251,255]},
+          didParseCell:(data)=>{
+            if(sc.waived && data.section==='body' && data.column.index===1){
+              data.cell.styles.textColor=[150,150,150];
+            }
+          },
+          didDrawCell:(data)=>{
+            // Strike-through the amount when the setup cost is waived
+            if(sc.waived && data.section==='body' && data.column.index===1){
+              const amtStr=`Rs.${sc.amount.toLocaleString('en-IN')}`;
+              const w=doc.getTextWidth(amtStr);
+              const cx=data.cell.x+data.cell.width/2;
+              const cy=data.cell.y+data.cell.height/2;
+              doc.setDrawColor(150,150,150);doc.setLineWidth(0.4);
+              // strike only across the amount portion (left of the "(Waived)" text)
+              doc.line(cx-w/2-6, cy, cx+w/2-6, cy);
+            }
+          },
+        });
+        y=doc.lastAutoTable.finalY+5;
+      }
+    }
+
+    // ══════════════════════════════════════════
     // MAGIC CHECKOUT
     // ══════════════════════════════════════════
     if(isMC){
@@ -3454,6 +3545,8 @@ function snapshotCalculatorState(){
     odsRate: document.getElementById('ods-rate')?.value||'0.10',
     gmvCredit: document.getElementById('gmv-credit')?.value||'none',
     gmvCreditCustom: document.getElementById('gmv-credit-custom-val')?.value||'',
+    setupCost: document.getElementById('setup-cost')?.value||'',
+    setupCostWaived: document.getElementById('setup-cost-waive')?.checked||false,
     activeTab,
     mcRate: document.getElementById('mc-rate')?.value||'0.05',
     mcCompRate: document.getElementById('mc-comp-rate')?.value||'0.10',
@@ -3497,6 +3590,8 @@ function restoreCalculatorState(snap){
   set('ods-rate',snap.odsRate);
   set('gmv-credit',snap.gmvCredit);
   set('gmv-credit-custom-val',snap.gmvCreditCustom);
+  set('setup-cost',snap.setupCost);
+  const scw=document.getElementById('setup-cost-waive');if(scw)scw.checked=!!snap.setupCostWaived;
   set('mc-rate',snap.mcRate);
   set('mc-comp-rate',snap.mcCompRate);
   set('mc-post-rate',snap.mcPostRate);
@@ -4292,6 +4387,13 @@ function _buildPricingTableHtml(snap,vLabel){
     ${settl==='T0'&&t0>0?`<tr style="border-bottom:1px solid #f3f4f6"><td style="padding:7px 10px;font-size:12px;color:#374151">T+0 Rate</td><td style="padding:7px 10px;font-size:12px;font-weight:700;color:#111827;text-align:right">${t0}%</td></tr>`:''}
     ${settl==='ODS'&&t0>0?`<tr style="border-bottom:1px solid #f3f4f6"><td style="padding:7px 10px;font-size:12px;color:#374151">ODS Rate</td><td style="padding:7px 10px;font-size:12px;font-weight:700;color:#111827;text-align:right">${parseFloat(snap.odsRate)||0}%</td></tr>`:''}
     ${gmvCr&&gmvCr!=='none'?`<tr style="border-bottom:1px solid #f3f4f6"><td style="padding:7px 10px;font-size:12px;color:#374151">GMV Credit</td><td style="padding:7px 10px;font-size:12px;font-weight:700;color:#059669;text-align:right">${gmvCr}</td></tr>`:''}`;
+  const scAmt2=parseFloat(snap.setupCost)||0;
+  if(scAmt2>0){
+    const scStr2=snap.setupCostWaived
+      ? `<span style="text-decoration:line-through;color:#9ca3af">Rs.${scAmt2.toLocaleString('en-IN')}</span> <span style="color:#059669">Waived</span>`
+      : `Rs.${scAmt2.toLocaleString('en-IN')}`;
+    html+=`<tr style="border-bottom:1px solid #f3f4f6"><td style="padding:7px 10px;font-size:12px;color:#374151">Setup Cost (one-time, excl. GST)</td><td style="padding:7px 10px;font-size:12px;font-weight:700;color:#111827;text-align:right">${scStr2}</td></tr>`;
+  }
   return `<table width="100%" cellpadding="0" cellspacing="0" style="border:1px solid #e5e7eb;border-radius:10px;overflow:hidden">${html}</table>`;
 }
 
@@ -6992,6 +7094,19 @@ function _buildSimplePricingTable(snap){
     <td style="padding:8px 14px;font-size:13px;color:#374151;border:1px solid #e5e7eb">GMV Credit</td>
     <td style="padding:8px 14px;font-size:13px;font-weight:600;color:#059669;border:1px solid #e5e7eb;text-align:center">${gmvCr}</td>
   </tr>`;
+
+  // Setup Cost row (one-time, exclusive of GST). If waived, show struck-through amount + "Waived".
+  const scAmt=parseFloat(snap.setupCost)||0;
+  if(scAmt>0){
+    const scWaived=!!snap.setupCostWaived;
+    const scStr=scWaived
+      ? `<span style="text-decoration:line-through;color:#9ca3af">Rs.${scAmt.toLocaleString('en-IN')}</span> <span style="color:#059669;font-weight:700">Waived</span>`
+      : `Rs.${scAmt.toLocaleString('en-IN')}`;
+    trs+=`<tr style="background:#fef9f3">
+      <td style="padding:8px 14px;font-size:13px;color:#374151;border:1px solid #e5e7eb">Setup Cost <span style="font-size:11px;color:#9ca3af">(one-time, excl. GST)</span></td>
+      <td style="padding:8px 14px;font-size:13px;font-weight:600;color:#111827;border:1px solid #e5e7eb;text-align:center">${scStr}</td>
+    </tr>`;
+  }
 
   return `<table cellpadding="0" cellspacing="0" style="width:100%;border-collapse:collapse;border:1px solid #e5e7eb">
     <tr style="background:#2563eb">
