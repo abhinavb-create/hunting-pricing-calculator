@@ -6,10 +6,10 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<!-- build: 20260724-v110 -->
+<!-- build: 20260724-v111 -->
 <script>
 (function(){
-  const BUILD='v110';
+  const BUILD='v111';
   const u=new URL(location.href);
   if(u.searchParams.get('b')!==BUILD){u.searchParams.set('b',BUILD);location.replace(u.toString());}
 })();
@@ -5849,7 +5849,12 @@ async function _checkDuplicateMerchant(){
     if((r.userEmail||'').toLowerCase()===myEmail) return;
     const rName=(r.merchantName||'').toLowerCase();
     const rEmail=(r.merchantEmail||r.snapshot?.merchantEmail||'').toLowerCase();
-    const nameMatch=nameVal.length>=3&&rName&&(rName.includes(nameVal)||nameVal.includes(rName.split(' ')[0]));
+    // Only match if stored name contains what user typed, OR any typed word (≥4 chars) appears in stored name
+    const typedWords=nameVal.split(/\s+/).filter(w=>w.length>=4);
+    const nameMatch=nameVal.length>=3&&rName&&(
+      rName.includes(nameVal)||
+      (typedWords.length>0&&typedWords.every(w=>rName.includes(w)))
+    );
     const emailMatch=emailVal.length>=5&&rEmail&&rEmail===emailVal;
     if(!nameMatch&&!emailMatch) return;
     const oe=(r.userEmail||'unknown').toLowerCase();
