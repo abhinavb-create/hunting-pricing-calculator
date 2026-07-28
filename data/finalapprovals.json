@@ -416,5 +416,16 @@
     "resolvedAt": "",
     "teamGroup": "Competition Hunting",
     "timestamp": "2026-07-28T07:08:58.332Z"
+  },
+  {
+    "requestId": "fa_ms4nkgo8ly286p",
+    "merchantName": "TAXSCAN EDUTECH PRIVATE LIMITED",
+    "requesterEmail": "sainath.vishnugauri@razorpay.com",
+    "versionIds": "dl_1783925809132",
+    "notes": "",
+    "status": "pending",
+    "resolvedAt": "",
+    "teamGroup": "Competition Hunting",
+    "timestamp": "2026-07-28T12:49:26.121Z"
   }
 ]
