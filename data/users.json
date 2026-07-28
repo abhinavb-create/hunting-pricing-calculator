@@ -134,5 +134,13 @@
     "registeredAt": "2026-07-24T07:11:52.169Z",
     "lastSeen": "2026-07-24T07:29:08.951Z",
     "status": "active"
+  },
+  {
+    "email": "prerna.kumari@razorpay.com",
+    "name": "Prerna Kumari",
+    "teamGroup": "Competition Hunting",
+    "registeredAt": "2026-07-28T11:12:16.894Z",
+    "lastSeen": "2026-07-28T11:12:16.894Z",
+    "status": "pending"
   }
 ]
