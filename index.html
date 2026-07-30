@@ -9,7 +9,7 @@
 <!-- build: 20260724-v111 -->
 <script>
 (function(){
-  const BUILD='v111';
+  const BUILD='v112';
   const u=new URL(location.href);
   if(u.searchParams.get('b')!==BUILD){u.searchParams.set('b',BUILD);location.replace(u.toString());}
 })();
@@ -5989,6 +5989,10 @@ async function _ghRead(path){
     const r=await fetch(GH_API+path,{headers:{Authorization:'token '+GH_TOKEN,Accept:'application/vnd.github+json'}});
     if(r.status===404)return{data:null,sha:null};
     const j=await r.json();
+    if(!j.content){
+      const raw=await fetch(j.download_url||('https://raw.githubusercontent.com/abhinavb-create/hunting-pricing-calculator/main/'+path));
+      return{data:JSON.parse(await raw.text()),sha:j.sha};
+    }
     return{data:JSON.parse(decodeURIComponent(escape(atob(j.content.replace(/\n/g,''))))),sha:j.sha};
   }catch(e){console.warn('_ghRead failed:',e);return{data:null,sha:null};}
 }
