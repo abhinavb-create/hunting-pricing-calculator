@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<!-- build: 20260724-v111 -->
+<!-- build: 20260803-v112 -->
 <script>
 (function(){
   const BUILD='v112';
@@ -1084,24 +1084,29 @@
       </div>
 
       <!-- PG table -->
-      <p class="text-xs font-bold text-gray-500 uppercase tracking-wider mb-3">PG Pricing (per method)</p>
+      <p class="text-xs font-bold text-gray-500 uppercase tracking-wider mb-3">PG Pricing (per method) vs Competition</p>
       <div class="overflow-x-auto">
         <table class="w-full text-xs">
           <thead>
             <tr class="text-gray-400 uppercase tracking-wider border-b-2 border-gray-100 font-bold">
               <th class="text-left py-2.5 pr-2 w-40">Method</th>
               <th class="text-center py-2.5 px-2 rp-col rounded-t-lg">PG Rate %</th>
+              <th class="text-center py-2.5 px-2 comp-col rounded-t-lg">Comp PG %</th>
               <th class="text-center py-2.5 px-2">GMV Split %</th>
               <th class="text-right py-2.5 px-2">Method GMV</th>
-              <th class="text-right py-2.5 px-2">Merchant Pays</th>
+              <th class="text-right py-2.5 px-2">Merch Pays (RP)</th>
+              <th class="text-right py-2.5 px-2">Merch Pays (Comp)</th>
+              <th class="text-right py-2.5 px-2 text-emerald-600">Saving/mo</th>
               <th class="text-right py-2.5 pl-2">PG NR</th>
             </tr>
           </thead>
           <tbody id="mc-tbody"></tbody>
           <tfoot>
             <tr class="border-t-2 border-gray-200 font-bold text-xs">
-              <td class="py-2.5 text-gray-500 pr-2">PG Subtotal</td><td colspan="3"></td>
+              <td class="py-2.5 text-gray-500 pr-2">PG Subtotal</td><td colspan="4"></td>
               <td id="mf-pay" class="py-2.5 px-2 text-right text-green-800"></td>
+              <td id="mf-cpay" class="py-2.5 px-2 text-right text-purple-800"></td>
+              <td id="mf-save" class="py-2.5 px-2 text-right"></td>
               <td id="mf-nr"  class="py-2.5 pl-2 text-right"></td>
             </tr>
           </tfoot>
@@ -2331,6 +2336,7 @@ const METHODS = [
   // ── Others ──
   { id:'mobile-wallets',   label:'Mobile Wallets',                             group:'Others',      flat:true, compRate:2.00, nocompRate:2.00, mcRate:2.00, compSplit:0,  nocompSplit:0,  mcSplit:0,  compComp:1.80 },
   { id:'no-code',          label:'No Code (Payment Links / Pages / QR)',       group:'Others',      flat:true, compRate:0.00, nocompRate:0.00, mcRate:0.00, compSplit:0,  nocompSplit:0,  mcSplit:0,  compComp:0.00, locked:true },
+  { id:'cod',              label:'COD (Cash on Delivery)',                      group:'Others',      codOnly:true, compRate:0, nocompRate:0, mcRate:0, compSplit:0, nocompSplit:0, mcSplit:0, compComp:0 },
 ];
 
 // ================================================================
@@ -2413,7 +2419,7 @@ function initTable(sc) {
     const defSpl=isComp?m.compSplit:isMC?m.mcSplit:m.nocompSplit;
     if(m.group && m.group!==lastGroup){
       lastGroup=m.group;
-      const cols=isComp?9:6;
+      const cols=(isComp||isMC)?9:6;
       html+=`<tr><td colspan="${cols}" class="py-1.5 px-2 bg-gray-50 text-xs font-black text-gray-400 uppercase tracking-widest border-t border-gray-100">${m.group}</td></tr>`;
     }
     let compCell='';
@@ -2438,8 +2444,42 @@ function initTable(sc) {
           </div>
         </td>`;
       }
+    } else if(isMC && !m.codOnly){
+      compCell=`<td class="py-2.5 px-2 text-center comp-col align-top pt-3">
+        <input id="mc-comp-pg-${i}" type="number" min="0" max="15" step="0.01" value="${m.compComp.toFixed(2)}"
+          class="w-20 text-center border-2 border-purple-200 bg-white rounded-lg px-1 py-1.5 font-bold text-xs focus:outline-none focus:border-purple-500" oninput="updateOutputs()">
+      </td>`;
+    } else if(isMC && m.codOnly){
+      compCell=`<td class="py-2.5 px-2 comp-col align-top pt-3 text-center text-gray-300 text-xs">—</td>`;
     }
     const infoBtn=METHOD_DETAIL_MAP[m.id]?`<span class="info-btn" onclick="event.stopPropagation();showInfoPopup(this,'${m.id}')" title="Sub-provider details">ⓘ</span>`:'';
+    if(m.codOnly && isMC){
+      html+=`<tr class="method-row border-b border-gray-50" data-method-id="${m.id}">
+        <td class="py-2.5 pr-2 font-semibold text-gray-700 align-top pt-3 text-xs">${m.label}</td>
+        <td class="py-2.5 px-2 text-center align-top pt-3 text-gray-300 text-xs rp-col">—</td>
+        <td class="py-2.5 px-2 text-center align-top pt-3 text-gray-300 text-xs comp-col">—</td>
+        <td class="py-2.5 px-2 text-center align-top pt-3">
+          <input id="${pfx}-spl-${i}" type="number" min="0" max="100" step="1" value="${defSpl}"
+            class="w-16 text-center border-2 border-gray-200 rounded-lg px-1 py-1.5 font-bold text-xs focus:outline-none focus:border-blue-500" oninput="updateOutputs()">
+        </td>
+        <td id="${pfx}-gmv-${i}" class="py-2.5 px-2 text-right align-top pt-3 text-gray-500 text-xs"></td>
+        <td class="py-2.5 px-2 text-center align-top pt-3 text-gray-300 text-xs" colspan="3">COD — no MDR</td>
+        <td id="${pfx}-nr-${i}" class="py-2.5 pl-2 text-right align-top pt-3 text-gray-300 text-xs">—</td>
+      </tr>`;
+    } else if(m.codOnly && isComp){
+      html+=`<tr class="method-row border-b border-gray-50" data-method-id="${m.id}">
+        <td class="py-2.5 pr-2 font-semibold text-gray-700 align-top pt-3 text-xs">${m.label}</td>
+        <td class="py-2.5 px-2 text-center align-top pt-3 text-gray-300 text-xs rp-col">—</td>
+        <td class="py-2.5 px-2 text-center align-top pt-3 text-gray-300 text-xs comp-col">—</td>
+        <td class="py-2.5 px-2 text-center align-top pt-3">
+          <input id="${pfx}-spl-${i}" type="number" min="0" max="100" step="1" value="${defSpl}"
+            class="w-16 text-center border-2 border-gray-200 rounded-lg px-1 py-1.5 font-bold text-xs focus:outline-none focus:border-blue-500" oninput="updateOutputs()">
+        </td>
+        <td id="${pfx}-gmv-${i}" class="py-2.5 px-2 text-right align-top pt-3 text-gray-500 text-xs"></td>
+        <td class="py-2.5 px-2 text-center text-gray-300 text-xs" colspan="3">COD — no MDR</td>
+        <td id="${pfx}-nr-${i}" class="py-2.5 pl-2 text-right align-top pt-3 text-gray-300 text-xs">—</td>
+      </tr>`;
+    } else {
     html+=`<tr class="method-row border-b border-gray-50" data-method-id="${m.id}">
       <td class="py-2.5 pr-2 font-semibold text-gray-700 align-top pt-3 text-xs">${m.label}${infoBtn}</td>
       ${pricingCell(sc,i,m)}${compCell}
@@ -2452,8 +2492,11 @@ function initTable(sc) {
       <td id="${pfx}-rpay-${i}" class="py-2.5 px-2 text-right align-top pt-3 font-bold text-green-700 text-xs"></td>
       ${isComp?`<td id="c-cpay-${i}" class="py-2.5 px-2 text-right align-top pt-3 font-bold text-purple-700 text-xs"></td>
                 <td id="c-save-${i}" class="py-2.5 px-2 text-right align-top pt-3 font-bold text-xs"></td>`:''}
+      ${isMC?`<td id="mc-cpay-${i}" class="py-2.5 px-2 text-right align-top pt-3 font-bold text-purple-700 text-xs"></td>
+              <td id="mc-save-${i}" class="py-2.5 px-2 text-right align-top pt-3 font-bold text-xs"></td>`:''}
       <td id="${pfx}-nr-${i}" class="py-2.5 pl-2 text-right align-top pt-3 font-bold text-xs"></td>
     </tr>`;
+    }
   });
   document.getElementById(isComp?'comp-tbody':isMC?'mc-tbody':'nocomp-tbody').innerHTML=html;
   METHODS.forEach((m,i)=>{if(m.flat)refreshFlatUI(sc,i);});
@@ -2755,23 +2798,28 @@ function updateOutputs(){
 
   let cRPPay=0,cCPay=0,cMDRNR=0,cSplit=0;
   let nPay=0,nMDRNR=0,nSplit=0;
-  let mPay=0,mMDRNR=0,mSplit=0;
+  let mPay=0,mMDRNR=0,mSplit=0,mcCPay=0;
 
   METHODS.forEach((m,i)=>{
     const bc=BANK_COSTS[m.id];
 
     // Competition
     const cSpl=+(document.getElementById(`c-spl-${i}`)?.value)||0; cSplit+=cSpl;
-    const cMGMV=gmv*cSpl/100, cNRi=methodNR('competition',i,cMGMV);
-    let cRPPayi,cCPayi;
-    if(flatMode.competition[i]){const aov=flatData.competition[i].aov||1,txn=cMGMV/aov;cRPPayi=(flatData.competition[i].fee||0)*txn;cCPayi=(flatData.competition[i].compFee||0)*txn;}
-    else{const cMdr=+(document.getElementById(`c-mdr-${i}`)?.value)||0,cComp=+(document.getElementById(`c-comp-${i}`)?.value)||0;cRPPayi=cMdr/100*cMGMV;cCPayi=cComp/100*cMGMV;}
-    cRPPay+=cRPPayi;cCPay+=cCPayi;cMDRNR+=cNRi;
-    const cSavi=cCPayi-cRPPayi;
-    set(`c-gmv-${i}`,fmtINR(cMGMV));set(`c-rpay-${i}`,fmtINR(cRPPayi));set(`c-cpay-${i}`,fmtINR(cCPayi));
-    col(`c-save-${i}`,(cSavi>=0?'+':'')+fmtINR(cSavi),cSavi>=0?'text-emerald-600':'text-red-500');
-    col(`c-nr-${i}`,fmtINR2(cNRi),cNRi<0?'text-red-500':'text-blue-700');
-    if(flatMode.competition[i]){const aov=flatData.competition[i].aov||1,fee=flatData.competition[i].fee||0,minQ=Math.ceil(bc*aov)+1,w=document.getElementById(`c-feewarn-${i}`);if(w){if(fee<minQ){w.textContent=`⚠ Below min ₹${minQ}`;w.classList.remove('hidden');}else w.classList.add('hidden');}}
+    const cMGMV=gmv*cSpl/100;
+    if(m.codOnly){
+      set(`c-gmv-${i}`,fmtINR(cMGMV));
+    } else {
+      const cNRi=methodNR('competition',i,cMGMV);
+      let cRPPayi,cCPayi;
+      if(flatMode.competition[i]){const aov=flatData.competition[i].aov||1,txn=cMGMV/aov;cRPPayi=(flatData.competition[i].fee||0)*txn;cCPayi=(flatData.competition[i].compFee||0)*txn;}
+      else{const cMdr=+(document.getElementById(`c-mdr-${i}`)?.value)||0,cComp=+(document.getElementById(`c-comp-${i}`)?.value)||0;cRPPayi=cMdr/100*cMGMV;cCPayi=cComp/100*cMGMV;}
+      cRPPay+=cRPPayi;cCPay+=cCPayi;cMDRNR+=cNRi;
+      const cSavi=cCPayi-cRPPayi;
+      set(`c-gmv-${i}`,fmtINR(cMGMV));set(`c-rpay-${i}`,fmtINR(cRPPayi));set(`c-cpay-${i}`,fmtINR(cCPayi));
+      col(`c-save-${i}`,(cSavi>=0?'+':'')+fmtINR(cSavi),cSavi>=0?'text-emerald-600':'text-red-500');
+      col(`c-nr-${i}`,fmtINR2(cNRi),cNRi<0?'text-red-500':'text-blue-700');
+      if(flatMode.competition[i]){const aov=flatData.competition[i].aov||1,fee=flatData.competition[i].fee||0,minQ=Math.ceil(bc*aov)+1,w=document.getElementById(`c-feewarn-${i}`);if(w){if(fee<minQ){w.textContent=`⚠ Below min ₹${minQ}`;w.classList.remove('hidden');}else w.classList.add('hidden');}}
+    }
 
     // No competition (tab removed — skip silently)
     const nSpl=0; nSplit+=nSpl; const nMGMV=0,nNRi=0,nPayi=0;
@@ -2779,13 +2827,23 @@ function updateOutputs(){
 
     // MC PG
     const mSpl=+(document.getElementById(`mc-spl-${i}`)?.value)||0; mSplit+=mSpl;
-    const mMGMV=gmv*mSpl/100, mNRi=methodNR('magic-checkout',i,mMGMV);
-    let mPayi;
-    if(flatMode['magic-checkout'][i]){const aov=flatData['magic-checkout'][i].aov||1;mPayi=(flatData['magic-checkout'][i].fee||0)*(mMGMV/aov);}
-    else{const mMdr=+(document.getElementById(`mc-mdr-${i}`)?.value)||0;mPayi=mMdr/100*mMGMV;}
-    mPay+=mPayi;mMDRNR+=mNRi;
-    set(`mc-gmv-${i}`,fmtINR(mMGMV));set(`mc-rpay-${i}`,fmtINR(mPayi));
-    col(`mc-nr-${i}`,fmtINR2(mNRi),mNRi<0?'text-red-500':'text-blue-700');
+    const mMGMV=gmv*mSpl/100;
+    if(m.codOnly){
+      set(`mc-gmv-${i}`,fmtINR(mMGMV));
+    } else {
+      const mNRi=methodNR('magic-checkout',i,mMGMV);
+      let mPayi;
+      if(flatMode['magic-checkout'][i]){const aov=flatData['magic-checkout'][i].aov||1;mPayi=(flatData['magic-checkout'][i].fee||0)*(mMGMV/aov);}
+      else{const mMdr=+(document.getElementById(`mc-mdr-${i}`)?.value)||0;mPayi=mMdr/100*mMGMV;}
+      const mcCompPg=+(document.getElementById(`mc-comp-pg-${i}`)?.value)||0;
+      const mCPayi=mcCompPg/100*mMGMV;
+      const mSavi=mCPayi-mPayi;
+      mPay+=mPayi;mMDRNR+=mNRi;mcCPay+=mCPayi;
+      set(`mc-gmv-${i}`,fmtINR(mMGMV));set(`mc-rpay-${i}`,fmtINR(mPayi));
+      set(`mc-cpay-${i}`,fmtINR(mCPayi));
+      col(`mc-save-${i}`,(mSavi>=0?'+':'')+fmtINR(mSavi),mSavi>=0?'text-emerald-600':'text-red-500');
+      col(`mc-nr-${i}`,fmtINR2(mNRi),mNRi<0?'text-red-500':'text-blue-700');
+    }
   });
 
   const routeNR=getRouteRate()/100*gmv;
@@ -2809,6 +2867,9 @@ function updateOutputs(){
   col('cf-nr',fmtINR2(cMDRNR),cMDRNR<0?'text-red-600 font-black':'text-blue-800 font-black');
   // nf-pay / nf-nr removed with No Competition tab
   set('mf-pay',fmtINR(mPay));
+  set('mf-cpay',fmtINR(mcCPay));
+  const mfSave=mcCPay-mPay;
+  col('mf-save',(mfSave>=0?'+':'')+fmtINR(mfSave),mfSave>=0?'text-emerald-600':'text-red-500');
   col('mf-nr',fmtINR2(mMDRNR),mMDRNR<0?'text-red-600 font-black':'text-blue-800 font-black');
 
   // Settlement lines
@@ -2864,7 +2925,7 @@ function updateOutputs(){
 
 
   // MC impact — full competition breakdown
-  buildMCImpact(gmv,mPay,mMDRNR,mcNR,mcCompNR,mcRateVal,mTotalNR,mcAnnualNR,sNR,hasSettle);
+  buildMCImpact(gmv,mPay,mcCPay,mMDRNR,mcNR,mcCompNR,mcRateVal,mTotalNR,mcAnnualNR,sNR,hasSettle);
 
   // Split check
   const activeSplit=activeTab==='competition'?cSplit:activeTab==='magic-checkout'?mSplit:0;
@@ -2885,16 +2946,15 @@ function updateOutputs(){
 // ================================================================
 // MC IMPACT PANEL
 // ================================================================
-function buildMCImpact(gmv,mPay,mMDRNR,mcNR,mcCompNR,mcRateVal,mTotalNR,mcAnnualNR,sNR,hasSettle){
+function buildMCImpact(gmv,mPay,compPgPay,mMDRNR,mcNR,mcCompNR,mcRateVal,mTotalNR,mcAnnualNR,sNR,hasSettle){
   const compRate=+(document.getElementById('mc-comp-rate').value)||0;
   const mBlend=gmv>0?mPay/gmv*100:0;
+  const compPgCost=compPgPay||mPay; // competitor PG MDR; fallback to RP if not set
 
-  // Competitor total = PG comp cost (use competition tab's PG costs) + comp MC
-  // For simplicity, use the same PG cost as RP (no separate comp PG column in MC tab)
-  // Comp checkout = compRate% × GMV; RP MC = mcNR
+  // Competitor total = per-method comp PG rates + competitor checkout
   const compCheckoutCost=compRate/100*gmv;
   const rpCheckoutCost=mcRateVal/100*gmv;
-  const merchantSavingOnCheckout=compCheckoutCost-rpCheckoutCost;
+  const merchantSavingOnCheckout=(compPgCost+compCheckoutCost)-(mPay+rpCheckoutCost);
 
   let html='';
 
@@ -2905,10 +2965,10 @@ function buildMCImpact(gmv,mPay,mMDRNR,mcNR,mcCompNR,mcRateVal,mTotalNR,mcAnnual
   html+=`<div class="comp-col rounded-xl p-4 border border-purple-100">
     <p class="text-xs font-bold text-purple-600 uppercase tracking-wide mb-3">😰 With Competitor Checkout</p>
     <div class="space-y-2">
-      <div class="flex justify-between text-xs"><span class="text-gray-500">PG MDR Cost / Month</span><span class="font-bold text-gray-800">${fmtINR(mPay)}</span></div>
+      <div class="flex justify-between text-xs"><span class="text-gray-500">PG MDR Cost / Month</span><span class="font-bold text-gray-800">${fmtINR(compPgCost)}</span></div>
       <div class="flex justify-between text-xs"><span class="text-gray-500">Competitor Checkout Fee (${compRate.toFixed(2)}%)</span><span class="font-bold text-purple-700">${fmtINR2(compCheckoutCost)}</span></div>
-      <div class="border-t border-purple-200 pt-2 flex justify-between text-xs font-black"><span class="text-purple-700">Total Monthly Cost</span><span class="text-purple-800">${fmtINR2(mPay+compCheckoutCost)}</span></div>
-      <div class="flex justify-between text-xs"><span class="text-gray-400">Annual</span><span class="font-bold text-purple-600">${fmtINR((mPay+compCheckoutCost)*12)}</span></div>
+      <div class="border-t border-purple-200 pt-2 flex justify-between text-xs font-black"><span class="text-purple-700">Total Monthly Cost</span><span class="text-purple-800">${fmtINR2(compPgCost+compCheckoutCost)}</span></div>
+      <div class="flex justify-between text-xs"><span class="text-gray-400">Annual</span><span class="font-bold text-purple-600">${fmtINR((compPgCost+compCheckoutCost)*12)}</span></div>
     </div>
   </div>`;
 
@@ -2941,19 +3001,22 @@ function buildMCImpact(gmv,mPay,mMDRNR,mcNR,mcCompNR,mcRateVal,mTotalNR,mcAnnual
   // Saving banner
   if(mcRateVal===0){
     const freeMons=Math.min(6,+(document.getElementById('mc-free-months').value)||1);
-    const savDuringFree=compCheckoutCost; // full comp checkout cost saved
     const postRate=Math.max(0.05,+(document.getElementById('mc-post-rate').value)||0.05);
-    const savAfterFree=compCheckoutCost-postRate/100*gmv;
+    const compTotal=compPgCost+compCheckoutCost;
+    const rpTotalFree=mPay; // MC is free
+    const rpTotalPost=mPay+postRate/100*gmv;
+    const savDuringFree=compTotal-rpTotalFree;
+    const savAfterFree=compTotal-rpTotalPost;
     html+=`<div class="bg-gradient-to-r from-amber-400 to-orange-400 rounded-xl p-4 text-white mb-4">
-      <p class="text-xs font-bold uppercase tracking-wide opacity-90 mb-1">Merchant Checkout Savings vs Competitor</p>
+      <p class="text-xs font-bold uppercase tracking-wide opacity-90 mb-1">Merchant Total Savings vs Competitor (PG + Checkout)</p>
       <div class="flex flex-wrap gap-6">
-        <div><p class="text-xs opacity-80">During free period (${freeMons}mo)</p><p class="text-2xl font-black">${fmtINR2(savDuringFree)}<span class="text-sm font-normal opacity-80">/mo</span></p></div>
+        <div><p class="text-xs opacity-80">During free period (${freeMons}mo)</p><p class="text-2xl font-black">${savDuringFree>=0?'':'-'}${fmtINR2(Math.abs(savDuringFree))}<span class="text-sm font-normal opacity-80">/mo</span></p></div>
         <div><p class="text-xs opacity-80">After free period</p><p class="text-2xl font-black">${savAfterFree>=0?'':'-'}${fmtINR2(Math.abs(savAfterFree))}<span class="text-sm font-normal opacity-80">/mo</span></p></div>
       </div>
     </div>`;
   } else {
     html+=`<div class="bg-gradient-to-r from-green-500 to-emerald-500 rounded-xl p-4 text-white mb-4 flex items-center justify-between flex-wrap gap-3">
-      <div><p class="text-xs font-bold uppercase tracking-wide opacity-80">Merchant Savings on Checkout vs Competitor</p>
+      <div><p class="text-xs font-bold uppercase tracking-wide opacity-80">Merchant Total Savings vs Competitor (PG + Checkout)</p>
         <p class="text-3xl font-black mt-0.5">${merchantSavingOnCheckout>=0?'':'-'}${fmtINR2(Math.abs(merchantSavingOnCheckout))}<span class="text-sm font-normal opacity-70">/mo</span></p>
       </div>
       <div class="text-right"><p class="text-xs opacity-70">Annual</p><p class="text-2xl font-black">${fmtINR(merchantSavingOnCheckout*12)}</p></div>
@@ -5989,10 +6052,6 @@ async function _ghRead(path){
     const r=await fetch(GH_API+path,{headers:{Authorization:'token '+GH_TOKEN,Accept:'application/vnd.github+json'}});
     if(r.status===404)return{data:null,sha:null};
     const j=await r.json();
-    if(!j.content){
-      const raw=await fetch(j.download_url||('https://raw.githubusercontent.com/abhinavb-create/hunting-pricing-calculator/main/'+path));
-      return{data:JSON.parse(await raw.text()),sha:j.sha};
-    }
     return{data:JSON.parse(decodeURIComponent(escape(atob(j.content.replace(/\n/g,''))))),sha:j.sha};
   }catch(e){console.warn('_ghRead failed:',e);return{data:null,sha:null};}
 }
