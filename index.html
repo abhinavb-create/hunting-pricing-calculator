@@ -6,10 +6,10 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<!-- build: 20260803-v112 -->
+<!-- build: 20260804-v113 -->
 <script>
 (function(){
-  const BUILD='v112';
+  const BUILD='v113';
   const u=new URL(location.href);
   if(u.searchParams.get('b')!==BUILD){u.searchParams.set('b',BUILD);location.replace(u.toString());}
 })();
@@ -1250,7 +1250,7 @@
   <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
     <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-5 text-center">
       <p id="stats-download-count" class="text-3xl font-black text-blue-700">—</p>
-      <p class="text-xs text-blue-500 font-bold mt-1 uppercase tracking-wide">Total Downloads</p>
+      <p class="text-xs text-blue-500 font-bold mt-1 uppercase tracking-wide">Total Records</p>
     </div>
     <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-5 text-center">
       <p id="stats-pending-count" class="text-3xl font-black text-amber-600">—</p>
@@ -6665,7 +6665,7 @@ async function loadUserHistory(){
   }
 
   // Update summary counts
-  document.getElementById('stats-download-count').textContent=downloads.length;
+  document.getElementById('stats-download-count').textContent=downloads.length+approvals.length;
   document.getElementById('stats-pending-count').textContent=approvals.filter(a=>a.status==='pending').length;
   document.getElementById('stats-approved-count').textContent=approvals.filter(a=>a.status==='approved').length;
   document.getElementById('stats-rejected-count').textContent=approvals.filter(a=>a.status==='rejected').length;
