@@ -9955,5 +9955,16 @@
       }
     },
     "timestamp": 1785842770838
+  },
+  {
+    "requestId": "mseky1uq3zfvby",
+    "merchantName": "TECH2WAVE DIGITAL SOLUTIONS",
+    "requesterEmail": "",
+    "status": "approved",
+    "resolvedAt": "2026-08-04T11:37:56.636Z",
+    "teamGroup": "",
+    "gmv": 0,
+    "slabLabel": "",
+    "timestamp": 1785843476636
   }
 ]
