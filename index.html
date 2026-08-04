@@ -6,10 +6,10 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<!-- build: 20260804-v113 -->
+<!-- build: 20260804-v114 -->
 <script>
 (function(){
-  const BUILD='v113';
+  const BUILD='v114';
   const u=new URL(location.href);
   if(u.searchParams.get('b')!==BUILD){u.searchParams.set('b',BUILD);location.replace(u.toString());}
 })();
@@ -6052,6 +6052,11 @@ async function _ghRead(path){
     const r=await fetch(GH_API+path,{headers:{Authorization:'token '+GH_TOKEN,Accept:'application/vnd.github+json'}});
     if(r.status===404)return{data:null,sha:null};
     const j=await r.json();
+    // GitHub returns empty content for files >1MB; use download_url for raw content
+    if(!j.content&&j.download_url){
+      const raw=await fetch(j.download_url);
+      return{data:await raw.json(),sha:j.sha};
+    }
     return{data:JSON.parse(decodeURIComponent(escape(atob(j.content.replace(/\n/g,''))))),sha:j.sha};
   }catch(e){console.warn('_ghRead failed:',e);return{data:null,sha:null};}
 }
