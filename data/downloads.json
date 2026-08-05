@@ -1,13 +1,13 @@
 [
   {
-    "rowId": "dl_1785932673755",
+    "rowId": "dl_1785932863150",
     "fileName": "KAPOOR LEHENGA & SAREE-Razorpay-Proposal.pdf",
     "merchantName": "KAPOOR LEHENGA & SAREE",
     "userEmail": "arpit.shukla@razorpay.com",
     "userName": "Arpit Shukla",
     "teamGroup": "Competition Hunting",
-    "driveLink": "https://drive.google.com/file/d/11RiNyvCDtlRjc1YhMnAbmqmVUIeuPbl3/view",
-    "fileId": "",
+    "driveLink": "https://drive.google.com/file/d/1f2My89l_qhTWXSFLX94zVLHJo4mUSM62/view",
+    "fileId": "1f2My89l_qhTWXSFLX94zVLHJo4mUSM62",
     "versionGroup": null,
     "snapshot": {
       "merchantName": "KAPOOR LEHENGA & SAREE",
@@ -25,7 +25,7 @@
       "setupCostWaived": false,
       "activeTab": "magic-checkout",
       "mcRate": "0",
-      "mcCompRate": "0.10",
+      "mcCompRate": "0.50",
       "mcPostRate": "0.5",
       "rates": {
         "competition": {
@@ -308,7 +308,7 @@
         }
       }
     },
-    "timestamp": 1785932673755
+    "timestamp": 1785932868690
   },
   {
     "rowId": "dl_1785932314985",
