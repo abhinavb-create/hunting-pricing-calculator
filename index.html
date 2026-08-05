@@ -6,10 +6,10 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<!-- build: 20260804-v115 -->
+<!-- build: 20260804-v116 -->
 <script>
 (function(){
-  const BUILD='v115';
+  const BUILD='v116';
   const u=new URL(location.href);
   if(u.searchParams.get('b')!==BUILD){u.searchParams.set('b',BUILD);location.replace(u.toString());}
 })();
@@ -1337,6 +1337,7 @@
             <th class="text-left px-5 py-3.5 text-xs font-bold text-gray-400 uppercase tracking-wider whitespace-nowrap">MID</th>
             <th class="text-left px-5 py-3.5 text-xs font-bold text-gray-400 uppercase tracking-wider whitespace-nowrap">Pricing Version</th>
             <th class="text-left px-5 py-3.5 text-xs font-bold text-gray-400 uppercase tracking-wider whitespace-nowrap">GMV Slab</th>
+            <th class="text-left px-5 py-3.5 text-xs font-bold text-blue-500 uppercase tracking-wider whitespace-nowrap">NR / Month</th>
             <th class="text-left px-5 py-3.5 text-xs font-bold text-gray-400 uppercase tracking-wider whitespace-nowrap">Team</th>
             <th class="text-left px-5 py-3.5 text-xs font-bold text-gray-400 uppercase tracking-wider whitespace-nowrap">Shared By</th>
           </tr>
@@ -6072,6 +6073,47 @@ async function _ghUpdate(path,updateFn,message){
   const updated=updateFn(data||[]);
   await _ghWrite(path,updated,sha,message);
 }
+function computeNRFromSnapshot(snap){
+  if(!snap) return null;
+  const gmv=parseFloat(snap.gmv)||0;
+  if(!gmv) return null;
+  const sc=snap.activeTab||'competition';
+
+  // Settlement NR
+  let sNR=0;
+  const sType=snap.settlementType||'T2';
+  if(sType==='T1') sNR=(parseFloat(snap.t1Rate)||0)/100*gmv;
+  else if(sType==='T0') sNR=Math.max(0.05,(parseFloat(snap.t0Rate)||0.05))/100*gmv;
+  else if(sType==='ODS') sNR=(parseFloat(snap.odsRate)||0)/100*gmv;
+
+  // PG NR — sum across all methods
+  let pgNR=0;
+  METHODS.forEach((m,i)=>{
+    if(m.codOnly) return;
+    const bc=BANK_COSTS[m.id]??0;
+    const spl=parseFloat((snap.splits?.[sc]||{})[i])||0;
+    const mGMV=gmv*spl/100;
+    if(!mGMV) return;
+    const isFlat=!!(snap.flatModes?.[sc]?.[i]);
+    if(isFlat){
+      const fee=parseFloat(snap.flatFees?.[sc]?.[i])||0;
+      const aov=parseFloat(snap.flatAovs?.[sc]?.[i])||50000;
+      if(aov>0) pgNR+=(fee-bc*aov)*(mGMV/aov);
+    } else {
+      const mdr=parseFloat((snap.rates?.[sc]||{})[i])||0;
+      pgNR+=(mdr/100-bc)*mGMV;
+    }
+  });
+
+  // Magic Checkout fee NR
+  let mcNR=0;
+  if(sc==='magic-checkout'){
+    const mcRate=parseFloat(snap.mcRate)||0;
+    mcNR=mcRate/100*gmv;
+  }
+
+  return pgNR+mcNR+sNR;
+}
 // ─────────────────────────────────────────────────────────────────────────────
 let statsAllRows=[];
 let statsMidMap=JSON.parse(localStorage.getItem('rzp_mid_map')||'{}'); // {merchantKey: mid}
@@ -6450,6 +6492,14 @@ function renderStatsTable(rows){
         <p class="text-sm text-gray-700">${gmvR.gmvDisplay||'—'}</p>
         <p class="text-xs text-gray-400">${gmvR.slabLabel||''}</p>
       </td>
+      <td class="px-5 py-3.5 whitespace-nowrap">${(()=>{
+        const snap=latest.snapshot||window._snapCache?.[latest.rowId];
+        const nr=computeNRFromSnapshot(snap);
+        if(nr===null) return '<span class="text-xs text-gray-300">—</span>';
+        const cls=nr>=0?'text-blue-700 font-black':'text-red-600 font-black';
+        const sub=snap?.activeTab==='magic-checkout'?'PG+MC':'PG';
+        return `<p class="text-sm ${cls}">${nr>=0?'+':''}${fmtINR2(nr)}</p><p class="text-xs text-gray-400">${sub}</p>`;
+      })()}</td>
       <td class="px-5 py-3.5 whitespace-nowrap">${teamR.teamGroup?`<span class="text-xs font-bold px-2 py-1 rounded-full bg-blue-50 text-blue-700">${teamR.teamGroup}</span>`:'<span class="text-xs text-gray-300">—</span>'}</td>
       <td class="px-5 py-3.5 whitespace-nowrap">${ownerDisplay(ownerR)}</td>
     </tr>`;
