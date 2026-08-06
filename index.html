@@ -6,10 +6,10 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<!-- build: 20260804-v116 -->
+<!-- build: 20260805-v117 -->
 <script>
 (function(){
-  const BUILD='v116';
+  const BUILD='v117';
   const u=new URL(location.href);
   if(u.searchParams.get('b')!==BUILD){u.searchParams.set('b',BUILD);location.replace(u.toString());}
 })();
@@ -1238,6 +1238,10 @@
       </button>
       <button id="reply-sync-btn" onclick="_manualReplySync()" class="flex items-center gap-1.5 text-xs text-indigo-600 hover:text-indigo-800 font-semibold px-3 py-2 rounded-xl border border-indigo-200 bg-indigo-50 hover:bg-indigo-100 shadow-sm transition-all">
         💬 Sync Replies
+      </button>
+      <button onclick="exportStatsWithNR()" class="flex items-center gap-1.5 text-xs text-emerald-700 hover:text-emerald-900 font-semibold px-3 py-2 rounded-xl border border-emerald-200 bg-emerald-50 hover:bg-emerald-100 shadow-sm transition-all">
+        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+        Download CSV
       </button>
       <button onclick="loadUserHistory()" class="flex items-center gap-1.5 text-xs text-gray-500 hover:text-blue-600 font-semibold px-3 py-2 rounded-xl border border-gray-200 bg-white hover:bg-blue-50 shadow-sm transition-all">
         <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
@@ -6270,6 +6274,48 @@ function submitProductFeedback(){
   _toast('Feedback sent to Abhinav!');
 }
 
+function exportStatsWithNR(){
+  if(!statsAllRows||!statsAllRows.length){alert('No data to export yet.');return;}
+  // One row per merchant group — use latest version's snapshot for NR
+  const seenGroups=new Set();
+  const exportRows=[];
+  statsAllRows.forEach(r=>{
+    const gKey=r.group?(r.group.toLowerCase().trim()):r.rowId;
+    if(seenGroups.has(gKey)) return;
+    seenGroups.add(gKey);
+    const versions=r.group
+      ?statsAllRows.filter(x=>x.group&&x.group.toLowerCase().trim()===gKey).sort((a,b)=>(a.version||1)-(b.version||1))
+      :[r];
+    const latest=versions[versions.length-1];
+    const snap=latest.snapshot||window._snapCache?.[latest.rowId];
+    const nr=computeNRFromSnapshot(snap);
+    const nrStr=nr!==null?Math.round(nr).toString():'';
+    const tab=snap?.activeTab==='magic-checkout'?'PG+Magic':'PG';
+    const gmvR=versions.find(v=>v.gmvDisplay)||r;
+    const teamR=versions.find(v=>v.teamGroup)||r;
+    const ownerR=versions.find(v=>v.requester)||r;
+    exportRows.push([
+      latest.date||r.date||'',
+      r.merchantName||'',
+      versions.find(v=>v.mid)?.mid||r.mid||'',
+      gmvR.gmvDisplay||'',
+      gmvR.slabLabel||'',
+      latest.statusKey||'',
+      `v${latest.version||1} of ${latest.totalVersions||1}`,
+      nrStr,
+      tab,
+      teamR.teamGroup||'',
+      ownerR.requester||'',
+    ]);
+  });
+  const hdr='Date,Merchant,MID,GMV,GMV Slab,Status,Version,NR / Month (Rs),Pricing Tab,Team,Shared By';
+  const csv=[hdr,...exportRows.map(row=>row.map(v=>'"'+String(v).replace(/"/g,'""')+'"').join(','))].join('\n');
+  const a=document.createElement('a');
+  a.href='data:text/csv;charset=utf-8,'+encodeURIComponent(csv);
+  a.download='pricing-activity-with-nr.csv';
+  a.click();
+  _toast('CSV downloaded with NR data!');
+}
 function exportMyHistory(){
   if(!statsAllRows||!statsAllRows.length){alert('No history to export yet.');return;}
   const myRows=statsAllRows.filter(r=>r.requester===currentUser?.email||r.userId===currentUser?.email);
