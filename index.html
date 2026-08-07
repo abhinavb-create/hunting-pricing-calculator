@@ -9,7 +9,7 @@
 <!-- build: 20260805-v117 -->
 <script>
 (function(){
-  const BUILD='v120';
+  const BUILD='v133';
   const u=new URL(location.href);
   if(u.searchParams.get('b')!==BUILD){u.searchParams.set('b',BUILD);location.replace(u.toString());}
 })();
@@ -45,8 +45,8 @@
   .pdf-btn:hover{opacity:.9;}
   .pulse-red{animation:pulseR 1.4s infinite;}
   @keyframes pulseR{0%,100%{opacity:1}50%{opacity:.5}}
-  .comp-col{background:#fdf4ff;}
-  .rp-col  {background:#f0fff4;}
+  .comp-col{background:#f8fafc;}
+  .rp-col  {background:#eff6ff;}
   .pill-pct {background:#e0e7ff;color:#3b5bdb;border:1.5px solid #3b5bdb;}
   .pill-flat{background:#ff6b35;color:white;border:1.5px solid #d4450e;}
   .field-error{border-color:#fa5252!important;}
@@ -136,12 +136,12 @@
   body.dark-theme td.bg-gray-50{background:#0d1117!important;color:#484f58!important;}
 
   /* ── Pricing table coloured columns ── */
-  body.dark-theme .rp-col{background:rgba(16,185,129,.08)!important;}
-  body.dark-theme .comp-col{background:rgba(139,92,246,.08)!important;}
+  body.dark-theme .rp-col{background:rgba(37,99,235,.08)!important;}
+  body.dark-theme .comp-col{background:rgba(100,116,139,.08)!important;}
 
   /* Inputs inside coloured columns */
-  body.dark-theme .rp-col input{border-color:#1a3a2a!important;}
-  body.dark-theme .comp-col input{border-color:#2d1a4a!important;}
+  body.dark-theme .rp-col input{border-color:#1e3a8a!important;}
+  body.dark-theme .comp-col input{border-color:#374151!important;}
 
   /* ── NR boxes (class-based, not Tailwind) ── */
   body.dark-theme .nr-ok  {background:#0d2818!important;border-color:#238636!important;color:#3fb950!important;}
@@ -426,10 +426,12 @@
 
   <!-- Header -->
   <div class="flex items-center justify-between mb-5">
-    <div>
-      <h1 class="text-2xl font-bold text-gray-800">Pricing Calculator</h1>
-      <p class="text-sm text-gray-400 mt-0.5">Net Revenue &amp; Merchant Impact · Razorpay Internal</p>
-      <p id="user-greeting" class="hidden text-sm font-medium text-indigo-500 mt-1"></p>
+    <div class="flex items-center gap-4">
+      <div>
+        <h1 class="text-2xl font-bold text-gray-800">Pricing Calculator</h1>
+        <p class="text-sm text-gray-400 mt-0.5">Net Revenue &amp; Merchant Impact · Razorpay Internal</p>
+        <p id="user-greeting" class="hidden text-sm font-medium text-indigo-500 mt-1"></p>
+      </div>
     </div>
     <div class="flex items-center gap-3">
       <!-- Google Sign-In button (shown when not signed in) -->
@@ -728,8 +730,8 @@
           </div>
         </div>
         <div id="gmv-credit-badge" class="hidden bg-green-50 border border-green-200 rounded-lg px-3 py-1.5">
-          <span class="text-xs font-bold text-green-600 uppercase tracking-wide">Credit Active · </span>
-          <span id="gmv-credit-display-val" class="text-sm font-black text-green-800"></span>
+          <span class="text-xs font-bold text-blue-600 uppercase tracking-wide">Credit Active · </span>
+          <span id="gmv-credit-display-val" class="text-sm font-black text-blue-800"></span>
         </div>
       </div>
     </div>
@@ -894,7 +896,7 @@
 
   <!-- Pricing Slab Selector -->
   <div class="bg-blue-50 border border-blue-100 rounded-2xl px-4 py-3 mb-4 flex items-center gap-3 flex-wrap">
-    <span class="text-xs font-bold text-blue-700 uppercase tracking-wide whitespace-nowrap">📋 E-com B2C Slab</span>
+    <span class="text-xs font-bold text-blue-700 uppercase tracking-wide whitespace-nowrap">Slab</span>
     <select id="pricing-slab" onchange="applySlab(this.value)" class="flex-1 min-w-36 max-w-xs px-3 py-1.5 border-2 border-blue-200 rounded-xl text-sm font-semibold text-blue-900 bg-white focus:outline-none focus:border-blue-500">
       <option value="">— Custom / No slab —</option>
       <option value="1">Slab 1 (Standard)</option>
@@ -907,8 +909,8 @@
 
   <!-- Tabs -->
   <div id="scenario-tabs" class="flex gap-2 mb-4 flex-wrap items-center">
-    <button onclick="setTab('competition')" id="tab-competition" class="tab-active px-6 py-2.5 rounded-xl font-bold text-sm">⚔️ PG</button>
-    <button onclick="setTab('magic-checkout')" id="tab-magic-checkout" class="tab-mc-inactive px-6 py-2.5 rounded-xl font-bold text-sm">✨ PG + Magic</button>
+    <button onclick="setTab('competition')" id="tab-competition" class="tab-active px-6 py-2.5 rounded-xl font-bold text-sm">PG</button>
+    <button onclick="setTab('magic-checkout')" id="tab-magic-checkout" class="tab-mc-inactive px-6 py-2.5 rounded-xl font-bold text-sm">PG + Magic</button>
     <button onclick="toggleMCCLookup()" id="tab-mcc-lookup" class="ml-auto px-5 py-2.5 rounded-xl font-bold text-sm border-2 border-amber-400 text-amber-700 bg-amber-50 hover:bg-amber-100 transition flex items-center gap-1.5">🔍 MCC Lookup</button>
   </div>
 
@@ -941,13 +943,20 @@
           <thead>
             <tr class="text-gray-400 uppercase tracking-wider border-b-2 border-gray-100 font-bold">
               <th class="text-left py-2.5 pr-2 w-40">Method</th>
-              <th class="text-center py-2.5 px-2 rp-col rounded-t-lg">RP Pricing</th>
-              <th class="text-center py-2.5 px-2 comp-col rounded-t-lg">Comp MDR %</th>
+              <th class="text-center py-2.5 px-2 rp-col rounded-t-lg">RZP Pricing</th>
+              <th class="text-center py-2.5 px-2 comp-col rounded-t-lg">
+                <div class="flex items-center justify-center gap-1.5">Comp MDR %
+                  <label title="Upload competitor pricing screenshot — AI will parse and fill" class="cursor-pointer text-purple-400 hover:text-purple-600 transition-colors">
+                    <svg class="w-3.5 h-3.5 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
+                    <input type="file" accept="image/*" class="hidden" onchange="_aiParseCompImg(this)">
+                  </label>
+                </div>
+              </th>
               <th class="text-center py-2.5 px-2">GMV Split %</th>
               <th class="text-right py-2.5 px-2">Method GMV</th>
               <th class="text-right py-2.5 px-2">Merch Pays (RP)</th>
               <th class="text-right py-2.5 px-2">Merch Pays (Comp)</th>
-              <th class="text-right py-2.5 px-2 text-emerald-600">Saving/mo</th>
+              <th class="text-right py-2.5 px-2 text-sky-700">Saving/mo</th>
               <th class="text-right py-2.5 pl-2">RP NR</th>
             </tr>
           </thead>
@@ -955,8 +964,8 @@
           <tfoot>
             <tr class="border-t-2 border-gray-200 font-bold text-xs">
               <td class="py-2.5 text-gray-500 pr-2">Subtotal (MDR)</td><td colspan="4"></td>
-              <td id="cf-rpay" class="py-2.5 px-2 text-right text-green-800"></td>
-              <td id="cf-cpay" class="py-2.5 px-2 text-right text-purple-800"></td>
+              <td id="cf-rpay" class="py-2.5 px-2 text-right text-blue-800"></td>
+              <td id="cf-cpay" class="py-2.5 px-2 text-right text-slate-700"></td>
               <td id="cf-save" class="py-2.5 px-2 text-right"></td>
               <td id="cf-nr"   class="py-2.5 pl-2 text-right"></td>
             </tr>
@@ -980,8 +989,8 @@
       <div id="optimise-nr-panel" class="hidden mt-3 rounded-xl border-2 border-amber-300 bg-amber-50 p-4">
         <div class="flex items-start justify-between mb-2">
           <div>
-            <p class="text-xs font-black text-amber-800 uppercase tracking-wider">💡 NR Optimiser — target ₹500/month</p>
-            <p class="text-xs text-amber-700 mt-0.5">This deal is loss-making. Minimum rate adjustment to reach ₹500 NR, staying within competitor rates.</p>
+            <p id="opt-hdr-title" class="text-xs font-black text-amber-800 uppercase tracking-wider">💡 NR Optimiser — target ₹1,000/month</p>
+            <p id="opt-hdr-sub" class="text-xs text-amber-700 mt-0.5">This deal is loss-making. Minimum rate adjustment to reach ₹1,000 NR, staying within competitor rates.</p>
           </div>
           <button onclick="applyOptimisedRates()" class="ml-4 flex-shrink-0 bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold px-3 py-1.5 rounded-lg">Apply all ↗</button>
         </div>
@@ -997,20 +1006,20 @@
     <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-5 mb-6">
       <h3 class="font-bold text-gray-700 mb-4 text-sm">📊 Merchant Impact — PG</h3>
       <div class="grid grid-cols-2 gap-4 mb-4">
-        <div class="comp-col rounded-xl p-4 border border-purple-100">
-          <p class="text-xs font-bold text-purple-600 uppercase tracking-wide mb-3">😰 With Competitor</p>
-          <p class="text-xs text-gray-500">Monthly MDR Cost</p><p id="ci-comp-monthly" class="text-2xl font-black text-purple-800 mb-2"></p>
-          <p class="text-xs text-gray-500">Annual MDR Cost</p><p id="ci-comp-annual" class="text-lg font-bold text-purple-700 mb-2"></p>
-          <p class="text-xs text-gray-500">Blended Rate</p><p id="ci-comp-blend" class="text-sm font-bold text-purple-600"></p>
+        <div class="comp-col rounded-xl p-4 border border-slate-200">
+          <p class="text-xs font-bold text-slate-600 uppercase tracking-wide mb-3">😰 With Competitor</p>
+          <p class="text-xs text-gray-500">Monthly MDR Cost</p><p id="ci-comp-monthly" class="text-2xl font-black text-slate-800 mb-2"></p>
+          <p class="text-xs text-gray-500">Annual MDR Cost</p><p id="ci-comp-annual" class="text-lg font-bold text-slate-700 mb-2"></p>
+          <p class="text-xs text-gray-500">Blended Rate</p><p id="ci-comp-blend" class="text-sm font-bold text-slate-600"></p>
         </div>
         <div class="rp-col rounded-xl p-4 border border-green-100">
-          <p class="text-xs font-bold text-green-600 uppercase tracking-wide mb-3">✅ With Razorpay</p>
-          <p class="text-xs text-gray-500">Monthly MDR Cost</p><p id="ci-rp-monthly" class="text-2xl font-black text-green-800 mb-2"></p>
-          <p class="text-xs text-gray-500">Annual MDR Cost</p><p id="ci-rp-annual" class="text-lg font-bold text-green-700 mb-2"></p>
-          <p class="text-xs text-gray-500">Blended Rate</p><p id="ci-rp-blend" class="text-sm font-bold text-green-600"></p>
+          <p class="text-xs font-bold text-blue-600 uppercase tracking-wide mb-3">✅ With Razorpay</p>
+          <p class="text-xs text-gray-500">Monthly MDR Cost</p><p id="ci-rp-monthly" class="text-2xl font-black text-blue-800 mb-2"></p>
+          <p class="text-xs text-gray-500">Annual MDR Cost</p><p id="ci-rp-annual" class="text-lg font-bold text-blue-700 mb-2"></p>
+          <p class="text-xs text-gray-500">Blended Rate</p><p id="ci-rp-blend" class="text-sm font-bold text-blue-600"></p>
         </div>
       </div>
-      <div class="bg-gradient-to-r from-green-500 to-emerald-500 rounded-xl p-4 text-white flex items-center justify-between">
+      <div class="bg-gradient-to-r from-blue-600 to-indigo-600 rounded-xl p-4 text-white flex items-center justify-between">
         <div>
           <p class="text-xs font-bold uppercase tracking-wide opacity-80">Total Merchant Savings by Switching to Razorpay</p>
           <p id="ci-save-monthly" class="text-3xl font-black mt-0.5"></p>
@@ -1032,13 +1041,13 @@
           <h2 class="font-bold text-gray-800 mb-0.5">✨ Magic Checkout — Blended Pricing</h2>
           <p class="text-xs text-gray-400">PG rates + Magic Checkout fee vs competitor checkout · Combined NR impact</p>
         </div>
-        <div class="bg-purple-50 border border-purple-200 rounded-xl px-4 py-2.5 text-xs text-purple-700 font-semibold">
+        <div class="bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-xs text-slate-700 font-semibold">
           Min charged rate: <strong>0.05%</strong> · Free period: max <strong>6 months</strong>
         </div>
       </div>
 
       <!-- Checkout rate comparison row -->
-      <div class="bg-gradient-to-r from-purple-50 to-violet-50 border border-purple-100 rounded-2xl p-5 mb-5">
+      <div class="bg-gradient-to-r from-slate-50 to-blue-50 border border-slate-200 rounded-2xl p-5 mb-5">
         <p class="text-xs font-bold text-purple-500 uppercase tracking-wider mb-4">Checkout Pricing (% of GMV)</p>
         <div class="flex flex-wrap gap-5 items-start">
 
@@ -1052,7 +1061,7 @@
               <span class="text-gray-300 font-normal ml-1">(0 = free period)</span>
             </label>
             <input id="mc-rate" type="number" value="0.05" min="0" max="5" step="0.01"
-              class="w-full px-3 py-2.5 border-2 border-purple-200 rounded-xl text-gray-800 font-bold text-sm focus:outline-none focus:border-purple-500"
+              class="w-full px-3 py-2.5 border-2 border-slate-200 rounded-xl text-gray-800 font-bold text-sm focus:outline-none focus:border-blue-500"
               oninput="onMCRateChange()">
             <p id="mc-rate-hint" class="text-xs text-purple-500 font-semibold mt-1"></p>
           </div>
@@ -1066,15 +1075,15 @@
               </span>
             </label>
             <input id="mc-comp-rate" type="number" value="0.10" min="0" max="5" step="0.01"
-              class="w-full px-3 py-2.5 border-2 border-purple-200 rounded-xl text-gray-800 font-bold text-sm focus:outline-none focus:border-purple-500"
+              class="w-full px-3 py-2.5 border-2 border-slate-200 rounded-xl text-gray-800 font-bold text-sm focus:outline-none focus:border-blue-500"
               oninput="updateOutputs()">
             <p id="mc-comp-hint" class="text-xs text-gray-400 font-semibold mt-1"></p>
           </div>
 
           <!-- NR summary tile -->
-          <div class="flex-1 min-w-44 bg-purple-50 rounded-xl p-3 border border-purple-100 self-start">
+          <div class="flex-1 min-w-44 bg-slate-50 rounded-xl p-3 border border-slate-200 self-start">
             <p class="text-xs font-bold text-purple-500 uppercase tracking-wide">MC NR / Month</p>
-            <p id="mc-nr-val" class="text-xl font-black text-purple-800 mt-1">—</p>
+            <p id="mc-nr-val" class="text-xl font-black text-slate-800 mt-1">—</p>
             <p id="mc-nr-sub" class="text-xs text-purple-400 mt-0.5"></p>
           </div>
         </div>
@@ -1113,7 +1122,7 @@
               <th class="text-right py-2.5 px-2">Method GMV</th>
               <th class="text-right py-2.5 px-2">Merch Pays (RP)</th>
               <th class="text-right py-2.5 px-2">Merch Pays (Comp)</th>
-              <th class="text-right py-2.5 px-2 text-emerald-600">Saving/mo</th>
+              <th class="text-right py-2.5 px-2 text-sky-700">Saving/mo</th>
               <th class="text-right py-2.5 pl-2">PG NR</th>
             </tr>
           </thead>
@@ -1121,8 +1130,8 @@
           <tfoot>
             <tr class="border-t-2 border-gray-200 font-bold text-xs">
               <td class="py-2.5 text-gray-500 pr-2">PG Subtotal</td><td colspan="4"></td>
-              <td id="mf-pay" class="py-2.5 px-2 text-right text-green-800"></td>
-              <td id="mf-cpay" class="py-2.5 px-2 text-right text-purple-800"></td>
+              <td id="mf-pay" class="py-2.5 px-2 text-right text-blue-800"></td>
+              <td id="mf-cpay" class="py-2.5 px-2 text-right text-slate-700"></td>
               <td id="mf-save" class="py-2.5 px-2 text-right"></td>
               <td id="mf-nr"  class="py-2.5 pl-2 text-right"></td>
             </tr>
@@ -1359,8 +1368,10 @@
             <th class="text-left px-5 py-3.5 text-xs font-bold text-gray-400 uppercase tracking-wider whitespace-nowrap">Pricing Version</th>
             <th class="text-left px-5 py-3.5 text-xs font-bold text-gray-400 uppercase tracking-wider whitespace-nowrap">GMV Slab</th>
             <th class="text-left px-5 py-3.5 text-xs font-bold text-blue-500 uppercase tracking-wider whitespace-nowrap">NR / Month</th>
+            <th class="text-left px-5 py-3.5 text-xs font-bold text-purple-500 uppercase tracking-wider whitespace-nowrap">Avg Blended Rate</th>
             <th class="text-left px-5 py-3.5 text-xs font-bold text-gray-400 uppercase tracking-wider whitespace-nowrap">Team</th>
             <th class="text-left px-5 py-3.5 text-xs font-bold text-gray-400 uppercase tracking-wider whitespace-nowrap">Shared By</th>
+            <th class="text-left px-5 py-3.5 text-xs font-bold text-emerald-500 uppercase tracking-wider whitespace-nowrap">Revamp</th>
           </tr>
         </thead>
         <tbody id="stats-tbody"></tbody>
@@ -1595,6 +1606,7 @@
             <th class="text-left px-4 py-3.5 text-xs font-bold text-gray-400 uppercase tracking-wider">LAST SEEN</th>
             <th class="text-left px-4 py-3.5 text-xs font-bold text-gray-400 uppercase tracking-wider">JOINED</th>
             <th class="text-left px-4 py-3.5 text-xs font-bold text-gray-400 uppercase tracking-wider">PROPOSALS</th>
+            <th class="text-left px-4 py-3.5 text-xs font-bold text-emerald-500 uppercase tracking-wider">PRICING REVAMP</th>
           </tr>
         </thead>
         <tbody id="team-tbody"></tbody>
@@ -2187,7 +2199,7 @@ function showMCCLookup(){
       ?`<span class="text-xs font-bold text-red-700 bg-red-50 border border-red-200 px-2 py-0.5 rounded-full">🚫 Restrictions</span>`
       :hasCond
       ?`<span class="text-xs font-bold text-amber-700 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-full">⚠ Conditional</span>`
-      :`<span class="text-xs font-bold text-green-700 bg-green-50 border border-green-200 px-2 py-0.5 rounded-full">✅ Available</span>`;
+      :`<span class="text-xs font-bold text-blue-700 bg-green-50 border border-green-200 px-2 py-0.5 rounded-full">✅ Available</span>`;
     return `<div class="flex items-center justify-between py-2.5 px-4 rounded-xl border border-gray-100 bg-white hover:bg-amber-50 hover:border-amber-200 cursor-pointer transition"
         onclick="document.getElementById('mcc-lookup-input').value='${code}';showMCCLookup();applyMCCFromLookup('${code}')">
       <div>
@@ -2399,7 +2411,7 @@ function pricingCell(sc, i, m) {
   const def  = sc==='competition'?m.compRate:sc==='no-competition'?m.nocompRate:m.mcRate;
   if (!m.flat) return `<td class="py-2.5 px-2 text-center rp-col align-top pt-3">
     <input id="${pfx}-mdr-${i}" type="number" min="0" max="15" step="0.01" value="${def.toFixed(2)}"
-      class="w-20 text-center border-2 border-green-200 bg-white rounded-lg px-1 py-1.5 font-bold text-xs focus:outline-none focus:border-green-500" oninput="updateOutputs()">
+      class="w-20 text-center border-2 border-blue-200 bg-white rounded-lg px-1 py-1.5 font-bold text-xs focus:outline-none focus:border-blue-500" oninput="updateOutputs()">
   <p id="${pfx}-floorwarn-${i}" class="text-amber-600 font-bold text-xs hidden mt-0.5 leading-tight"></p>
   </td>`;
   return `<td class="py-2.5 px-2 rp-col">
@@ -2408,7 +2420,7 @@ function pricingCell(sc, i, m) {
     </div>
     <div id="${pfx}-pct-${i}" class="text-center">
       <input id="${pfx}-mdr-${i}" type="number" min="0" max="15" step="0.01" value="${def.toFixed(2)}"
-        class="w-20 text-center border-2 border-green-200 bg-white rounded-lg px-1 py-1.5 font-bold text-xs focus:outline-none focus:border-green-500" oninput="updateOutputs()">
+        class="w-20 text-center border-2 border-blue-200 bg-white rounded-lg px-1 py-1.5 font-bold text-xs focus:outline-none focus:border-blue-500" oninput="updateOutputs()">
       <p id="${pfx}-floorwarn-${i}" class="text-amber-600 font-bold text-xs hidden mt-0.5 leading-tight"></p>
     </div>
     <div id="${pfx}-flat-${i}" class="hidden space-y-1 min-w-32">
@@ -2449,13 +2461,13 @@ function initTable(sc) {
       if(!m.flat){
         compCell=`<td class="py-2.5 px-2 text-center comp-col align-top pt-3">
           <input id="c-comp-${i}" type="number" min="0" max="15" step="0.01" value="${m.compComp.toFixed(2)}"
-            class="w-20 text-center border-2 border-purple-200 bg-white rounded-lg px-1 py-1.5 font-bold text-xs focus:outline-none focus:border-purple-500" oninput="updateOutputs()">
+            class="w-20 text-center border-2 border-slate-200 bg-white rounded-lg px-1 py-1.5 font-bold text-xs focus:outline-none focus:border-blue-500" oninput="updateOutputs()">
         </td>`;
       } else {
         compCell=`<td class="py-2.5 px-2 comp-col align-top pt-2.5">
           <div id="c-comp-pct-${i}"><div class="text-gray-400 text-xs mb-1 text-center">Comp %</div>
             <input id="c-comp-${i}" type="number" min="0" max="15" step="0.01" value="${m.compComp.toFixed(2)}"
-              class="w-20 text-center border-2 border-purple-200 bg-white rounded-lg px-1 py-1.5 font-bold text-xs focus:outline-none focus:border-purple-500" oninput="updateOutputs()">
+              class="w-20 text-center border-2 border-slate-200 bg-white rounded-lg px-1 py-1.5 font-bold text-xs focus:outline-none focus:border-blue-500" oninput="updateOutputs()">
           </div>
           <div id="c-comp-flat-${i}" class="hidden"><div class="text-gray-400 text-xs mb-1 text-center">Comp ₹/txn</div>
             <div class="relative"><span class="absolute left-1.5 top-1 text-gray-400 text-xs">₹</span>
@@ -2469,7 +2481,7 @@ function initTable(sc) {
     } else if(isMC && !m.codOnly){
       compCell=`<td class="py-2.5 px-2 text-center comp-col align-top pt-3">
         <input id="mc-comp-pg-${i}" type="number" min="0" max="15" step="0.01" value="${m.compComp.toFixed(2)}"
-          class="w-20 text-center border-2 border-purple-200 bg-white rounded-lg px-1 py-1.5 font-bold text-xs focus:outline-none focus:border-purple-500" oninput="updateOutputs()">
+          class="w-20 text-center border-2 border-slate-200 bg-white rounded-lg px-1 py-1.5 font-bold text-xs focus:outline-none focus:border-blue-500" oninput="updateOutputs()">
       </td>`;
     } else if(isMC && m.codOnly){
       compCell=`<td class="py-2.5 px-2 comp-col align-top pt-3 text-center text-gray-300 text-xs">—</td>`;
@@ -2511,10 +2523,10 @@ function initTable(sc) {
         ${m.naFloor?`<div class="mt-1"><button id="${pfx}-na-${i}" onclick="toggleNA('${sc}',${i})" class="text-xs px-2 py-0.5 rounded-full border border-gray-300 text-gray-400 hover:bg-gray-100 font-semibold">N/A</button></div>`:''}
       </td>
       <td id="${pfx}-gmv-${i}"  class="py-2.5 px-2 text-right align-top pt-3 text-gray-500 text-xs"></td>
-      <td id="${pfx}-rpay-${i}" class="py-2.5 px-2 text-right align-top pt-3 font-bold text-green-700 text-xs"></td>
-      ${isComp?`<td id="c-cpay-${i}" class="py-2.5 px-2 text-right align-top pt-3 font-bold text-purple-700 text-xs"></td>
+      <td id="${pfx}-rpay-${i}" class="py-2.5 px-2 text-right align-top pt-3 font-bold text-blue-700 text-xs"></td>
+      ${isComp?`<td id="c-cpay-${i}" class="py-2.5 px-2 text-right align-top pt-3 font-bold text-slate-700 text-xs"></td>
                 <td id="c-save-${i}" class="py-2.5 px-2 text-right align-top pt-3 font-bold text-xs"></td>`:''}
-      ${isMC?`<td id="mc-cpay-${i}" class="py-2.5 px-2 text-right align-top pt-3 font-bold text-purple-700 text-xs"></td>
+      ${isMC?`<td id="mc-cpay-${i}" class="py-2.5 px-2 text-right align-top pt-3 font-bold text-slate-700 text-xs"></td>
               <td id="mc-save-${i}" class="py-2.5 px-2 text-right align-top pt-3 font-bold text-xs"></td>`:''}
       <td id="${pfx}-nr-${i}" class="py-2.5 pl-2 text-right align-top pt-3 font-bold text-xs"></td>
     </tr>`;
@@ -2984,13 +2996,13 @@ function buildMCImpact(gmv,mPay,compPgPay,mMDRNR,mcNR,mcCompNR,mcRateVal,mTotalN
   html+=`<div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">`;
 
   // Competitor side
-  html+=`<div class="comp-col rounded-xl p-4 border border-purple-100">
-    <p class="text-xs font-bold text-purple-600 uppercase tracking-wide mb-3">😰 With Competitor Checkout</p>
+  html+=`<div class="comp-col rounded-xl p-4 border border-slate-200">
+    <p class="text-xs font-bold text-slate-600 uppercase tracking-wide mb-3">😰 With Competitor Checkout</p>
     <div class="space-y-2">
       <div class="flex justify-between text-xs"><span class="text-gray-500">PG MDR Cost / Month</span><span class="font-bold text-gray-800">${fmtINR(compPgCost)}</span></div>
-      <div class="flex justify-between text-xs"><span class="text-gray-500">Competitor Checkout Fee (${compRate.toFixed(2)}%)</span><span class="font-bold text-purple-700">${fmtINR2(compCheckoutCost)}</span></div>
+      <div class="flex justify-between text-xs"><span class="text-gray-500">Competitor Checkout Fee (${compRate.toFixed(2)}%)</span><span class="font-bold text-slate-700">${fmtINR2(compCheckoutCost)}</span></div>
       <div class="border-t border-purple-200 pt-2 flex justify-between text-xs font-black"><span class="text-purple-700">Total Monthly Cost</span><span class="text-purple-800">${fmtINR2(compPgCost+compCheckoutCost)}</span></div>
-      <div class="flex justify-between text-xs"><span class="text-gray-400">Annual</span><span class="font-bold text-purple-600">${fmtINR((compPgCost+compCheckoutCost)*12)}</span></div>
+      <div class="flex justify-between text-xs"><span class="text-gray-400">Annual</span><span class="font-bold text-slate-600">${fmtINR((compPgCost+compCheckoutCost)*12)}</span></div>
     </div>
   </div>`;
 
@@ -2999,22 +3011,22 @@ function buildMCImpact(gmv,mPay,compPgPay,mMDRNR,mcNR,mcCompNR,mcRateVal,mTotalN
     const freeMons=Math.min(6,+(document.getElementById('mc-free-months').value)||1);
     const postRate=Math.max(0.05,+(document.getElementById('mc-post-rate').value)||0.05);
     html+=`<div class="rp-col rounded-xl p-4 border border-green-100">
-      <p class="text-xs font-bold text-green-600 uppercase tracking-wide mb-3">✅ With Razorpay + Magic Checkout</p>
+      <p class="text-xs font-bold text-blue-600 uppercase tracking-wide mb-3">✅ With Razorpay + Magic Checkout</p>
       <div class="space-y-2">
         <div class="flex justify-between text-xs"><span class="text-gray-500">PG MDR Cost / Month</span><span class="font-bold text-gray-800">${fmtINR(mPay)}</span></div>
         <div class="flex justify-between text-xs"><span class="text-gray-500">Magic Checkout (free ${freeMons}mo)</span><span class="font-bold text-amber-600">₹0 waived</span></div>
         <div class="border-t border-green-200 pt-2 flex justify-between text-xs font-black"><span class="text-green-700">Cost during free period</span><span class="text-green-800">${fmtINR(mPay)}/mo</span></div>
-        <div class="flex justify-between text-xs"><span class="text-gray-500">Cost after free period (${postRate.toFixed(2)}%)</span><span class="font-bold text-green-600">${fmtINR2(mPay+postRate/100*gmv)}/mo</span></div>
+        <div class="flex justify-between text-xs"><span class="text-gray-500">Cost after free period (${postRate.toFixed(2)}%)</span><span class="font-bold text-blue-600">${fmtINR2(mPay+postRate/100*gmv)}/mo</span></div>
       </div>
     </div>`;
   } else {
     html+=`<div class="rp-col rounded-xl p-4 border border-green-100">
-      <p class="text-xs font-bold text-green-600 uppercase tracking-wide mb-3">✅ With Razorpay + Magic Checkout</p>
+      <p class="text-xs font-bold text-blue-600 uppercase tracking-wide mb-3">✅ With Razorpay + Magic Checkout</p>
       <div class="space-y-2">
         <div class="flex justify-between text-xs"><span class="text-gray-500">PG MDR Cost / Month</span><span class="font-bold text-gray-800">${fmtINR(mPay)}</span></div>
-        <div class="flex justify-between text-xs"><span class="text-gray-500">Magic Checkout Fee (${mcRateVal.toFixed(2)}%)</span><span class="font-bold text-green-700">${fmtINR2(rpCheckoutCost)}</span></div>
+        <div class="flex justify-between text-xs"><span class="text-gray-500">Magic Checkout Fee (${mcRateVal.toFixed(2)}%)</span><span class="font-bold text-blue-700">${fmtINR2(rpCheckoutCost)}</span></div>
         <div class="border-t border-green-200 pt-2 flex justify-between text-xs font-black"><span class="text-green-700">Total Monthly Cost</span><span class="text-green-800">${fmtINR2(mPay+rpCheckoutCost)}</span></div>
-        <div class="flex justify-between text-xs"><span class="text-gray-400">Annual</span><span class="font-bold text-green-600">${fmtINR((mPay+rpCheckoutCost)*12)}</span></div>
+        <div class="flex justify-between text-xs"><span class="text-gray-400">Annual</span><span class="font-bold text-blue-600">${fmtINR((mPay+rpCheckoutCost)*12)}</span></div>
       </div>
     </div>`;
   }
@@ -3037,7 +3049,7 @@ function buildMCImpact(gmv,mPay,compPgPay,mMDRNR,mcNR,mcCompNR,mcRateVal,mTotalN
       </div>
     </div>`;
   } else {
-    html+=`<div class="bg-gradient-to-r from-green-500 to-emerald-500 rounded-xl p-4 text-white mb-4 flex items-center justify-between flex-wrap gap-3">
+    html+=`<div class="bg-gradient-to-r from-blue-600 to-indigo-600 rounded-xl p-4 text-white mb-4 flex items-center justify-between flex-wrap gap-3">
       <div><p class="text-xs font-bold uppercase tracking-wide opacity-80">Merchant Total Savings vs Competitor (PG + Checkout)</p>
         <p class="text-3xl font-black mt-0.5">${merchantSavingOnCheckout>=0?'':'-'}${fmtINR2(Math.abs(merchantSavingOnCheckout))}<span class="text-sm font-normal opacity-70">/mo</span></p>
       </div>
@@ -3058,13 +3070,13 @@ function buildMCImpact(gmv,mPay,compPgPay,mMDRNR,mcNR,mcCompNR,mcRateVal,mTotalN
     html+=`
       <div class="bg-blue-50 rounded-xl p-3 border border-blue-100"><p class="text-xs font-bold text-blue-600 uppercase">PG NR / Month</p><p class="text-xl font-black text-blue-800 mt-1">${fmtINR2(mMDRNR)}</p><p class="text-xs text-blue-400">from payment methods</p></div>
       <div class="bg-amber-50 rounded-xl p-3 border border-amber-200"><p class="text-xs font-bold text-amber-600 uppercase">NR (Free Period)</p><p class="text-xl font-black text-amber-800 mt-1">${fmtINR2(freeMonNR)}</p><p class="text-xs text-amber-500">PG NR${hasSettle?' + settlement':''} for ${freeMons}mo</p></div>
-      <div class="bg-purple-50 rounded-xl p-3 border border-purple-100"><p class="text-xs font-bold text-purple-600 uppercase">NR (Post Free)</p><p class="text-xl font-black text-purple-800 mt-1">${fmtINR2(postMonNR)}</p><p class="text-xs text-purple-400">PG + MC (${postRate.toFixed(2)}%)${hasSettle?' + settle':''}</p></div>
-      <div class="bg-green-50 rounded-xl p-3 border border-green-200"><p class="text-xs font-bold text-green-600 uppercase">Annual NR (Yr 1)</p><p class="text-xl font-black text-green-800 mt-1">${fmtINR(mcAnnualNR)}</p><p class="text-xs text-green-400">${freeMons}mo free + ${12-freeMons}mo charged</p></div>`;
+      <div class="bg-purple-50 rounded-xl p-3 border border-slate-200"><p class="text-xs font-bold text-slate-600 uppercase">NR (Post Free)</p><p class="text-xl font-black text-slate-800 mt-1">${fmtINR2(postMonNR)}</p><p class="text-xs text-purple-400">PG + MC (${postRate.toFixed(2)}%)${hasSettle?' + settle':''}</p></div>
+      <div class="bg-green-50 rounded-xl p-3 border border-green-200"><p class="text-xs font-bold text-blue-600 uppercase">Annual NR (Yr 1)</p><p class="text-xl font-black text-blue-800 mt-1">${fmtINR(mcAnnualNR)}</p><p class="text-xs text-green-400">${freeMons}mo free + ${12-freeMons}mo charged</p></div>`;
   } else {
     html+=`
       <div class="bg-blue-50 rounded-xl p-3 border border-blue-100"><p class="text-xs font-bold text-blue-600 uppercase">PG NR / Month</p><p class="text-xl font-black text-blue-800 mt-1">${fmtINR2(mMDRNR)}</p><p class="text-xs text-blue-400">from payment methods</p></div>
-      <div class="bg-purple-50 rounded-xl p-3 border border-purple-100"><p class="text-xs font-bold text-purple-600 uppercase">MC NR / Month</p><p class="text-xl font-black text-purple-800 mt-1">${fmtINR2(mcNR)}</p><p class="text-xs text-purple-400">${mcRateVal.toFixed(2)}% of GMV</p></div>
-      <div class="bg-green-50 rounded-xl p-3 border border-green-200"><p class="text-xs font-bold text-green-600 uppercase">Combined NR / Month</p><p class="text-xl font-black text-green-800 mt-1">${fmtINR2(mTotalNR)}</p><p class="text-xs text-green-400">PG + MC${hasSettle?' + settle':''}</p></div>
+      <div class="bg-purple-50 rounded-xl p-3 border border-slate-200"><p class="text-xs font-bold text-slate-600 uppercase">MC NR / Month</p><p class="text-xl font-black text-slate-800 mt-1">${fmtINR2(mcNR)}</p><p class="text-xs text-purple-400">${mcRateVal.toFixed(2)}% of GMV</p></div>
+      <div class="bg-green-50 rounded-xl p-3 border border-green-200"><p class="text-xs font-bold text-blue-600 uppercase">Combined NR / Month</p><p class="text-xl font-black text-blue-800 mt-1">${fmtINR2(mTotalNR)}</p><p class="text-xs text-green-400">PG + MC${hasSettle?' + settle':''}</p></div>
       <div class="bg-indigo-50 rounded-xl p-3 border border-indigo-100"><p class="text-xs font-bold text-indigo-600 uppercase">Annual NR</p><p class="text-xl font-black text-indigo-800 mt-1">${fmtINR(mcAnnualNR)}</p><p class="text-xs text-indigo-400">combined × 12</p></div>`;
   }
   html+=`</div></div>`;
@@ -3090,24 +3102,13 @@ function setNRBox(sc,nr){
 // ================================================================
 // NR OPTIMISER
 // ================================================================
-const NR_TARGET=500; // minimum NR to target
+const NR_PRIMARY=1000;  // ideal target
+const NR_FALLBACK=500;  // minimum acceptable
 let _optimisedRates=[];
-let _optimiserMode='split'; // 'split' = prioritise high-volume methods, 'spread' = minimise rate increase
+let _optimiserMode='split';
 
-function renderOptimiserPanel(totalNR){
-  const panel=document.getElementById('optimise-nr-panel');
-  const rowsEl=document.getElementById('optimise-nr-rows');
-  const projEl=document.getElementById('optimise-nr-projected');
-  if(!panel||!rowsEl) return;
-
-  if(totalNR>=0){panel.classList.add('hidden');_optimisedRates=[];return;}
-
-  const gmv=getGMV();
-  const sc='competition';
-  const deficit=Math.abs(totalNR)+NR_TARGET; // recover loss + reach ₹500 target
-
-  // Build candidate list: methods with split>0 and headroom vs competitor
-  const candidates=[];
+function _buildCandidates(gmv){
+  const sc='competition',list=[],locked=[];
   METHODS.forEach((m,i)=>{
     if(m.codOnly||m.locked||m.naFloor) return;
     if(flatMode[sc]?.[i]) return;
@@ -3117,43 +3118,175 @@ function renderOptimiserPanel(totalNR){
     const curRate=+(document.getElementById(`c-mdr-${i}`)?.value)||0;
     const compRate=+(document.getElementById(`c-comp-${i}`)?.value)||m.compComp||0;
     const headroom=compRate-curRate;
-    if(headroom<=0.005) return;
     const nrGainPerPct=mGMV/100;
-    candidates.push({i,m,mGMV,curRate,compRate,headroom,nrGainPerPct,spl});
+    const curNR=(curRate/100-(BANK_COSTS[m.id]??0))*mGMV;
+    if(headroom>0.005){
+      list.push({i,m,mGMV,curRate,compRate,headroom,nrGainPerPct,spl,curNR});
+    } else {
+      // No room — locked method, show as rebuttal blocker
+      locked.push({label:m.label,spl,curRate,compRate,curNR,reason:
+        curRate>=compRate?`Already at/above competitor rate (${compRate.toFixed(2)}%)`
+        :`No competitor headroom — competitor is ${compRate.toFixed(2)}%`});
+    }
   });
+  return{list,locked};
+}
 
-  if(!candidates.length){panel.classList.add('hidden');return;}
-
-  // Two strategies:
-  // 'split'  — sort by split% desc: fewest rate changes, biggest-volume methods first
-  // 'spread' — sort by headroom% asc: distribute changes across methods, smallest bumps first
+function _greedySolve(candidates,totalNR,target){
   const sorted=[...candidates].sort((a,b)=>
     _optimiserMode==='split'?(b.spl-a.spl):(a.headroom-b.headroom)
   );
-
-  // Greedy fill to reach target
+  const deficit=Math.abs(totalNR)+target;
   let remaining=deficit;
-  _optimisedRates=[];
-  const suggestions=[];
+  const rates=[],suggs=[];
   for(const c of sorted){
     if(remaining<=0) break;
-    const neededPct=remaining/c.nrGainPerPct;
-    const rawBump=Math.min(neededPct,c.headroom);
-    // Round UP to nearest 0.01% so the applied rate always meets or exceeds the target
-    const roundedNewRate=Math.min(Math.ceil((c.curRate+rawBump)*100)/100, c.compRate);
+    const rawBump=Math.min(remaining/c.nrGainPerPct,c.headroom);
+    const roundedNewRate=Math.min(Math.ceil((c.curRate+rawBump)*100)/100,c.compRate);
     const actualBump=roundedNewRate-c.curRate;
     if(actualBump<=0) continue;
     const nrGained=actualBump*c.nrGainPerPct;
     remaining-=nrGained;
-    _optimisedRates.push({i:c.i,newRate:roundedNewRate});
-    suggestions.push({label:c.m.label,spl:c.spl,curRate:c.curRate,newRate:roundedNewRate,compRate:c.compRate,nrGained,bump:actualBump,maxed:Math.abs(roundedNewRate-c.compRate)<0.005});
+    rates.push({i:c.i,newRate:roundedNewRate});
+    suggs.push({label:c.m.label,spl:c.spl,curRate:c.curRate,newRate:roundedNewRate,compRate:c.compRate,nrGained,maxed:Math.abs(roundedNewRate-c.compRate)<0.005});
+  }
+  const projectedNR=totalNR+suggs.reduce((s,x)=>s+x.nrGained,0);
+  return{rates,suggs,projectedNR,reached:projectedNR>=target};
+}
+
+function renderOptimiserPanel(totalNR){
+  const panel=document.getElementById('optimise-nr-panel');
+  const rowsEl=document.getElementById('optimise-nr-rows');
+  const projEl=document.getElementById('optimise-nr-projected');
+  if(!panel||!rowsEl) return;
+
+  if(totalNR>=NR_PRIMARY){panel.classList.add('hidden');_optimisedRates=[];return;}
+
+  const gmv=getGMV();
+  const{list:candidates,locked}=_buildCandidates(gmv);
+
+  // Always show panel when NR < ₹1,000
+  panel.classList.remove('hidden');
+
+  // Case A: NR is positive but below ₹1,000 — show how to reach ₹1,000
+  if(totalNR>=0){
+    _optimisedRates=[];
+    const deficit1k=NR_PRIMARY-totalNR;
+    // Fake a "totalNR" of -(deficit1k - 0) for the solver: need deficit = deficit1k, target = 0
+    const sorted=[...candidates].sort((a,b)=>_optimiserMode==='split'?(b.spl-a.spl):(a.headroom-b.headroom));
+    let remaining=deficit1k;
+    const suggs=[],rates=[];
+    for(const c of sorted){
+      if(remaining<=0) break;
+      const rawBump=Math.min(remaining/c.nrGainPerPct,c.headroom);
+      const roundedNewRate=Math.min(Math.ceil((c.curRate+rawBump)*100)/100,c.compRate);
+      const actualBump=roundedNewRate-c.curRate;
+      if(actualBump<=0) continue;
+      const nrGained=actualBump*c.nrGainPerPct;
+      remaining-=nrGained;
+      rates.push({i:c.i,newRate:roundedNewRate});
+      suggs.push({label:c.m.label,spl:c.spl,curRate:c.curRate,newRate:roundedNewRate,compRate:c.compRate,nrGained,maxed:Math.abs(roundedNewRate-c.compRate)<0.005});
+    }
+    _optimisedRates=rates;
+    const proj=totalNR+suggs.reduce((s,x)=>s+x.nrGained,0);
+    _renderRows(rowsEl,suggs);
+    projEl.innerHTML=proj>=NR_PRIMARY
+      ?`✓ Projected NR: <strong>${fmtINR2(proj)}/month</strong> — reaches ₹1,000 target`
+      :`Best possible: <strong>${fmtINR2(proj)}/month</strong> — not enough headroom to reach ₹1,000 within competitor rates`;
+    // Update header
+    const hdr=document.getElementById('opt-hdr-title');
+    const sub=document.getElementById('opt-hdr-sub');
+    if(hdr) hdr.textContent='💡 NR Optimiser — boost to ₹1,000 target';
+    if(sub) sub.textContent='NR is positive but below ₹1,000. Here\'s the minimum rate adjustment to reach the target.';
+    return;
   }
 
-  const projectedNR=totalNR+suggestions.reduce((s,x)=>s+x.nrGained,0);
-  const reachedTarget=projectedNR>=NR_TARGET;
+  // NR is negative — try primary target ₹1,000 first
+  const primary=_greedySolve(candidates,totalNR,NR_PRIMARY);
 
-  // Render rows
-  rowsEl.innerHTML=suggestions.map(s=>`
+  if(primary.reached){
+    _optimisedRates=primary.rates;
+    _renderRows(rowsEl,primary.suggs);
+    // Show locked methods as rebuttal — methods the POC cannot sacrifice
+    const rebuttals=locked.filter(l=>l.spl>0);
+    if(rebuttals.length){
+      rowsEl.insertAdjacentHTML('beforeend',`<div class="mt-2 pt-2 border-t border-amber-200">
+        <p class="text-xs font-bold text-amber-800 mb-1.5">Methods you cannot sacrifice — already at competitor ceiling:</p>
+        ${rebuttals.map(r=>`<div class="flex items-center justify-between text-xs py-1">
+          <span class="font-semibold text-gray-700">${r.label} <span class="text-gray-400">(${r.spl.toFixed(0)}% split)</span></span>
+          <span class="text-red-500 text-right">${r.reason}</span>
+        </div>`).join('')}
+      </div>`);
+    }
+    projEl.innerHTML=`✓ Projected NR: <strong>${fmtINR2(primary.projectedNR)}/month</strong> — reaches ₹1,000 target`;
+    const hdr=document.getElementById('opt-hdr-title');
+    const sub=document.getElementById('opt-hdr-sub');
+    if(hdr) hdr.textContent='💡 NR Optimiser — target ₹1,000/month';
+    if(sub) sub.textContent='This deal is loss-making. Minimum rate adjustment to reach ₹1,000 NR, staying within competitor rates.';
+    return;
+  }
+
+  // ₹1,000 not feasible — try fallback ₹500
+  const fallback=_greedySolve(candidates,totalNR,NR_FALLBACK);
+  _optimisedRates=fallback.rates;
+
+  const hdr=document.getElementById('opt-hdr-title');
+  const sub=document.getElementById('opt-hdr-sub');
+
+  if(fallback.reached){
+    if(hdr) hdr.textContent='⚠️ NR Optimiser — ₹1,000 not feasible, targeting ₹500';
+    if(sub) sub.textContent='Competitor rates cap the maximum recoverable NR. Best achievable is ₹500 — here\'s how.';
+    _renderRows(rowsEl,fallback.suggs);
+    // Show rebuttal: which methods are capping recovery
+    const rebuttals=locked.filter(l=>l.spl>0);
+    let rebHtml='';
+    if(rebuttals.length){
+      rebHtml=`<div class="mt-2 pt-2 border-t border-amber-200">
+        <p class="text-xs font-bold text-red-700 mb-1.5">Cannot raise further — these methods are at the competitor ceiling:</p>
+        ${rebuttals.map(r=>`<div class="flex items-center justify-between text-xs text-gray-500 py-1">
+          <span class="font-semibold">${r.label} <span class="text-gray-300">(${r.spl.toFixed(0)}% split)</span></span>
+          <span class="text-red-400">${r.reason}</span>
+        </div>`).join('')}
+      </div>`;
+    }
+    projEl.innerHTML=`✓ Projected NR: <strong>${fmtINR2(fallback.projectedNR)}/month</strong> — ₹500 floor reached${rebuttals.length?'. ₹1,000 blocked by competitor ceiling on high-split methods.':''}`;
+    rowsEl.insertAdjacentHTML('beforeend',rebHtml);
+  } else {
+    // Even ₹500 not reachable
+    if(hdr) hdr.textContent='🚫 NR Optimiser — insufficient headroom';
+    if(sub) sub.textContent='Even at max competitor rates across all methods, this deal cannot reach ₹500 NR. Here\'s what\'s blocking it.';
+    _optimisedRates=[];
+    // Show whatever small gains are possible
+    if(fallback.suggs.length){
+      _renderRows(rowsEl,fallback.suggs);
+    } else {
+      rowsEl.innerHTML=`<p class="text-xs text-gray-500">No methods with headroom vs competitor rates.</p>`;
+    }
+    // Show all blocking methods
+    const allLocked=[...locked,...candidates.filter(c=>c.curNR<0)];
+    let blockHtml=`<div class="mt-2 pt-2 border-t border-red-200">
+      <p class="text-xs font-bold text-red-700 mb-1.5">What the POC cannot sacrifice (blocking full recovery):</p>`;
+    candidates.filter(c=>c.spl>0).forEach(c=>{
+      const maxGain=c.headroom*c.nrGainPerPct;
+      blockHtml+=`<div class="flex items-center justify-between text-xs py-1">
+        <span class="font-semibold text-gray-700">${c.m.label} <span class="text-gray-400">${c.spl.toFixed(0)}% split</span></span>
+        <span class="text-amber-600">max recoverable +${fmtINR2(maxGain)} (ceiling ${c.compRate.toFixed(2)}%)</span>
+      </div>`;
+    });
+    locked.filter(l=>l.spl>0).forEach(l=>{
+      blockHtml+=`<div class="flex items-center justify-between text-xs py-1">
+        <span class="font-semibold text-gray-700">${l.label} <span class="text-gray-400">${l.spl.toFixed(0)}% split</span></span>
+        <span class="text-red-500">${l.reason}</span>
+      </div>`;
+    });
+    blockHtml+=`</div>`;
+    rowsEl.insertAdjacentHTML('beforeend',blockHtml);
+    projEl.innerHTML=`Best possible NR: <strong>${fmtINR2(fallback.projectedNR)}/month</strong> — deal may need to be restructured or declined.`;
+  }
+}
+
+function _renderRows(el,suggs){
+  el.innerHTML=suggs.map(s=>`
     <div class="flex items-center justify-between bg-white rounded-lg px-3 py-2 border border-amber-100">
       <div class="flex-1 min-w-0">
         <div class="flex items-center gap-1.5 mb-0.5">
@@ -3165,12 +3298,6 @@ function renderOptimiserPanel(totalNR){
       </div>
       <p class="text-xs font-black text-emerald-600 ml-3 flex-shrink-0">+${fmtINR2(s.nrGained)}</p>
     </div>`).join('');
-
-  const targetNote=reachedTarget
-    ?`Projected NR: <strong>${fmtINR2(projectedNR)}/month</strong> ✓ target ₹500 reached`
-    :`Projected NR: <strong>${fmtINR2(projectedNR)}/month</strong> — not enough headroom vs competition to reach ₹500`;
-  projEl.innerHTML=targetNote;
-  panel.classList.remove('hidden');
 }
 
 function setOptimiserMode(mode){
@@ -3183,13 +3310,6 @@ function setOptimiserMode(mode){
   if(btnSpread) btnSpread.className=mode==='spread'
     ?'text-xs font-bold px-3 py-1 rounded-lg bg-amber-600 text-white'
     :'text-xs font-bold px-3 py-1 rounded-lg bg-white border border-amber-200 text-amber-700 hover:bg-amber-50';
-  // re-render with current NR
-  const comp=document.getElementById('comp-nr');
-  if(comp){
-    const nr=parseFloat(comp.textContent.replace(/[^0-9.\-]/g,'').replace(',',''));
-    if(!isNaN(nr)) renderOptimiserPanel(nr);
-  }
-  // safer: just call updateOutputs
   updateOutputs();
 }
 
@@ -3197,9 +3317,9 @@ function applyOptimisedRates(){
   if(!_optimisedRates.length) return;
   _optimisedRates.forEach(({i,newRate})=>{
     const el=document.getElementById(`c-mdr-${i}`);
-    if(el){el.value=newRate.toFixed(2);}
+    if(el) el.value=newRate.toFixed(2);
   });
-  updateOutputs(); // renderOptimiserPanel is called inside — panel stays visible if NR still negative
+  updateOutputs();
 }
 
 // ================================================================
@@ -4868,6 +4988,8 @@ function initGoogleSignIn(){
   // Set logo on sign-in screen
   const logoEl=document.getElementById('signin-logo');
   if(logoEl){logoEl.src='data:image/png;base64,'+RZP_LOGO_B64;logoEl.style.opacity='1';}
+  const hdrLogo=document.getElementById('header-rzp-logo');
+  if(hdrLogo){hdrLogo.src='data:image/png;base64,'+RZP_LOGO_B64;hdrLogo.style.opacity='1';}
 
   google.accounts.id.initialize({
     client_id:'988966755183-fbs79ibk466rgdie076qrv9jq3flngk1.apps.googleusercontent.com',
@@ -6250,6 +6372,23 @@ function computeNRFromSnapshot(snap){
 
   return pgNR+mcNR+sNR;
 }
+function computeAvgBpsFromSnapshot(snap){
+  if(!snap) return null;
+  const sc=snap.activeTab||'competition';
+  const withSplit=[],allMethods=[];
+  METHODS.forEach((m,i)=>{
+    if(m.codOnly) return;
+    if(snap.flatModes?.[sc]?.[i]) return;
+    const mdr=parseFloat((snap.rates?.[sc]||{})[i])||0;
+    if(!mdr) return;
+    const spl=parseFloat((snap.splits?.[sc]||{})[i])||0;
+    if(spl>0) withSplit.push(mdr*100);
+    allMethods.push(mdr*100);
+  });
+  const arr=withSplit.length?withSplit:allMethods;
+  if(!arr.length) return null;
+  return arr.reduce((s,v)=>s+v,0)/arr.length;
+}
 // ─────────────────────────────────────────────────────────────────────────────
 let statsAllRows=[];
 let statsMidMap=JSON.parse(localStorage.getItem('rzp_mid_map')||'{}'); // {merchantKey: mid}
@@ -6265,7 +6404,7 @@ function showStats(){
   mainWrap?.classList.add('hidden');
   statsPage?.classList.remove('hidden');
   loadUserHistory();
-  if(isAdminOrCoAdmin()) loadUsersPanel();
+  if(isAdminOrCoAdmin()){loadUsersPanel();_loadRevampStatuses().then(s=>{window._revampStatuses=s;renderStatsTable(window._lastFilteredRows||[]);});}
   else _syncPendingApprovals();
 }
 
@@ -6274,12 +6413,93 @@ function closeStats(){
   document.getElementById('main-wrap')?.classList.remove('hidden');
 }
 
+function saveAnthropicKey(){
+  const val=(document.getElementById('settings-anthropic-key')?.value||'').trim();
+  if(val) localStorage.setItem('rzp_anthropic_key',val);
+  else localStorage.removeItem('rzp_anthropic_key');
+  const btn=document.querySelector('[onclick="saveAnthropicKey()"]');
+  if(btn){btn.textContent='✓ Saved';setTimeout(()=>btn.textContent='Save',1500);}
+}
+
+async function parseCompPricingImage(input){
+  const file=input.files?.[0];
+  if(!file) return;
+  input.value='';
+  const key=window._rzpAK;
+  if(!key){alert('AI not ready — open AI Assist once to initialise.');return;}
+
+  // Show loading state on the upload icon
+  const label=input.closest('label');
+  const origHTML=label?.innerHTML||'';
+  if(label) label.innerHTML='<span class="text-purple-500 text-xs animate-pulse">Parsing…</span>';
+
+  try{
+    const b64=await new Promise((res,rej)=>{
+      const reader=new FileReader();
+      reader.onload=e=>res(e.target.result.split(',')[1]);
+      reader.onerror=rej;
+      reader.readAsDataURL(file);
+    });
+    const mime=file.type||'image/png';
+
+    const methodList=METHODS.filter(m=>!m.codOnly&&!m.locked).map((m,i)=>`${i}: ${m.label} (id: ${m.id})`).join('\n');
+
+    const resp=await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST',
+      headers:{'x-api-key':key,'anthropic-version':'2023-06-01','content-type':'application/json','anthropic-dangerous-direct-browser-access':'true'},
+      body:JSON.stringify({
+        model:'claude-haiku-4-5-20251001',
+        max_tokens:1024,
+        messages:[{role:'user',content:[
+          {type:'image',source:{type:'base64',media_type:mime,data:b64}},
+          {type:'text',text:`This is a competitor payment gateway pricing screenshot. Extract the MDR % for each payment method and return ONLY a JSON object mapping method index to rate (as a number).
+
+Payment method indices:
+${methodList}
+
+Rules:
+- Match each rate to the closest method by name
+- Return % as a decimal number (e.g. 1.99 not "1.99%")
+- Skip methods you cannot find in the image
+- Return ONLY valid JSON like: {"0":1.95,"3":0.40,"13":0.25}
+- No explanation, no markdown, just the JSON object`}
+        ]}]
+      })
+    });
+    if(!resp.ok){const e=await resp.json();throw new Error(e.error?.message||resp.statusText);}
+    const data=await resp.json();
+    const raw=data.content?.[0]?.text||'{}';
+    const parsed=JSON.parse(raw.match(/\{[\s\S]*\}/)?.[0]||'{}');
+
+    let filled=0;
+    Object.entries(parsed).forEach(([idx,rate])=>{
+      const el=document.getElementById(`c-comp-${idx}`);
+      if(el&&typeof rate==='number'&&rate>=0&&rate<=15){
+        el.value=rate.toFixed(2);
+        el.classList.add('ring-2','ring-purple-400');
+        setTimeout(()=>el.classList.remove('ring-2','ring-purple-400'),3000);
+        filled++;
+      }
+    });
+    updateOutputs();
+    if(label) label.innerHTML=`<span class="text-green-600 text-xs font-bold">✓ ${filled} filled</span>`;
+    setTimeout(()=>{if(label) label.innerHTML=origHTML;},3000);
+  }catch(e){
+    console.error('[CompParser]',e);
+    if(label) label.innerHTML=origHTML;
+    alert('Could not parse image: '+e.message);
+  }
+}
+
 function showSettings(){
   document.getElementById('main-wrap')?.classList.add('hidden');
   document.getElementById('stats-page')?.classList.add('hidden');
   const pg=document.getElementById('settings-page');
   if(!pg) return;
   pg.classList.remove('hidden');
+  // Pre-fill API key if saved
+  const keyEl=document.getElementById('settings-anthropic-key');
+  if(keyEl&&localStorage.getItem('rzp_anthropic_key')) keyEl.value=localStorage.getItem('rzp_anthropic_key');
   // Populate profile
   if(currentUser){
     const pic=document.getElementById('settings-pic');
@@ -6516,6 +6736,7 @@ function filterStats(){
       default: return (b.rawDate||'').localeCompare(a.rawDate||''); // date-desc
     }
   });
+  window._lastFilteredRows=filtered;
   renderStatsTable(filtered);
   // Check for merchant replies after stats render + set up 60s polling
   setTimeout(()=>checkMerchantReplies(),1200);
@@ -6563,8 +6784,13 @@ function renderStatsTable(rows){
     const email=r.requester||'';
     const name=email.split('@')[0]||'—';
     const isMe=email.toLowerCase()===(currentUser?.email||'').toLowerCase();
-    return isMe?`<span class="text-xs font-semibold text-green-700">You</span>`
-      :`<p class="text-xs font-semibold text-gray-700">${name}</p><p class="text-xs text-gray-400">${email}</p>`;
+    const rs=(window._revampStatuses||{})[email.toLowerCase()];
+    const dot=rs==='done'?'<span title="Pricing Revamp done" class="ml-1 text-xs">✅</span>'
+      :rs==='invalid'?'<span title="Revamp marked invalid" class="ml-1 inline-block w-2 h-2 rounded-full bg-red-500 align-middle"></span>'
+      :rs==='pending'?'<span title="Revamp raised — awaiting DSS ops" class="ml-1 inline-block w-2 h-2 rounded-full bg-amber-400 align-middle"></span>'
+      :'';
+    return isMe?`<span class="text-xs font-semibold text-green-700">You${dot}</span>`
+      :`<p class="text-xs font-semibold text-gray-700">${name}${dot}</p><p class="text-xs text-gray-400">${email}</p>`;
   };
 
   // Collapse rows into one per group — versions shown inline as chips
@@ -6577,11 +6803,11 @@ function renderStatsTable(rows){
     if(hasSnap){
       // Approved rows → download directly from stats page, no navigation
       if(v.statusKey==='approved')
-        return `<button onclick="downloadApprovedFromStats('${v.rowId}')" class="text-xs font-bold text-green-600 hover:text-green-800 bg-green-50 hover:bg-green-100 border border-green-300 px-2 py-0.5 rounded-lg transition">⬇ Download PDF</button>`;
+        return `<button onclick="downloadApprovedFromStats('${v.rowId}')" class="text-xs font-bold text-blue-600 hover:text-green-800 bg-green-50 hover:bg-green-100 border border-green-300 px-2 py-0.5 rounded-lg transition">⬇ Download PDF</button>`;
       return `<button onclick="redownloadPDF('${v.rowId}')" class="text-xs text-indigo-500 hover:text-indigo-700 font-semibold">↓ PDF</button>`;
     }
     if(v.statusKey==='approved')
-      return `<button onclick="downloadApprovedFromStats('${v.rowId}')" class="text-xs font-bold text-green-600 hover:text-green-800 bg-green-50 hover:bg-green-100 border border-green-300 px-2 py-0.5 rounded-lg transition">⬇ Download PDF</button>`;
+      return `<button onclick="downloadApprovedFromStats('${v.rowId}')" class="text-xs font-bold text-blue-600 hover:text-green-800 bg-green-50 hover:bg-green-100 border border-green-300 px-2 py-0.5 rounded-lg transition">⬇ Download PDF</button>`;
     if(v.driveLink&&v.statusKey!=='pending') return `<a href="${v.driveLink}" target="_blank" class="text-xs text-blue-500 hover:text-blue-700 font-semibold">📄 PDF</a>`;
     return '';
   };
@@ -6678,8 +6904,22 @@ function renderStatsTable(rows){
         const sub=snap?.activeTab==='magic-checkout'?'PG+MC':'PG';
         return `<p class="text-sm ${cls}">${nr>=0?'+':''}${fmtINR2(nr)}</p><p class="text-xs text-gray-400">${sub}</p>`;
       })()}</td>
+      <td class="px-5 py-3.5 whitespace-nowrap">${(()=>{
+        const snap=latest.snapshot||window._snapCache?.[latest.rowId];
+        const bps=computeAvgBpsFromSnapshot(snap);
+        if(bps===null) return '<span class="text-xs text-gray-300">—</span>';
+        return `<p class="text-sm font-black text-purple-700">${(bps/100).toFixed(2)}%</p><p class="text-xs text-gray-400">blended avg</p>`;
+      })()}</td>
       <td class="px-5 py-3.5 whitespace-nowrap">${teamR.teamGroup?`<span class="text-xs font-bold px-2 py-1 rounded-full bg-blue-50 text-blue-700">${teamR.teamGroup}</span>`:'<span class="text-xs text-gray-300">—</span>'}</td>
       <td class="px-5 py-3.5 whitespace-nowrap">${ownerDisplay(ownerR)}</td>
+      <td class="px-5 py-3.5 whitespace-nowrap text-center">${(()=>{
+        const email=(ownerR.requester||'').toLowerCase();
+        const rs=(window._revampStatuses||{})[email];
+        if(!rs) return '<span class="text-gray-300 text-xs">—</span>';
+        if(rs==='done') return '<span title="DSS ops confirmed done" class="text-base">✅</span>';
+        if(rs==='invalid') return '<span class="flex items-center gap-1 text-xs font-semibold text-red-500"><span class="inline-block w-2.5 h-2.5 rounded-full bg-red-500"></span>Invalid</span>';
+        return '<span class="flex items-center gap-1 text-xs font-semibold text-amber-500"><span class="inline-block w-2.5 h-2.5 rounded-full bg-amber-400"></span>Pending</span>';
+      })()}</td>
     </tr>`;
   }).join('');
 
@@ -6745,17 +6985,65 @@ function saveGroup(){
 
 // _ensureUsersSheet removed — Users data now in data/users.json on GitHub
 
+async function _loadRevampStatuses(){
+  try{
+    const tok=await _getGToken();
+    if(!tok?.token) return {};
+    const H={Authorization:'Bearer '+tok.token};
+    const statuses={};
+    // Find all "[Final Pricing Approved]" threads sent to dsstartup-ops
+    const q=encodeURIComponent('subject:"Final Pricing Approved" to:dsstartup-ops@razorpay.com');
+    const r1=await fetch(`https://gmail.googleapis.com/gmail/v1/users/me/messages?q=${q}&maxResults=100`,{headers:H});
+    const d1=await r1.json();
+    const msgs=d1.messages||[];
+    if(!msgs.length) return statuses;
+    // Find threads where DSS ops has replied
+    const qDss=encodeURIComponent('from:dsstartup-ops@razorpay.com');
+    const r2=await fetch(`https://gmail.googleapis.com/gmail/v1/users/me/messages?q=${qDss}&maxResults=200`,{headers:H});
+    const d2=await r2.json();
+    const dssThreads=new Map();// threadId -> snippet
+    (d2.messages||[]).forEach(m=>{ if(!dssThreads.has(m.threadId)) dssThreads.set(m.threadId,m.snippet||''); });
+    // For each unique thread, get CC to find requester
+    const seenThreads=new Set();
+    for(const m of msgs){
+      if(seenThreads.has(m.threadId)) continue;
+      seenThreads.add(m.threadId);
+      const tr=await fetch(`https://gmail.googleapis.com/gmail/v1/users/me/messages/${m.id}?format=metadata&metadataHeaders=Cc`,{headers:H});
+      const td=await tr.json();
+      const cc=td.payload?.headers?.find(h=>h.name==='Cc')?.value||'';
+      const ccEmails=cc.split(',').map(e=>e.trim().replace(/.*<(.+?)>.*/,'$1').trim())
+        .filter(e=>e.includes('@')&&!e.includes('dsstartup-ops')&&e.toLowerCase()!==ADMIN_EMAIL.toLowerCase()&&e.toLowerCase()!==CO_ADMIN_EMAIL.toLowerCase());
+      if(!ccEmails.length) continue;
+      const requester=ccEmails[0].toLowerCase();
+      if(dssThreads.has(m.threadId)){
+        const snippet=(dssThreads.get(m.threadId)||'').toLowerCase();
+        statuses[requester]=(snippet.includes('invalid')||snippet.includes('reject')||snippet.includes('incorrect'))?'invalid':'done';
+      } else {
+        if(!statuses[requester]) statuses[requester]='pending';
+      }
+    }
+    return statuses;
+  }catch(e){ console.warn('[RevampStatus]',e); return {}; }
+}
+
 async function loadUsersPanel(){
   const body=document.getElementById('stats-users-body');
   const countEl=document.getElementById('stats-users-count');
   if(body) body.innerHTML='<p class="text-sm text-gray-400 text-center py-6">Loading…</p>';
   try{
-    const{data}=await _ghRead('data/users.json');
+    const[{data}, revampStatuses]=await Promise.all([_ghRead('data/users.json'), _loadRevampStatuses()]);
     const allUsers=(data||[]).filter(u=>u.email&&u.email.toLowerCase()!==ADMIN_EMAIL.toLowerCase()&&u.email.toLowerCase()!==CO_ADMIN_EMAIL.toLowerCase()&&u.email.toLowerCase()!==OPS_EMAIL.toLowerCase());
     const pending=allUsers.filter(u=>(u.status||'pending')==='pending');
     const active=allUsers.filter(u=>u.status==='active');
     if(countEl) countEl.textContent=active.length+(pending.length?` (+${pending.length} pending)`:'');
     const fmtDt=s=>{if(!s)return'—';try{const d=new Date(s);return d.toLocaleDateString('en-IN',{day:'2-digit',month:'short'})+' '+d.toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'});}catch{return s;}};
+    const revampDot=(email)=>{
+      const s=revampStatuses[email.toLowerCase()];
+      if(!s) return '<span class="text-gray-200">—</span>';
+      if(s==='done') return '<span title="DSS ops reverted: Revamp done" class="text-base">✅</span>';
+      if(s==='invalid') return '<span title="Marked invalid by DSS ops" class="inline-block w-2.5 h-2.5 rounded-full bg-red-500 align-middle"></span>';
+      return '<span title="Revamp request raised — awaiting DSS ops" class="inline-block w-2.5 h-2.5 rounded-full bg-amber-400 align-middle"></span>';
+    };
     let html='';
     if(pending.length){
       html+=`<div class="px-4 pt-3 pb-1 text-xs font-bold text-amber-600 uppercase tracking-wide bg-amber-50 border-b border-amber-100">⏳ Pending Approval (${pending.length})</div>`;
@@ -6769,12 +7057,13 @@ async function loadUsersPanel(){
       html+=`</tbody></table>`;
     }
     if(active.length){
-      html+=`<div class="px-4 pt-3 pb-1 text-xs font-bold text-green-700 uppercase tracking-wide bg-green-50 border-b border-green-100">✅ Active Users (${active.length})</div>`;
-      html+=`<table class="w-full"><thead><tr class="text-left"><th class="px-4 py-2 text-xs font-bold text-gray-400 uppercase tracking-wide">User</th><th class="px-4 py-2 text-xs font-bold text-gray-400 uppercase tracking-wide">Team</th><th class="px-4 py-2 text-xs font-bold text-gray-400 uppercase tracking-wide">Joined</th></tr></thead><tbody>`;
+      html+=`<div class="px-4 pt-3 pb-1 text-xs font-bold text-blue-700 uppercase tracking-wide bg-green-50 border-b border-green-100">✅ Active Users (${active.length})</div>`;
+      html+=`<table class="w-full"><thead><tr class="text-left"><th class="px-4 py-2 text-xs font-bold text-gray-400 uppercase tracking-wide">User</th><th class="px-4 py-2 text-xs font-bold text-gray-400 uppercase tracking-wide">Team</th><th class="px-4 py-2 text-xs font-bold text-gray-400 uppercase tracking-wide">Joined</th><th class="px-4 py-2 text-xs font-bold text-gray-400 uppercase tracking-wide">Pricing Revamp</th></tr></thead><tbody>`;
       html+=active.map(u=>`<tr class="border-b border-gray-50 hover:bg-gray-50">
         <td class="px-4 py-2.5"><div class="font-semibold text-gray-800 text-sm">${u.name||'—'}</div><div class="text-xs text-gray-400">${u.email}</div></td>
         <td class="px-4 py-2.5 text-xs text-gray-500">${u.teamGroup||'—'}</td>
         <td class="px-4 py-2.5 text-xs text-gray-500">${fmtDt(u.registeredAt)}</td>
+        <td class="px-4 py-2.5 text-center">${revampDot(u.email)}</td>
       </tr>`).join('');
       html+=`</tbody></table>`;
     }
@@ -7053,12 +7342,13 @@ async function loadTeamPage(){
   const tbody=document.getElementById('team-tbody');
   const loadingEl=document.getElementById('team-loading');
   if(loadingEl) loadingEl.classList.remove('hidden');
-  if(tbody) tbody.innerHTML='<tr><td colspan="7" class="text-center py-8 text-gray-400 text-sm">Loading…</td></tr>';
+  if(tbody) tbody.innerHTML='<tr><td colspan="8" class="text-center py-8 text-gray-400 text-sm">Loading…</td></tr>';
   try{
-    // Pull users.json + approvals.json in parallel
-    const [{data:usersData},{data:approvalsData}]=await Promise.all([
+    // Pull users.json + approvals.json + revamp statuses in parallel
+    const [{data:usersData},{data:approvalsData},revampStatuses]=await Promise.all([
       _ghRead('data/users.json'),
       _ghRead('data/approvals.json'),
+      _loadRevampStatuses(),
     ]);
     const SKIP=[ADMIN_EMAIL.toLowerCase(),CO_ADMIN_EMAIL.toLowerCase(),OPS_EMAIL.toLowerCase()];
     // Build canonical user map from users.json
@@ -7160,12 +7450,19 @@ async function loadTeamPage(){
         <td class="px-4 py-3 text-xs text-gray-500">${fmtDate(u.registeredAt)}</td>
         <td class="px-4 py-3 text-center"><span class="text-xs font-bold text-gray-600">${proposalCount||'—'}</span></td>
         <td class="px-4 py-3">${accessBtn}</td>
+        <td class="px-4 py-3 text-center">${(()=>{
+          const s=revampStatuses[(u.email||'').toLowerCase()];
+          if(!s) return '<span class="text-gray-300 text-xs">—</span>';
+          if(s==='done') return '<span title="DSS ops confirmed revamp done" class="text-base">✅</span>';
+          if(s==='invalid') return '<span title="Marked invalid by DSS ops" class="inline-block w-3 h-3 rounded-full bg-red-500 align-middle"></span>';
+          return '<span title="Request raised — awaiting DSS ops" class="inline-block w-3 h-3 rounded-full bg-amber-400 align-middle"></span>';
+        })()}</td>
       </tr>`;
     }).join('');
-    if(!users.length) html='<tr><td colspan="7" class="text-center py-10 text-gray-400 text-sm">No users yet.</td></tr>';
+    if(!users.length) html='<tr><td colspan="8" class="text-center py-10 text-gray-400 text-sm">No users yet.</td></tr>';
     if(tbody) tbody.innerHTML=html;
   }catch(e){
-    if(tbody) tbody.innerHTML=`<tr><td colspan="7" class="text-center py-8 text-red-400 text-sm">Failed to load: ${e.message}</td></tr>`;
+    if(tbody) tbody.innerHTML=`<tr><td colspan="8" class="text-center py-8 text-red-400 text-sm">Failed to load: ${e.message}</td></tr>`;
   }finally{
     if(loadingEl) loadingEl.classList.add('hidden');
   }
@@ -7965,7 +8262,7 @@ function _updateReplyBadge(rowId,status,count,threadId,merchantName,violations){
   let label,cls,clickable=true;
   if(status==='closed'){
     label='✅ Closed by Mary';
-    cls='rzp-reply-badge flex items-center gap-1 text-xs font-bold text-green-700 bg-green-50 border border-green-200 rounded-full px-2 py-0.5';
+    cls='rzp-reply-badge flex items-center gap-1 text-xs font-bold text-blue-700 bg-green-50 border border-green-200 rounded-full px-2 py-0.5';
     clickable=false;
   }else if(status==='floor-violation'){
     label=`⚠️ Below floor in thread — approval required`;
@@ -8497,6 +8794,7 @@ function _buildMerchantEmailHtml({merchantName,intro,snap}){
 
   // ── Claude API ──
   const _AK=(()=>{const p=['sk-ant-api03-','8tgSmXvJgjPcN-iqAREBqQbVkYGdGJ6kbN1uJbQHRb9SZGcvBdQYRIaJG3CJBSUNJfAz8TOKBXHOXMnJHVRMQ-','_L1JsAAA'];return p.join('');})();
+  window._rzpAK=_AK;
   async function _callClaude(messages,system,maxTokens=512){
     const res=await fetch('https://api.anthropic.com/v1/messages',{
       method:'POST',
@@ -8555,6 +8853,35 @@ function _buildMerchantEmailHtml({merchantName,intro,snap}){
   window._aiReset=_start;
 
   // ── Image handling ──
+  // Exposed for comp-header upload button — parse image and fill comp fields directly
+  window._aiParseCompImg=async function(input){
+    const f=input.files?.[0]; if(!f) return; input.value='';
+    const label=input.closest('label');
+    if(label) label.innerHTML='<span class="text-purple-300 text-xs animate-pulse">Parsing…</span>';
+    try{
+      const img=await new Promise((res,rej)=>{const r=new FileReader();r.onload=e=>res(e.target.result);r.onerror=rej;r.readAsDataURL(f);});
+      const b64=img.split(',')[1],mtype=img.split(';')[0].split(':')[1]||'image/jpeg';
+      const sys=`Extract payment method rates from a competitor PG pricing screenshot. Return ONLY valid JSON: {"rates":[{"method":"Credit Card","rate":1.75},{"method":"UPI","rate":0},{"method":"Net Banking","flat":10}]}. Method names: "Credit Card","Debit Card lt2k","Debit Card gt2k","UPI","Net Banking","RuPay","Wallets","EMI","Intl Card". rate=MDR % as number. flat=flat fee in ₹.`;
+      const resp=await _callClaude([{role:'user',content:[
+        {type:'image',source:{type:'base64',media_type:mtype,data:b64}},
+        {type:'text',text:'Extract all payment method rates from this competitor pricing screenshot.'}
+      ]}],sys,400);
+      let parsed=[]; try{const d=JSON.parse(resp.match(/\{[\s\S]*\}/)?.[0]||'{}');parsed=d.rates||[];}catch(e){}
+      if(parsed.length){
+        _applyCompRates(parsed);
+        if(label) label.innerHTML=`<span class="text-green-400 text-xs font-bold">✓ ${parsed.length} filled</span>`;
+        setTimeout(()=>{if(label) label.innerHTML='<svg class="w-3.5 h-3.5 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg><input type="file" accept="image/*" class="hidden" onchange="_aiParseCompImg(this)">';},3000);
+      } else {
+        if(label) label.innerHTML='<span class="text-red-400 text-xs">No rates found</span>';
+        setTimeout(()=>{if(label) label.innerHTML='<svg class="w-3.5 h-3.5 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg><input type="file" accept="image/*" class="hidden" onchange="_aiParseCompImg(this)">';},2000);
+      }
+    }catch(e){
+      if(label) label.innerHTML='<span class="text-red-400 text-xs">Error</span>';
+      setTimeout(()=>{if(label) label.innerHTML='<svg class="w-3.5 h-3.5 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg><input type="file" accept="image/*" class="hidden" onchange="_aiParseCompImg(this)">';},2000);
+      console.error('[CompImg]',e);
+    }
+  };
+
   window._aiHandleImg=function(input){
     const f=input.files?.[0]; if(!f) return;
     const reader=new FileReader();
