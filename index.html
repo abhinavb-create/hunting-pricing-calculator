@@ -9,7 +9,7 @@
 <!-- build: 20260805-v117 -->
 <script>
 (function(){
-  const BUILD='v117';
+  const BUILD='v118';
   const u=new URL(location.href);
   if(u.searchParams.get('b')!==BUILD){u.searchParams.set('b',BUILD);location.replace(u.toString());}
 })();
@@ -975,6 +975,18 @@
           <p id="comp-nr-warn" class="text-xs font-bold mt-1 hidden pulse-red">⚠ Below ₹1,000 minimum — approval required from Abhinav / Raktim</p>
         </div>
         <div class="text-right"><p class="text-xs opacity-60 mb-0.5">Annual NR</p><p id="comp-nr-annual" class="text-2xl font-black"></p></div>
+      </div>
+      <!-- OPTIMISE NR PANEL — shown only when NR is negative -->
+      <div id="optimise-nr-panel" class="hidden mt-3 rounded-xl border-2 border-amber-300 bg-amber-50 p-4">
+        <div class="flex items-start justify-between mb-2">
+          <div>
+            <p class="text-xs font-black text-amber-800 uppercase tracking-wider">💡 NR Optimiser</p>
+            <p class="text-xs text-amber-700 mt-0.5">This deal is loss-making. Here's the minimum rate adjustment to turn NR positive — staying within competitor rates.</p>
+          </div>
+          <button onclick="applyOptimisedRates()" class="ml-4 flex-shrink-0 bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold px-3 py-1.5 rounded-lg">Apply all ↗</button>
+        </div>
+        <div id="optimise-nr-rows" class="mt-2 space-y-1.5"></div>
+        <p id="optimise-nr-projected" class="text-xs font-bold text-amber-900 mt-3 pt-2 border-t border-amber-200"></p>
       </div>
     </div>
     <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-5 mb-6">
@@ -3066,8 +3078,89 @@ function setNRBox(sc,nr){
   else if(nr<1000){box.className='mt-3 rounded-xl p-4 flex items-center justify-between nr-amber';warn.classList.remove('hidden');}
   else{box.className='mt-3 rounded-xl p-4 flex items-center justify-between nr-ok';warn.classList.add('hidden');}
   const newState=nr<1000?'warn':'ok';
-  // NR warning shown only on PDF download, not during calculation
   prevNRState[sc]=newState;
+  if(sc==='competition') renderOptimiserPanel(nr);
+}
+
+// ================================================================
+// NR OPTIMISER
+// ================================================================
+let _optimisedRates=[];
+
+function renderOptimiserPanel(totalNR){
+  const panel=document.getElementById('optimise-nr-panel');
+  const rowsEl=document.getElementById('optimise-nr-rows');
+  const projEl=document.getElementById('optimise-nr-projected');
+  if(!panel||!rowsEl) return;
+
+  if(totalNR>=0){panel.classList.add('hidden');_optimisedRates=[];return;}
+
+  const gmv=getGMV();
+  const sc='competition';
+  let deficit=-totalNR; // how much NR we need to recover
+
+  // Build candidate list: methods with split>0 and headroom vs competitor
+  const candidates=[];
+  METHODS.forEach((m,i)=>{
+    if(m.codOnly||m.locked||m.naFloor) return;
+    if(flatMode[sc]?.[i]) return; // skip flat-fee methods for now
+    const spl=+(document.getElementById(`c-spl-${i}`)?.value)||0;
+    if(!spl) return;
+    const mGMV=gmv*spl/100;
+    const curRate=+(document.getElementById(`c-mdr-${i}`)?.value)||0;
+    const compRate=+(document.getElementById(`c-comp-${i}`)?.value)||m.compComp||0;
+    const headroom=compRate-curRate; // how much we can raise before hitting competitor rate
+    if(headroom<=0.005) return; // no room
+    const nrGainPerPct=mGMV/100; // NR gain per 0.01% rate increase × 100 = per 1% = mGMV/100
+    candidates.push({i,m,mGMV,curRate,compRate,headroom,nrGainPerPct,spl});
+  });
+
+  if(!candidates.length){panel.classList.add('hidden');return;}
+
+  // Sort by NR gain potential descending (biggest split × most headroom first)
+  candidates.sort((a,b)=>(b.nrGainPerPct*b.headroom)-(a.nrGainPerPct*a.headroom));
+
+  // Greedy: raise each method the minimum needed, capped at competitor rate
+  let remaining=deficit;
+  _optimisedRates=[];
+  const suggestions=[];
+
+  for(const c of candidates){
+    if(remaining<=0) break;
+    const neededPct=remaining/c.nrGainPerPct; // % rate increase needed from this method alone
+    const bump=Math.min(neededPct,c.headroom);
+    const newRate=+(c.curRate+bump).toFixed(2);
+    const nrGained=bump*c.nrGainPerPct;
+    remaining-=nrGained;
+    _optimisedRates.push({i:c.i,newRate});
+    suggestions.push({label:c.m.label,curRate:c.curRate,newRate,compRate:c.compRate,nrGained,bump});
+  }
+
+  const projectedNR=totalNR+suggestions.reduce((s,x)=>s+x.nrGained,0);
+
+  // Render rows
+  rowsEl.innerHTML=suggestions.map(s=>`
+    <div class="flex items-center justify-between bg-white rounded-lg px-3 py-2 border border-amber-100">
+      <div class="flex-1 min-w-0">
+        <p class="text-xs font-bold text-gray-800 truncate">${s.label}</p>
+        <p class="text-xs text-gray-400">${s.curRate.toFixed(2)}% → <span class="font-bold text-amber-700">${s.newRate.toFixed(2)}%</span> <span class="text-gray-300">· competitor ${s.compRate.toFixed(2)}%</span></p>
+      </div>
+      <p class="text-xs font-black text-emerald-600 ml-3 flex-shrink-0">+${fmtINR2(s.nrGained)}</p>
+    </div>`).join('');
+
+  projEl.textContent=`Projected NR after adjustment: ${fmtINR2(projectedNR)}/month${projectedNR<0?' (still negative — no further headroom vs competition)':''}`;
+  panel.classList.remove('hidden');
+}
+
+function applyOptimisedRates(){
+  if(!_optimisedRates.length) return;
+  _optimisedRates.forEach(({i,newRate})=>{
+    const el=document.getElementById(`c-mdr-${i}`);
+    if(el){el.value=newRate.toFixed(2);}
+  });
+  updateOutputs();
+  const panel=document.getElementById('optimise-nr-panel');
+  if(panel) panel.classList.add('hidden');
 }
 
 // ================================================================
