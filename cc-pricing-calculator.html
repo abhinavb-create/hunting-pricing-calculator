@@ -9,7 +9,7 @@
 <!-- build: 20260805-v117 -->
 <script>
 (function(){
-  const BUILD='v124';
+  const BUILD='v125';
   const u=new URL(location.href);
   if(u.searchParams.get('b')!==BUILD){u.searchParams.set('b',BUILD);location.replace(u.toString());}
 })();
@@ -6808,7 +6808,7 @@ function renderStatsTable(rows){
         const snap=latest.snapshot||window._snapCache?.[latest.rowId];
         const bps=computeAvgBpsFromSnapshot(snap);
         if(bps===null) return '<span class="text-xs text-gray-300">—</span>';
-        return `<p class="text-sm font-black text-purple-700">${bps.toFixed(1)} bps</p><p class="text-xs text-gray-400">blended avg</p>`;
+        return `<p class="text-sm font-black text-purple-700">${(bps/100).toFixed(2)}%</p><p class="text-xs text-gray-400">blended avg</p>`;
       })()}</td>
       <td class="px-5 py-3.5 whitespace-nowrap">${teamR.teamGroup?`<span class="text-xs font-bold px-2 py-1 rounded-full bg-blue-50 text-blue-700">${teamR.teamGroup}</span>`:'<span class="text-xs text-gray-300">—</span>'}</td>
       <td class="px-5 py-3.5 whitespace-nowrap">${ownerDisplay(ownerR)}</td>
