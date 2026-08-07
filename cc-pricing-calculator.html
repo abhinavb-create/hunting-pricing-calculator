@@ -9,7 +9,7 @@
 <!-- build: 20260805-v117 -->
 <script>
 (function(){
-  const BUILD='v131';
+  const BUILD='v132';
   const u=new URL(location.href);
   if(u.searchParams.get('b')!==BUILD){u.searchParams.set('b',BUILD);location.replace(u.toString());}
 })();
@@ -946,7 +946,7 @@
                 <div class="flex items-center justify-center gap-1.5">Comp MDR %
                   <label title="Upload competitor pricing screenshot — AI will parse and fill" class="cursor-pointer text-purple-400 hover:text-purple-600 transition-colors">
                     <svg class="w-3.5 h-3.5 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
-                    <input type="file" accept="image/*" class="hidden" onchange="parseCompPricingImage(this)">
+                    <input type="file" accept="image/*" class="hidden" onchange="_aiParseCompImg(this)">
                   </label>
                 </div>
               </th>
@@ -8849,6 +8849,35 @@ function _buildMerchantEmailHtml({merchantName,intro,snap}){
   window._aiReset=_start;
 
   // ── Image handling ──
+  // Exposed for comp-header upload button — parse image and fill comp fields directly
+  window._aiParseCompImg=async function(input){
+    const f=input.files?.[0]; if(!f) return; input.value='';
+    const label=input.closest('label');
+    if(label) label.innerHTML='<span class="text-purple-300 text-xs animate-pulse">Parsing…</span>';
+    try{
+      const img=await new Promise((res,rej)=>{const r=new FileReader();r.onload=e=>res(e.target.result);r.onerror=rej;r.readAsDataURL(f);});
+      const b64=img.split(',')[1],mtype=img.split(';')[0].split(':')[1]||'image/jpeg';
+      const sys=`Extract payment method rates from a competitor PG pricing screenshot. Return ONLY valid JSON: {"rates":[{"method":"Credit Card","rate":1.75},{"method":"UPI","rate":0},{"method":"Net Banking","flat":10}]}. Method names: "Credit Card","Debit Card lt2k","Debit Card gt2k","UPI","Net Banking","RuPay","Wallets","EMI","Intl Card". rate=MDR % as number. flat=flat fee in ₹.`;
+      const resp=await _callClaude([{role:'user',content:[
+        {type:'image',source:{type:'base64',media_type:mtype,data:b64}},
+        {type:'text',text:'Extract all payment method rates from this competitor pricing screenshot.'}
+      ]}],sys,400);
+      let parsed=[]; try{const d=JSON.parse(resp.match(/\{[\s\S]*\}/)?.[0]||'{}');parsed=d.rates||[];}catch(e){}
+      if(parsed.length){
+        _applyCompRates(parsed);
+        if(label) label.innerHTML=`<span class="text-green-400 text-xs font-bold">✓ ${parsed.length} filled</span>`;
+        setTimeout(()=>{if(label) label.innerHTML='<svg class="w-3.5 h-3.5 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg><input type="file" accept="image/*" class="hidden" onchange="_aiParseCompImg(this)">';},3000);
+      } else {
+        if(label) label.innerHTML='<span class="text-red-400 text-xs">No rates found</span>';
+        setTimeout(()=>{if(label) label.innerHTML='<svg class="w-3.5 h-3.5 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg><input type="file" accept="image/*" class="hidden" onchange="_aiParseCompImg(this)">';},2000);
+      }
+    }catch(e){
+      if(label) label.innerHTML='<span class="text-red-400 text-xs">Error</span>';
+      setTimeout(()=>{if(label) label.innerHTML='<svg class="w-3.5 h-3.5 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg><input type="file" accept="image/*" class="hidden" onchange="_aiParseCompImg(this)">';},2000);
+      console.error('[CompImg]',e);
+    }
+  };
+
   window._aiHandleImg=function(input){
     const f=input.files?.[0]; if(!f) return;
     const reader=new FileReader();
