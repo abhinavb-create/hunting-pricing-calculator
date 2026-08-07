@@ -9,7 +9,7 @@
 <!-- build: 20260805-v117 -->
 <script>
 (function(){
-  const BUILD='v119';
+  const BUILD='v120';
   const u=new URL(location.href);
   if(u.searchParams.get('b')!==BUILD){u.searchParams.set('b',BUILD);location.replace(u.toString());}
 })();
@@ -3138,12 +3138,15 @@ function renderOptimiserPanel(totalNR){
   for(const c of sorted){
     if(remaining<=0) break;
     const neededPct=remaining/c.nrGainPerPct;
-    const bump=Math.min(neededPct,c.headroom);
-    const newRate=+(c.curRate+bump).toFixed(2);
-    const nrGained=bump*c.nrGainPerPct;
+    const rawBump=Math.min(neededPct,c.headroom);
+    // Round UP to nearest 0.01% so the applied rate always meets or exceeds the target
+    const roundedNewRate=Math.min(Math.ceil((c.curRate+rawBump)*100)/100, c.compRate);
+    const actualBump=roundedNewRate-c.curRate;
+    if(actualBump<=0) continue;
+    const nrGained=actualBump*c.nrGainPerPct;
     remaining-=nrGained;
-    _optimisedRates.push({i:c.i,newRate});
-    suggestions.push({label:c.m.label,spl:c.spl,curRate:c.curRate,newRate,compRate:c.compRate,nrGained,bump,maxed:Math.abs(bump-c.headroom)<0.01});
+    _optimisedRates.push({i:c.i,newRate:roundedNewRate});
+    suggestions.push({label:c.m.label,spl:c.spl,curRate:c.curRate,newRate:roundedNewRate,compRate:c.compRate,nrGained,bump:actualBump,maxed:Math.abs(roundedNewRate-c.compRate)<0.005});
   }
 
   const projectedNR=totalNR+suggestions.reduce((s,x)=>s+x.nrGained,0);
@@ -3196,9 +3199,7 @@ function applyOptimisedRates(){
     const el=document.getElementById(`c-mdr-${i}`);
     if(el){el.value=newRate.toFixed(2);}
   });
-  updateOutputs();
-  const panel=document.getElementById('optimise-nr-panel');
-  if(panel) panel.classList.add('hidden');
+  updateOutputs(); // renderOptimiserPanel is called inside — panel stays visible if NR still negative
 }
 
 // ================================================================
