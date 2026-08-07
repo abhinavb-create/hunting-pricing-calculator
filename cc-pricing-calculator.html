@@ -9,7 +9,7 @@
 <!-- build: 20260805-v117 -->
 <script>
 (function(){
-  const BUILD='v126';
+  const BUILD='v127';
   const u=new URL(location.href);
   if(u.searchParams.get('b')!==BUILD){u.searchParams.set('b',BUILD);location.replace(u.toString());}
 })();
@@ -6392,7 +6392,7 @@ function showStats(){
   mainWrap?.classList.add('hidden');
   statsPage?.classList.remove('hidden');
   loadUserHistory();
-  if(isAdminOrCoAdmin()) loadUsersPanel();
+  if(isAdminOrCoAdmin()){loadUsersPanel();_loadRevampStatuses().then(s=>{window._revampStatuses=s;renderStatsTable(window._lastFilteredRows||[]);});}
   else _syncPendingApprovals();
 }
 
@@ -6643,6 +6643,7 @@ function filterStats(){
       default: return (b.rawDate||'').localeCompare(a.rawDate||''); // date-desc
     }
   });
+  window._lastFilteredRows=filtered;
   renderStatsTable(filtered);
   // Check for merchant replies after stats render + set up 60s polling
   setTimeout(()=>checkMerchantReplies(),1200);
@@ -6690,8 +6691,13 @@ function renderStatsTable(rows){
     const email=r.requester||'';
     const name=email.split('@')[0]||'—';
     const isMe=email.toLowerCase()===(currentUser?.email||'').toLowerCase();
-    return isMe?`<span class="text-xs font-semibold text-green-700">You</span>`
-      :`<p class="text-xs font-semibold text-gray-700">${name}</p><p class="text-xs text-gray-400">${email}</p>`;
+    const rs=(window._revampStatuses||{})[email.toLowerCase()];
+    const dot=rs==='done'?'<span title="Pricing Revamp done" class="ml-1 text-xs">✅</span>'
+      :rs==='invalid'?'<span title="Revamp marked invalid" class="ml-1 inline-block w-2 h-2 rounded-full bg-red-500 align-middle"></span>'
+      :rs==='pending'?'<span title="Revamp raised — awaiting DSS ops" class="ml-1 inline-block w-2 h-2 rounded-full bg-amber-400 align-middle"></span>'
+      :'';
+    return isMe?`<span class="text-xs font-semibold text-green-700">You${dot}</span>`
+      :`<p class="text-xs font-semibold text-gray-700">${name}${dot}</p><p class="text-xs text-gray-400">${email}</p>`;
   };
 
   // Collapse rows into one per group — versions shown inline as chips
