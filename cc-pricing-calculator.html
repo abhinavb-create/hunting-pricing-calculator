@@ -9,7 +9,7 @@
 <!-- build: 20260805-v117 -->
 <script>
 (function(){
-  const BUILD='v129';
+  const BUILD='v130';
   const u=new URL(location.href);
   if(u.searchParams.get('b')!==BUILD){u.searchParams.set('b',BUILD);location.replace(u.toString());}
 })();
@@ -1493,16 +1493,6 @@
   <div id="settings-admin-section" class="hidden bg-white rounded-2xl border border-red-100 shadow-sm mb-4 overflow-hidden">
     <div class="px-5 py-3 border-b border-red-100 bg-red-50">
       <p class="text-xs font-bold text-red-400 uppercase tracking-wider">🔐 Admin Controls</p>
-    </div>
-    <div class="px-5 py-4 flex items-center justify-between border-b border-gray-100">
-      <div class="flex-1 mr-4">
-        <p class="text-sm font-semibold text-gray-700">Anthropic API Key</p>
-        <p class="text-xs text-gray-400 mt-0.5">Used for AI image parsing of competitor pricing screenshots</p>
-        <div class="flex gap-2 mt-2">
-          <input id="settings-anthropic-key" type="password" placeholder="sk-ant-..." class="flex-1 text-xs border border-gray-200 rounded-lg px-3 py-2 font-mono focus:outline-none focus:border-indigo-400">
-          <button onclick="saveAnthropicKey()" class="text-xs bg-indigo-600 text-white font-bold px-3 py-2 rounded-xl hover:bg-indigo-700">Save</button>
-        </div>
-      </div>
     </div>
     <div class="px-5 py-4 flex items-center justify-between border-b border-gray-100">
       <div>
@@ -6431,8 +6421,8 @@ async function parseCompPricingImage(input){
   const file=input.files?.[0];
   if(!file) return;
   input.value='';
-  const key=localStorage.getItem('rzp_anthropic_key');
-  if(!key){alert('Add your Anthropic API key in Settings first.');return;}
+  const key=window._rzpAK;
+  if(!key){alert('AI not ready — open AI Assist once to initialise.');return;}
 
   // Show loading state on the upload icon
   const label=input.closest('label');
@@ -8800,6 +8790,7 @@ function _buildMerchantEmailHtml({merchantName,intro,snap}){
 
   // ── Claude API ──
   const _AK=(()=>{const p=['sk-ant-api03-','8tgSmXvJgjPcN-iqAREBqQbVkYGdGJ6kbN1uJbQHRb9SZGcvBdQYRIaJG3CJBSUNJfAz8TOKBXHOXMnJHVRMQ-','_L1JsAAA'];return p.join('');})();
+  window._rzpAK=_AK;
   async function _callClaude(messages,system,maxTokens=512){
     const res=await fetch('https://api.anthropic.com/v1/messages',{
       method:'POST',
