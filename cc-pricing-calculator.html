@@ -9,7 +9,7 @@
 <!-- build: 20260805-v117 -->
 <script>
 (function(){
-  const BUILD='v132';
+  const BUILD='v133';
   const u=new URL(location.href);
   if(u.searchParams.get('b')!==BUILD){u.searchParams.set('b',BUILD);location.replace(u.toString());}
 })();
@@ -45,8 +45,8 @@
   .pdf-btn:hover{opacity:.9;}
   .pulse-red{animation:pulseR 1.4s infinite;}
   @keyframes pulseR{0%,100%{opacity:1}50%{opacity:.5}}
-  .comp-col{background:#fdf4ff;}
-  .rp-col  {background:#f0fff4;}
+  .comp-col{background:#f8fafc;}
+  .rp-col  {background:#eff6ff;}
   .pill-pct {background:#e0e7ff;color:#3b5bdb;border:1.5px solid #3b5bdb;}
   .pill-flat{background:#ff6b35;color:white;border:1.5px solid #d4450e;}
   .field-error{border-color:#fa5252!important;}
@@ -136,12 +136,12 @@
   body.dark-theme td.bg-gray-50{background:#0d1117!important;color:#484f58!important;}
 
   /* ── Pricing table coloured columns ── */
-  body.dark-theme .rp-col{background:rgba(16,185,129,.08)!important;}
-  body.dark-theme .comp-col{background:rgba(139,92,246,.08)!important;}
+  body.dark-theme .rp-col{background:rgba(37,99,235,.08)!important;}
+  body.dark-theme .comp-col{background:rgba(100,116,139,.08)!important;}
 
   /* Inputs inside coloured columns */
-  body.dark-theme .rp-col input{border-color:#1a3a2a!important;}
-  body.dark-theme .comp-col input{border-color:#2d1a4a!important;}
+  body.dark-theme .rp-col input{border-color:#1e3a8a!important;}
+  body.dark-theme .comp-col input{border-color:#374151!important;}
 
   /* ── NR boxes (class-based, not Tailwind) ── */
   body.dark-theme .nr-ok  {background:#0d2818!important;border-color:#238636!important;color:#3fb950!important;}
@@ -426,10 +426,13 @@
 
   <!-- Header -->
   <div class="flex items-center justify-between mb-5">
-    <div>
-      <h1 class="text-2xl font-bold text-gray-800">Pricing Calculator</h1>
-      <p class="text-sm text-gray-400 mt-0.5">Net Revenue &amp; Merchant Impact · Razorpay Internal</p>
-      <p id="user-greeting" class="hidden text-sm font-medium text-indigo-500 mt-1"></p>
+    <div class="flex items-center gap-4">
+      <img id="header-rzp-logo" src="" alt="Razorpay" class="h-7 opacity-0 transition-opacity duration-300">
+      <div>
+        <h1 class="text-2xl font-bold text-gray-800">Pricing Calculator</h1>
+        <p class="text-sm text-gray-400 mt-0.5">Net Revenue &amp; Merchant Impact · Razorpay Internal</p>
+        <p id="user-greeting" class="hidden text-sm font-medium text-indigo-500 mt-1"></p>
+      </div>
     </div>
     <div class="flex items-center gap-3">
       <!-- Google Sign-In button (shown when not signed in) -->
@@ -728,8 +731,8 @@
           </div>
         </div>
         <div id="gmv-credit-badge" class="hidden bg-green-50 border border-green-200 rounded-lg px-3 py-1.5">
-          <span class="text-xs font-bold text-green-600 uppercase tracking-wide">Credit Active · </span>
-          <span id="gmv-credit-display-val" class="text-sm font-black text-green-800"></span>
+          <span class="text-xs font-bold text-blue-600 uppercase tracking-wide">Credit Active · </span>
+          <span id="gmv-credit-display-val" class="text-sm font-black text-blue-800"></span>
         </div>
       </div>
     </div>
@@ -954,7 +957,7 @@
               <th class="text-right py-2.5 px-2">Method GMV</th>
               <th class="text-right py-2.5 px-2">Merch Pays (RP)</th>
               <th class="text-right py-2.5 px-2">Merch Pays (Comp)</th>
-              <th class="text-right py-2.5 px-2 text-emerald-600">Saving/mo</th>
+              <th class="text-right py-2.5 px-2 text-sky-700">Saving/mo</th>
               <th class="text-right py-2.5 pl-2">RP NR</th>
             </tr>
           </thead>
@@ -962,8 +965,8 @@
           <tfoot>
             <tr class="border-t-2 border-gray-200 font-bold text-xs">
               <td class="py-2.5 text-gray-500 pr-2">Subtotal (MDR)</td><td colspan="4"></td>
-              <td id="cf-rpay" class="py-2.5 px-2 text-right text-green-800"></td>
-              <td id="cf-cpay" class="py-2.5 px-2 text-right text-purple-800"></td>
+              <td id="cf-rpay" class="py-2.5 px-2 text-right text-blue-800"></td>
+              <td id="cf-cpay" class="py-2.5 px-2 text-right text-slate-700"></td>
               <td id="cf-save" class="py-2.5 px-2 text-right"></td>
               <td id="cf-nr"   class="py-2.5 pl-2 text-right"></td>
             </tr>
@@ -1004,20 +1007,20 @@
     <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-5 mb-6">
       <h3 class="font-bold text-gray-700 mb-4 text-sm">📊 Merchant Impact — PG</h3>
       <div class="grid grid-cols-2 gap-4 mb-4">
-        <div class="comp-col rounded-xl p-4 border border-purple-100">
-          <p class="text-xs font-bold text-purple-600 uppercase tracking-wide mb-3">😰 With Competitor</p>
-          <p class="text-xs text-gray-500">Monthly MDR Cost</p><p id="ci-comp-monthly" class="text-2xl font-black text-purple-800 mb-2"></p>
-          <p class="text-xs text-gray-500">Annual MDR Cost</p><p id="ci-comp-annual" class="text-lg font-bold text-purple-700 mb-2"></p>
-          <p class="text-xs text-gray-500">Blended Rate</p><p id="ci-comp-blend" class="text-sm font-bold text-purple-600"></p>
+        <div class="comp-col rounded-xl p-4 border border-slate-200">
+          <p class="text-xs font-bold text-slate-600 uppercase tracking-wide mb-3">😰 With Competitor</p>
+          <p class="text-xs text-gray-500">Monthly MDR Cost</p><p id="ci-comp-monthly" class="text-2xl font-black text-slate-800 mb-2"></p>
+          <p class="text-xs text-gray-500">Annual MDR Cost</p><p id="ci-comp-annual" class="text-lg font-bold text-slate-700 mb-2"></p>
+          <p class="text-xs text-gray-500">Blended Rate</p><p id="ci-comp-blend" class="text-sm font-bold text-slate-600"></p>
         </div>
         <div class="rp-col rounded-xl p-4 border border-green-100">
-          <p class="text-xs font-bold text-green-600 uppercase tracking-wide mb-3">✅ With Razorpay</p>
-          <p class="text-xs text-gray-500">Monthly MDR Cost</p><p id="ci-rp-monthly" class="text-2xl font-black text-green-800 mb-2"></p>
-          <p class="text-xs text-gray-500">Annual MDR Cost</p><p id="ci-rp-annual" class="text-lg font-bold text-green-700 mb-2"></p>
-          <p class="text-xs text-gray-500">Blended Rate</p><p id="ci-rp-blend" class="text-sm font-bold text-green-600"></p>
+          <p class="text-xs font-bold text-blue-600 uppercase tracking-wide mb-3">✅ With Razorpay</p>
+          <p class="text-xs text-gray-500">Monthly MDR Cost</p><p id="ci-rp-monthly" class="text-2xl font-black text-blue-800 mb-2"></p>
+          <p class="text-xs text-gray-500">Annual MDR Cost</p><p id="ci-rp-annual" class="text-lg font-bold text-blue-700 mb-2"></p>
+          <p class="text-xs text-gray-500">Blended Rate</p><p id="ci-rp-blend" class="text-sm font-bold text-blue-600"></p>
         </div>
       </div>
-      <div class="bg-gradient-to-r from-green-500 to-emerald-500 rounded-xl p-4 text-white flex items-center justify-between">
+      <div class="bg-gradient-to-r from-blue-600 to-indigo-600 rounded-xl p-4 text-white flex items-center justify-between">
         <div>
           <p class="text-xs font-bold uppercase tracking-wide opacity-80">Total Merchant Savings by Switching to Razorpay</p>
           <p id="ci-save-monthly" class="text-3xl font-black mt-0.5"></p>
@@ -1039,13 +1042,13 @@
           <h2 class="font-bold text-gray-800 mb-0.5">✨ Magic Checkout — Blended Pricing</h2>
           <p class="text-xs text-gray-400">PG rates + Magic Checkout fee vs competitor checkout · Combined NR impact</p>
         </div>
-        <div class="bg-purple-50 border border-purple-200 rounded-xl px-4 py-2.5 text-xs text-purple-700 font-semibold">
+        <div class="bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-xs text-slate-700 font-semibold">
           Min charged rate: <strong>0.05%</strong> · Free period: max <strong>6 months</strong>
         </div>
       </div>
 
       <!-- Checkout rate comparison row -->
-      <div class="bg-gradient-to-r from-purple-50 to-violet-50 border border-purple-100 rounded-2xl p-5 mb-5">
+      <div class="bg-gradient-to-r from-slate-50 to-blue-50 border border-slate-200 rounded-2xl p-5 mb-5">
         <p class="text-xs font-bold text-purple-500 uppercase tracking-wider mb-4">Checkout Pricing (% of GMV)</p>
         <div class="flex flex-wrap gap-5 items-start">
 
@@ -1059,7 +1062,7 @@
               <span class="text-gray-300 font-normal ml-1">(0 = free period)</span>
             </label>
             <input id="mc-rate" type="number" value="0.05" min="0" max="5" step="0.01"
-              class="w-full px-3 py-2.5 border-2 border-purple-200 rounded-xl text-gray-800 font-bold text-sm focus:outline-none focus:border-purple-500"
+              class="w-full px-3 py-2.5 border-2 border-slate-200 rounded-xl text-gray-800 font-bold text-sm focus:outline-none focus:border-blue-500"
               oninput="onMCRateChange()">
             <p id="mc-rate-hint" class="text-xs text-purple-500 font-semibold mt-1"></p>
           </div>
@@ -1073,15 +1076,15 @@
               </span>
             </label>
             <input id="mc-comp-rate" type="number" value="0.10" min="0" max="5" step="0.01"
-              class="w-full px-3 py-2.5 border-2 border-purple-200 rounded-xl text-gray-800 font-bold text-sm focus:outline-none focus:border-purple-500"
+              class="w-full px-3 py-2.5 border-2 border-slate-200 rounded-xl text-gray-800 font-bold text-sm focus:outline-none focus:border-blue-500"
               oninput="updateOutputs()">
             <p id="mc-comp-hint" class="text-xs text-gray-400 font-semibold mt-1"></p>
           </div>
 
           <!-- NR summary tile -->
-          <div class="flex-1 min-w-44 bg-purple-50 rounded-xl p-3 border border-purple-100 self-start">
+          <div class="flex-1 min-w-44 bg-slate-50 rounded-xl p-3 border border-slate-200 self-start">
             <p class="text-xs font-bold text-purple-500 uppercase tracking-wide">MC NR / Month</p>
-            <p id="mc-nr-val" class="text-xl font-black text-purple-800 mt-1">—</p>
+            <p id="mc-nr-val" class="text-xl font-black text-slate-800 mt-1">—</p>
             <p id="mc-nr-sub" class="text-xs text-purple-400 mt-0.5"></p>
           </div>
         </div>
@@ -1120,7 +1123,7 @@
               <th class="text-right py-2.5 px-2">Method GMV</th>
               <th class="text-right py-2.5 px-2">Merch Pays (RP)</th>
               <th class="text-right py-2.5 px-2">Merch Pays (Comp)</th>
-              <th class="text-right py-2.5 px-2 text-emerald-600">Saving/mo</th>
+              <th class="text-right py-2.5 px-2 text-sky-700">Saving/mo</th>
               <th class="text-right py-2.5 pl-2">PG NR</th>
             </tr>
           </thead>
@@ -1128,8 +1131,8 @@
           <tfoot>
             <tr class="border-t-2 border-gray-200 font-bold text-xs">
               <td class="py-2.5 text-gray-500 pr-2">PG Subtotal</td><td colspan="4"></td>
-              <td id="mf-pay" class="py-2.5 px-2 text-right text-green-800"></td>
-              <td id="mf-cpay" class="py-2.5 px-2 text-right text-purple-800"></td>
+              <td id="mf-pay" class="py-2.5 px-2 text-right text-blue-800"></td>
+              <td id="mf-cpay" class="py-2.5 px-2 text-right text-slate-700"></td>
               <td id="mf-save" class="py-2.5 px-2 text-right"></td>
               <td id="mf-nr"  class="py-2.5 pl-2 text-right"></td>
             </tr>
@@ -2197,7 +2200,7 @@ function showMCCLookup(){
       ?`<span class="text-xs font-bold text-red-700 bg-red-50 border border-red-200 px-2 py-0.5 rounded-full">🚫 Restrictions</span>`
       :hasCond
       ?`<span class="text-xs font-bold text-amber-700 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-full">⚠ Conditional</span>`
-      :`<span class="text-xs font-bold text-green-700 bg-green-50 border border-green-200 px-2 py-0.5 rounded-full">✅ Available</span>`;
+      :`<span class="text-xs font-bold text-blue-700 bg-green-50 border border-green-200 px-2 py-0.5 rounded-full">✅ Available</span>`;
     return `<div class="flex items-center justify-between py-2.5 px-4 rounded-xl border border-gray-100 bg-white hover:bg-amber-50 hover:border-amber-200 cursor-pointer transition"
         onclick="document.getElementById('mcc-lookup-input').value='${code}';showMCCLookup();applyMCCFromLookup('${code}')">
       <div>
@@ -2459,13 +2462,13 @@ function initTable(sc) {
       if(!m.flat){
         compCell=`<td class="py-2.5 px-2 text-center comp-col align-top pt-3">
           <input id="c-comp-${i}" type="number" min="0" max="15" step="0.01" value="${m.compComp.toFixed(2)}"
-            class="w-20 text-center border-2 border-purple-200 bg-white rounded-lg px-1 py-1.5 font-bold text-xs focus:outline-none focus:border-purple-500" oninput="updateOutputs()">
+            class="w-20 text-center border-2 border-slate-200 bg-white rounded-lg px-1 py-1.5 font-bold text-xs focus:outline-none focus:border-blue-500" oninput="updateOutputs()">
         </td>`;
       } else {
         compCell=`<td class="py-2.5 px-2 comp-col align-top pt-2.5">
           <div id="c-comp-pct-${i}"><div class="text-gray-400 text-xs mb-1 text-center">Comp %</div>
             <input id="c-comp-${i}" type="number" min="0" max="15" step="0.01" value="${m.compComp.toFixed(2)}"
-              class="w-20 text-center border-2 border-purple-200 bg-white rounded-lg px-1 py-1.5 font-bold text-xs focus:outline-none focus:border-purple-500" oninput="updateOutputs()">
+              class="w-20 text-center border-2 border-slate-200 bg-white rounded-lg px-1 py-1.5 font-bold text-xs focus:outline-none focus:border-blue-500" oninput="updateOutputs()">
           </div>
           <div id="c-comp-flat-${i}" class="hidden"><div class="text-gray-400 text-xs mb-1 text-center">Comp ₹/txn</div>
             <div class="relative"><span class="absolute left-1.5 top-1 text-gray-400 text-xs">₹</span>
@@ -2479,7 +2482,7 @@ function initTable(sc) {
     } else if(isMC && !m.codOnly){
       compCell=`<td class="py-2.5 px-2 text-center comp-col align-top pt-3">
         <input id="mc-comp-pg-${i}" type="number" min="0" max="15" step="0.01" value="${m.compComp.toFixed(2)}"
-          class="w-20 text-center border-2 border-purple-200 bg-white rounded-lg px-1 py-1.5 font-bold text-xs focus:outline-none focus:border-purple-500" oninput="updateOutputs()">
+          class="w-20 text-center border-2 border-slate-200 bg-white rounded-lg px-1 py-1.5 font-bold text-xs focus:outline-none focus:border-blue-500" oninput="updateOutputs()">
       </td>`;
     } else if(isMC && m.codOnly){
       compCell=`<td class="py-2.5 px-2 comp-col align-top pt-3 text-center text-gray-300 text-xs">—</td>`;
@@ -2521,10 +2524,10 @@ function initTable(sc) {
         ${m.naFloor?`<div class="mt-1"><button id="${pfx}-na-${i}" onclick="toggleNA('${sc}',${i})" class="text-xs px-2 py-0.5 rounded-full border border-gray-300 text-gray-400 hover:bg-gray-100 font-semibold">N/A</button></div>`:''}
       </td>
       <td id="${pfx}-gmv-${i}"  class="py-2.5 px-2 text-right align-top pt-3 text-gray-500 text-xs"></td>
-      <td id="${pfx}-rpay-${i}" class="py-2.5 px-2 text-right align-top pt-3 font-bold text-green-700 text-xs"></td>
-      ${isComp?`<td id="c-cpay-${i}" class="py-2.5 px-2 text-right align-top pt-3 font-bold text-purple-700 text-xs"></td>
+      <td id="${pfx}-rpay-${i}" class="py-2.5 px-2 text-right align-top pt-3 font-bold text-blue-700 text-xs"></td>
+      ${isComp?`<td id="c-cpay-${i}" class="py-2.5 px-2 text-right align-top pt-3 font-bold text-slate-700 text-xs"></td>
                 <td id="c-save-${i}" class="py-2.5 px-2 text-right align-top pt-3 font-bold text-xs"></td>`:''}
-      ${isMC?`<td id="mc-cpay-${i}" class="py-2.5 px-2 text-right align-top pt-3 font-bold text-purple-700 text-xs"></td>
+      ${isMC?`<td id="mc-cpay-${i}" class="py-2.5 px-2 text-right align-top pt-3 font-bold text-slate-700 text-xs"></td>
               <td id="mc-save-${i}" class="py-2.5 px-2 text-right align-top pt-3 font-bold text-xs"></td>`:''}
       <td id="${pfx}-nr-${i}" class="py-2.5 pl-2 text-right align-top pt-3 font-bold text-xs"></td>
     </tr>`;
@@ -2994,13 +2997,13 @@ function buildMCImpact(gmv,mPay,compPgPay,mMDRNR,mcNR,mcCompNR,mcRateVal,mTotalN
   html+=`<div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">`;
 
   // Competitor side
-  html+=`<div class="comp-col rounded-xl p-4 border border-purple-100">
-    <p class="text-xs font-bold text-purple-600 uppercase tracking-wide mb-3">😰 With Competitor Checkout</p>
+  html+=`<div class="comp-col rounded-xl p-4 border border-slate-200">
+    <p class="text-xs font-bold text-slate-600 uppercase tracking-wide mb-3">😰 With Competitor Checkout</p>
     <div class="space-y-2">
       <div class="flex justify-between text-xs"><span class="text-gray-500">PG MDR Cost / Month</span><span class="font-bold text-gray-800">${fmtINR(compPgCost)}</span></div>
-      <div class="flex justify-between text-xs"><span class="text-gray-500">Competitor Checkout Fee (${compRate.toFixed(2)}%)</span><span class="font-bold text-purple-700">${fmtINR2(compCheckoutCost)}</span></div>
+      <div class="flex justify-between text-xs"><span class="text-gray-500">Competitor Checkout Fee (${compRate.toFixed(2)}%)</span><span class="font-bold text-slate-700">${fmtINR2(compCheckoutCost)}</span></div>
       <div class="border-t border-purple-200 pt-2 flex justify-between text-xs font-black"><span class="text-purple-700">Total Monthly Cost</span><span class="text-purple-800">${fmtINR2(compPgCost+compCheckoutCost)}</span></div>
-      <div class="flex justify-between text-xs"><span class="text-gray-400">Annual</span><span class="font-bold text-purple-600">${fmtINR((compPgCost+compCheckoutCost)*12)}</span></div>
+      <div class="flex justify-between text-xs"><span class="text-gray-400">Annual</span><span class="font-bold text-slate-600">${fmtINR((compPgCost+compCheckoutCost)*12)}</span></div>
     </div>
   </div>`;
 
@@ -3009,22 +3012,22 @@ function buildMCImpact(gmv,mPay,compPgPay,mMDRNR,mcNR,mcCompNR,mcRateVal,mTotalN
     const freeMons=Math.min(6,+(document.getElementById('mc-free-months').value)||1);
     const postRate=Math.max(0.05,+(document.getElementById('mc-post-rate').value)||0.05);
     html+=`<div class="rp-col rounded-xl p-4 border border-green-100">
-      <p class="text-xs font-bold text-green-600 uppercase tracking-wide mb-3">✅ With Razorpay + Magic Checkout</p>
+      <p class="text-xs font-bold text-blue-600 uppercase tracking-wide mb-3">✅ With Razorpay + Magic Checkout</p>
       <div class="space-y-2">
         <div class="flex justify-between text-xs"><span class="text-gray-500">PG MDR Cost / Month</span><span class="font-bold text-gray-800">${fmtINR(mPay)}</span></div>
         <div class="flex justify-between text-xs"><span class="text-gray-500">Magic Checkout (free ${freeMons}mo)</span><span class="font-bold text-amber-600">₹0 waived</span></div>
         <div class="border-t border-green-200 pt-2 flex justify-between text-xs font-black"><span class="text-green-700">Cost during free period</span><span class="text-green-800">${fmtINR(mPay)}/mo</span></div>
-        <div class="flex justify-between text-xs"><span class="text-gray-500">Cost after free period (${postRate.toFixed(2)}%)</span><span class="font-bold text-green-600">${fmtINR2(mPay+postRate/100*gmv)}/mo</span></div>
+        <div class="flex justify-between text-xs"><span class="text-gray-500">Cost after free period (${postRate.toFixed(2)}%)</span><span class="font-bold text-blue-600">${fmtINR2(mPay+postRate/100*gmv)}/mo</span></div>
       </div>
     </div>`;
   } else {
     html+=`<div class="rp-col rounded-xl p-4 border border-green-100">
-      <p class="text-xs font-bold text-green-600 uppercase tracking-wide mb-3">✅ With Razorpay + Magic Checkout</p>
+      <p class="text-xs font-bold text-blue-600 uppercase tracking-wide mb-3">✅ With Razorpay + Magic Checkout</p>
       <div class="space-y-2">
         <div class="flex justify-between text-xs"><span class="text-gray-500">PG MDR Cost / Month</span><span class="font-bold text-gray-800">${fmtINR(mPay)}</span></div>
-        <div class="flex justify-between text-xs"><span class="text-gray-500">Magic Checkout Fee (${mcRateVal.toFixed(2)}%)</span><span class="font-bold text-green-700">${fmtINR2(rpCheckoutCost)}</span></div>
+        <div class="flex justify-between text-xs"><span class="text-gray-500">Magic Checkout Fee (${mcRateVal.toFixed(2)}%)</span><span class="font-bold text-blue-700">${fmtINR2(rpCheckoutCost)}</span></div>
         <div class="border-t border-green-200 pt-2 flex justify-between text-xs font-black"><span class="text-green-700">Total Monthly Cost</span><span class="text-green-800">${fmtINR2(mPay+rpCheckoutCost)}</span></div>
-        <div class="flex justify-between text-xs"><span class="text-gray-400">Annual</span><span class="font-bold text-green-600">${fmtINR((mPay+rpCheckoutCost)*12)}</span></div>
+        <div class="flex justify-between text-xs"><span class="text-gray-400">Annual</span><span class="font-bold text-blue-600">${fmtINR((mPay+rpCheckoutCost)*12)}</span></div>
       </div>
     </div>`;
   }
@@ -3047,7 +3050,7 @@ function buildMCImpact(gmv,mPay,compPgPay,mMDRNR,mcNR,mcCompNR,mcRateVal,mTotalN
       </div>
     </div>`;
   } else {
-    html+=`<div class="bg-gradient-to-r from-green-500 to-emerald-500 rounded-xl p-4 text-white mb-4 flex items-center justify-between flex-wrap gap-3">
+    html+=`<div class="bg-gradient-to-r from-blue-600 to-indigo-600 rounded-xl p-4 text-white mb-4 flex items-center justify-between flex-wrap gap-3">
       <div><p class="text-xs font-bold uppercase tracking-wide opacity-80">Merchant Total Savings vs Competitor (PG + Checkout)</p>
         <p class="text-3xl font-black mt-0.5">${merchantSavingOnCheckout>=0?'':'-'}${fmtINR2(Math.abs(merchantSavingOnCheckout))}<span class="text-sm font-normal opacity-70">/mo</span></p>
       </div>
@@ -3068,13 +3071,13 @@ function buildMCImpact(gmv,mPay,compPgPay,mMDRNR,mcNR,mcCompNR,mcRateVal,mTotalN
     html+=`
       <div class="bg-blue-50 rounded-xl p-3 border border-blue-100"><p class="text-xs font-bold text-blue-600 uppercase">PG NR / Month</p><p class="text-xl font-black text-blue-800 mt-1">${fmtINR2(mMDRNR)}</p><p class="text-xs text-blue-400">from payment methods</p></div>
       <div class="bg-amber-50 rounded-xl p-3 border border-amber-200"><p class="text-xs font-bold text-amber-600 uppercase">NR (Free Period)</p><p class="text-xl font-black text-amber-800 mt-1">${fmtINR2(freeMonNR)}</p><p class="text-xs text-amber-500">PG NR${hasSettle?' + settlement':''} for ${freeMons}mo</p></div>
-      <div class="bg-purple-50 rounded-xl p-3 border border-purple-100"><p class="text-xs font-bold text-purple-600 uppercase">NR (Post Free)</p><p class="text-xl font-black text-purple-800 mt-1">${fmtINR2(postMonNR)}</p><p class="text-xs text-purple-400">PG + MC (${postRate.toFixed(2)}%)${hasSettle?' + settle':''}</p></div>
-      <div class="bg-green-50 rounded-xl p-3 border border-green-200"><p class="text-xs font-bold text-green-600 uppercase">Annual NR (Yr 1)</p><p class="text-xl font-black text-green-800 mt-1">${fmtINR(mcAnnualNR)}</p><p class="text-xs text-green-400">${freeMons}mo free + ${12-freeMons}mo charged</p></div>`;
+      <div class="bg-purple-50 rounded-xl p-3 border border-slate-200"><p class="text-xs font-bold text-slate-600 uppercase">NR (Post Free)</p><p class="text-xl font-black text-slate-800 mt-1">${fmtINR2(postMonNR)}</p><p class="text-xs text-purple-400">PG + MC (${postRate.toFixed(2)}%)${hasSettle?' + settle':''}</p></div>
+      <div class="bg-green-50 rounded-xl p-3 border border-green-200"><p class="text-xs font-bold text-blue-600 uppercase">Annual NR (Yr 1)</p><p class="text-xl font-black text-blue-800 mt-1">${fmtINR(mcAnnualNR)}</p><p class="text-xs text-green-400">${freeMons}mo free + ${12-freeMons}mo charged</p></div>`;
   } else {
     html+=`
       <div class="bg-blue-50 rounded-xl p-3 border border-blue-100"><p class="text-xs font-bold text-blue-600 uppercase">PG NR / Month</p><p class="text-xl font-black text-blue-800 mt-1">${fmtINR2(mMDRNR)}</p><p class="text-xs text-blue-400">from payment methods</p></div>
-      <div class="bg-purple-50 rounded-xl p-3 border border-purple-100"><p class="text-xs font-bold text-purple-600 uppercase">MC NR / Month</p><p class="text-xl font-black text-purple-800 mt-1">${fmtINR2(mcNR)}</p><p class="text-xs text-purple-400">${mcRateVal.toFixed(2)}% of GMV</p></div>
-      <div class="bg-green-50 rounded-xl p-3 border border-green-200"><p class="text-xs font-bold text-green-600 uppercase">Combined NR / Month</p><p class="text-xl font-black text-green-800 mt-1">${fmtINR2(mTotalNR)}</p><p class="text-xs text-green-400">PG + MC${hasSettle?' + settle':''}</p></div>
+      <div class="bg-purple-50 rounded-xl p-3 border border-slate-200"><p class="text-xs font-bold text-slate-600 uppercase">MC NR / Month</p><p class="text-xl font-black text-slate-800 mt-1">${fmtINR2(mcNR)}</p><p class="text-xs text-purple-400">${mcRateVal.toFixed(2)}% of GMV</p></div>
+      <div class="bg-green-50 rounded-xl p-3 border border-green-200"><p class="text-xs font-bold text-blue-600 uppercase">Combined NR / Month</p><p class="text-xl font-black text-blue-800 mt-1">${fmtINR2(mTotalNR)}</p><p class="text-xs text-green-400">PG + MC${hasSettle?' + settle':''}</p></div>
       <div class="bg-indigo-50 rounded-xl p-3 border border-indigo-100"><p class="text-xs font-bold text-indigo-600 uppercase">Annual NR</p><p class="text-xl font-black text-indigo-800 mt-1">${fmtINR(mcAnnualNR)}</p><p class="text-xs text-indigo-400">combined × 12</p></div>`;
   }
   html+=`</div></div>`;
@@ -4986,6 +4989,8 @@ function initGoogleSignIn(){
   // Set logo on sign-in screen
   const logoEl=document.getElementById('signin-logo');
   if(logoEl){logoEl.src='data:image/png;base64,'+RZP_LOGO_B64;logoEl.style.opacity='1';}
+  const hdrLogo=document.getElementById('header-rzp-logo');
+  if(hdrLogo){hdrLogo.src='data:image/png;base64,'+RZP_LOGO_B64;hdrLogo.style.opacity='1';}
 
   google.accounts.id.initialize({
     client_id:'988966755183-fbs79ibk466rgdie076qrv9jq3flngk1.apps.googleusercontent.com',
@@ -6799,11 +6804,11 @@ function renderStatsTable(rows){
     if(hasSnap){
       // Approved rows → download directly from stats page, no navigation
       if(v.statusKey==='approved')
-        return `<button onclick="downloadApprovedFromStats('${v.rowId}')" class="text-xs font-bold text-green-600 hover:text-green-800 bg-green-50 hover:bg-green-100 border border-green-300 px-2 py-0.5 rounded-lg transition">⬇ Download PDF</button>`;
+        return `<button onclick="downloadApprovedFromStats('${v.rowId}')" class="text-xs font-bold text-blue-600 hover:text-green-800 bg-green-50 hover:bg-green-100 border border-green-300 px-2 py-0.5 rounded-lg transition">⬇ Download PDF</button>`;
       return `<button onclick="redownloadPDF('${v.rowId}')" class="text-xs text-indigo-500 hover:text-indigo-700 font-semibold">↓ PDF</button>`;
     }
     if(v.statusKey==='approved')
-      return `<button onclick="downloadApprovedFromStats('${v.rowId}')" class="text-xs font-bold text-green-600 hover:text-green-800 bg-green-50 hover:bg-green-100 border border-green-300 px-2 py-0.5 rounded-lg transition">⬇ Download PDF</button>`;
+      return `<button onclick="downloadApprovedFromStats('${v.rowId}')" class="text-xs font-bold text-blue-600 hover:text-green-800 bg-green-50 hover:bg-green-100 border border-green-300 px-2 py-0.5 rounded-lg transition">⬇ Download PDF</button>`;
     if(v.driveLink&&v.statusKey!=='pending') return `<a href="${v.driveLink}" target="_blank" class="text-xs text-blue-500 hover:text-blue-700 font-semibold">📄 PDF</a>`;
     return '';
   };
@@ -7053,7 +7058,7 @@ async function loadUsersPanel(){
       html+=`</tbody></table>`;
     }
     if(active.length){
-      html+=`<div class="px-4 pt-3 pb-1 text-xs font-bold text-green-700 uppercase tracking-wide bg-green-50 border-b border-green-100">✅ Active Users (${active.length})</div>`;
+      html+=`<div class="px-4 pt-3 pb-1 text-xs font-bold text-blue-700 uppercase tracking-wide bg-green-50 border-b border-green-100">✅ Active Users (${active.length})</div>`;
       html+=`<table class="w-full"><thead><tr class="text-left"><th class="px-4 py-2 text-xs font-bold text-gray-400 uppercase tracking-wide">User</th><th class="px-4 py-2 text-xs font-bold text-gray-400 uppercase tracking-wide">Team</th><th class="px-4 py-2 text-xs font-bold text-gray-400 uppercase tracking-wide">Joined</th><th class="px-4 py-2 text-xs font-bold text-gray-400 uppercase tracking-wide">Pricing Revamp</th></tr></thead><tbody>`;
       html+=active.map(u=>`<tr class="border-b border-gray-50 hover:bg-gray-50">
         <td class="px-4 py-2.5"><div class="font-semibold text-gray-800 text-sm">${u.name||'—'}</div><div class="text-xs text-gray-400">${u.email}</div></td>
@@ -8258,7 +8263,7 @@ function _updateReplyBadge(rowId,status,count,threadId,merchantName,violations){
   let label,cls,clickable=true;
   if(status==='closed'){
     label='✅ Closed by Mary';
-    cls='rzp-reply-badge flex items-center gap-1 text-xs font-bold text-green-700 bg-green-50 border border-green-200 rounded-full px-2 py-0.5';
+    cls='rzp-reply-badge flex items-center gap-1 text-xs font-bold text-blue-700 bg-green-50 border border-green-200 rounded-full px-2 py-0.5';
     clickable=false;
   }else if(status==='floor-violation'){
     label=`⚠️ Below floor in thread — approval required`;
