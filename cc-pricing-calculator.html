@@ -9,7 +9,7 @@
 <!-- build: 20260805-v117 -->
 <script>
 (function(){
-  const BUILD='v127';
+  const BUILD='v128';
   const u=new URL(location.href);
   if(u.searchParams.get('b')!==BUILD){u.searchParams.set('b',BUILD);location.replace(u.toString());}
 })();
@@ -1362,6 +1362,7 @@
             <th class="text-left px-5 py-3.5 text-xs font-bold text-purple-500 uppercase tracking-wider whitespace-nowrap">Avg Blended Rate</th>
             <th class="text-left px-5 py-3.5 text-xs font-bold text-gray-400 uppercase tracking-wider whitespace-nowrap">Team</th>
             <th class="text-left px-5 py-3.5 text-xs font-bold text-gray-400 uppercase tracking-wider whitespace-nowrap">Shared By</th>
+            <th class="text-left px-5 py-3.5 text-xs font-bold text-emerald-500 uppercase tracking-wider whitespace-nowrap">Revamp</th>
           </tr>
         </thead>
         <tbody id="stats-tbody"></tbody>
@@ -6819,6 +6820,14 @@ function renderStatsTable(rows){
       })()}</td>
       <td class="px-5 py-3.5 whitespace-nowrap">${teamR.teamGroup?`<span class="text-xs font-bold px-2 py-1 rounded-full bg-blue-50 text-blue-700">${teamR.teamGroup}</span>`:'<span class="text-xs text-gray-300">—</span>'}</td>
       <td class="px-5 py-3.5 whitespace-nowrap">${ownerDisplay(ownerR)}</td>
+      <td class="px-5 py-3.5 whitespace-nowrap text-center">${(()=>{
+        const email=(ownerR.requester||'').toLowerCase();
+        const rs=(window._revampStatuses||{})[email];
+        if(!rs) return '<span class="text-gray-300 text-xs">—</span>';
+        if(rs==='done') return '<span title="DSS ops confirmed done" class="text-base">✅</span>';
+        if(rs==='invalid') return '<span class="flex items-center gap-1 text-xs font-semibold text-red-500"><span class="inline-block w-2.5 h-2.5 rounded-full bg-red-500"></span>Invalid</span>';
+        return '<span class="flex items-center gap-1 text-xs font-semibold text-amber-500"><span class="inline-block w-2.5 h-2.5 rounded-full bg-amber-400"></span>Pending</span>';
+      })()}</td>
     </tr>`;
   }).join('');
 
