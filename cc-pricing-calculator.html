@@ -9,7 +9,7 @@
 <!-- build: 20260805-v117 -->
 <script>
 (function(){
-  const BUILD='v125';
+  const BUILD='v126';
   const u=new URL(location.href);
   if(u.searchParams.get('b')!==BUILD){u.searchParams.set('b',BUILD);location.replace(u.toString());}
 })();
@@ -1596,6 +1596,7 @@
             <th class="text-left px-4 py-3.5 text-xs font-bold text-gray-400 uppercase tracking-wider">LAST SEEN</th>
             <th class="text-left px-4 py-3.5 text-xs font-bold text-gray-400 uppercase tracking-wider">JOINED</th>
             <th class="text-left px-4 py-3.5 text-xs font-bold text-gray-400 uppercase tracking-wider">PROPOSALS</th>
+            <th class="text-left px-4 py-3.5 text-xs font-bold text-emerald-500 uppercase tracking-wider">PRICING REVAMP</th>
           </tr>
         </thead>
         <tbody id="team-tbody"></tbody>
@@ -7234,12 +7235,13 @@ async function loadTeamPage(){
   const tbody=document.getElementById('team-tbody');
   const loadingEl=document.getElementById('team-loading');
   if(loadingEl) loadingEl.classList.remove('hidden');
-  if(tbody) tbody.innerHTML='<tr><td colspan="7" class="text-center py-8 text-gray-400 text-sm">Loading…</td></tr>';
+  if(tbody) tbody.innerHTML='<tr><td colspan="8" class="text-center py-8 text-gray-400 text-sm">Loading…</td></tr>';
   try{
-    // Pull users.json + approvals.json in parallel
-    const [{data:usersData},{data:approvalsData}]=await Promise.all([
+    // Pull users.json + approvals.json + revamp statuses in parallel
+    const [{data:usersData},{data:approvalsData},revampStatuses]=await Promise.all([
       _ghRead('data/users.json'),
       _ghRead('data/approvals.json'),
+      _loadRevampStatuses(),
     ]);
     const SKIP=[ADMIN_EMAIL.toLowerCase(),CO_ADMIN_EMAIL.toLowerCase(),OPS_EMAIL.toLowerCase()];
     // Build canonical user map from users.json
@@ -7341,12 +7343,19 @@ async function loadTeamPage(){
         <td class="px-4 py-3 text-xs text-gray-500">${fmtDate(u.registeredAt)}</td>
         <td class="px-4 py-3 text-center"><span class="text-xs font-bold text-gray-600">${proposalCount||'—'}</span></td>
         <td class="px-4 py-3">${accessBtn}</td>
+        <td class="px-4 py-3 text-center">${(()=>{
+          const s=revampStatuses[(u.email||'').toLowerCase()];
+          if(!s) return '<span class="text-gray-300 text-xs">—</span>';
+          if(s==='done') return '<span title="DSS ops confirmed revamp done" class="text-base">✅</span>';
+          if(s==='invalid') return '<span title="Marked invalid by DSS ops" class="inline-block w-3 h-3 rounded-full bg-red-500 align-middle"></span>';
+          return '<span title="Request raised — awaiting DSS ops" class="inline-block w-3 h-3 rounded-full bg-amber-400 align-middle"></span>';
+        })()}</td>
       </tr>`;
     }).join('');
-    if(!users.length) html='<tr><td colspan="7" class="text-center py-10 text-gray-400 text-sm">No users yet.</td></tr>';
+    if(!users.length) html='<tr><td colspan="8" class="text-center py-10 text-gray-400 text-sm">No users yet.</td></tr>';
     if(tbody) tbody.innerHTML=html;
   }catch(e){
-    if(tbody) tbody.innerHTML=`<tr><td colspan="7" class="text-center py-8 text-red-400 text-sm">Failed to load: ${e.message}</td></tr>`;
+    if(tbody) tbody.innerHTML=`<tr><td colspan="8" class="text-center py-8 text-red-400 text-sm">Failed to load: ${e.message}</td></tr>`;
   }finally{
     if(loadingEl) loadingEl.classList.add('hidden');
   }
