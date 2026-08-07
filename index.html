@@ -9,7 +9,7 @@
 <!-- build: 20260805-v117 -->
 <script>
 (function(){
-  const BUILD='v118';
+  const BUILD='v119';
   const u=new URL(location.href);
   if(u.searchParams.get('b')!==BUILD){u.searchParams.set('b',BUILD);location.replace(u.toString());}
 })();
@@ -980,12 +980,17 @@
       <div id="optimise-nr-panel" class="hidden mt-3 rounded-xl border-2 border-amber-300 bg-amber-50 p-4">
         <div class="flex items-start justify-between mb-2">
           <div>
-            <p class="text-xs font-black text-amber-800 uppercase tracking-wider">💡 NR Optimiser</p>
-            <p class="text-xs text-amber-700 mt-0.5">This deal is loss-making. Here's the minimum rate adjustment to turn NR positive — staying within competitor rates.</p>
+            <p class="text-xs font-black text-amber-800 uppercase tracking-wider">💡 NR Optimiser — target ₹500/month</p>
+            <p class="text-xs text-amber-700 mt-0.5">This deal is loss-making. Minimum rate adjustment to reach ₹500 NR, staying within competitor rates.</p>
           </div>
           <button onclick="applyOptimisedRates()" class="ml-4 flex-shrink-0 bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold px-3 py-1.5 rounded-lg">Apply all ↗</button>
         </div>
-        <div id="optimise-nr-rows" class="mt-2 space-y-1.5"></div>
+        <div class="flex items-center gap-2 mb-3">
+          <p class="text-xs text-amber-700 font-semibold">What matters more?</p>
+          <button id="opt-btn-split" onclick="setOptimiserMode('split')" class="text-xs font-bold px-3 py-1 rounded-lg bg-amber-600 text-white">Protect high-volume methods</button>
+          <button id="opt-btn-spread" onclick="setOptimiserMode('spread')" class="text-xs font-bold px-3 py-1 rounded-lg bg-white border border-amber-200 text-amber-700 hover:bg-amber-50">Spread across all methods</button>
+        </div>
+        <div id="optimise-nr-rows" class="space-y-1.5"></div>
         <p id="optimise-nr-projected" class="text-xs font-bold text-amber-900 mt-3 pt-2 border-t border-amber-200"></p>
       </div>
     </div>
@@ -3085,7 +3090,9 @@ function setNRBox(sc,nr){
 // ================================================================
 // NR OPTIMISER
 // ================================================================
+const NR_TARGET=500; // minimum NR to target
 let _optimisedRates=[];
+let _optimiserMode='split'; // 'split' = prioritise high-volume methods, 'spread' = minimise rate increase
 
 function renderOptimiserPanel(totalNR){
   const panel=document.getElementById('optimise-nr-panel');
@@ -3097,59 +3104,90 @@ function renderOptimiserPanel(totalNR){
 
   const gmv=getGMV();
   const sc='competition';
-  let deficit=-totalNR; // how much NR we need to recover
+  const deficit=Math.abs(totalNR)+NR_TARGET; // recover loss + reach ₹500 target
 
   // Build candidate list: methods with split>0 and headroom vs competitor
   const candidates=[];
   METHODS.forEach((m,i)=>{
     if(m.codOnly||m.locked||m.naFloor) return;
-    if(flatMode[sc]?.[i]) return; // skip flat-fee methods for now
+    if(flatMode[sc]?.[i]) return;
     const spl=+(document.getElementById(`c-spl-${i}`)?.value)||0;
     if(!spl) return;
     const mGMV=gmv*spl/100;
     const curRate=+(document.getElementById(`c-mdr-${i}`)?.value)||0;
     const compRate=+(document.getElementById(`c-comp-${i}`)?.value)||m.compComp||0;
-    const headroom=compRate-curRate; // how much we can raise before hitting competitor rate
-    if(headroom<=0.005) return; // no room
-    const nrGainPerPct=mGMV/100; // NR gain per 0.01% rate increase × 100 = per 1% = mGMV/100
+    const headroom=compRate-curRate;
+    if(headroom<=0.005) return;
+    const nrGainPerPct=mGMV/100;
     candidates.push({i,m,mGMV,curRate,compRate,headroom,nrGainPerPct,spl});
   });
 
   if(!candidates.length){panel.classList.add('hidden');return;}
 
-  // Sort by NR gain potential descending (biggest split × most headroom first)
-  candidates.sort((a,b)=>(b.nrGainPerPct*b.headroom)-(a.nrGainPerPct*a.headroom));
+  // Two strategies:
+  // 'split'  — sort by split% desc: fewest rate changes, biggest-volume methods first
+  // 'spread' — sort by headroom% asc: distribute changes across methods, smallest bumps first
+  const sorted=[...candidates].sort((a,b)=>
+    _optimiserMode==='split'?(b.spl-a.spl):(a.headroom-b.headroom)
+  );
 
-  // Greedy: raise each method the minimum needed, capped at competitor rate
+  // Greedy fill to reach target
   let remaining=deficit;
   _optimisedRates=[];
   const suggestions=[];
-
-  for(const c of candidates){
+  for(const c of sorted){
     if(remaining<=0) break;
-    const neededPct=remaining/c.nrGainPerPct; // % rate increase needed from this method alone
+    const neededPct=remaining/c.nrGainPerPct;
     const bump=Math.min(neededPct,c.headroom);
     const newRate=+(c.curRate+bump).toFixed(2);
     const nrGained=bump*c.nrGainPerPct;
     remaining-=nrGained;
     _optimisedRates.push({i:c.i,newRate});
-    suggestions.push({label:c.m.label,curRate:c.curRate,newRate,compRate:c.compRate,nrGained,bump});
+    suggestions.push({label:c.m.label,spl:c.spl,curRate:c.curRate,newRate,compRate:c.compRate,nrGained,bump,maxed:Math.abs(bump-c.headroom)<0.01});
   }
 
   const projectedNR=totalNR+suggestions.reduce((s,x)=>s+x.nrGained,0);
+  const reachedTarget=projectedNR>=NR_TARGET;
 
   // Render rows
   rowsEl.innerHTML=suggestions.map(s=>`
     <div class="flex items-center justify-between bg-white rounded-lg px-3 py-2 border border-amber-100">
       <div class="flex-1 min-w-0">
-        <p class="text-xs font-bold text-gray-800 truncate">${s.label}</p>
-        <p class="text-xs text-gray-400">${s.curRate.toFixed(2)}% → <span class="font-bold text-amber-700">${s.newRate.toFixed(2)}%</span> <span class="text-gray-300">· competitor ${s.compRate.toFixed(2)}%</span></p>
+        <div class="flex items-center gap-1.5 mb-0.5">
+          <p class="text-xs font-bold text-gray-800 truncate">${s.label}</p>
+          <span class="text-xs text-gray-400 font-semibold flex-shrink-0">${s.spl.toFixed(0)}% split</span>
+          ${s.maxed?'<span class="text-xs bg-red-50 text-red-500 px-1.5 rounded font-semibold flex-shrink-0">maxed</span>':''}
+        </div>
+        <p class="text-xs text-gray-400">${s.curRate.toFixed(2)}% → <span class="font-bold text-amber-700">${s.newRate.toFixed(2)}%</span> <span class="text-gray-300 ml-1">competitor ${s.compRate.toFixed(2)}%</span></p>
       </div>
       <p class="text-xs font-black text-emerald-600 ml-3 flex-shrink-0">+${fmtINR2(s.nrGained)}</p>
     </div>`).join('');
 
-  projEl.textContent=`Projected NR after adjustment: ${fmtINR2(projectedNR)}/month${projectedNR<0?' (still negative — no further headroom vs competition)':''}`;
+  const targetNote=reachedTarget
+    ?`Projected NR: <strong>${fmtINR2(projectedNR)}/month</strong> ✓ target ₹500 reached`
+    :`Projected NR: <strong>${fmtINR2(projectedNR)}/month</strong> — not enough headroom vs competition to reach ₹500`;
+  projEl.innerHTML=targetNote;
   panel.classList.remove('hidden');
+}
+
+function setOptimiserMode(mode){
+  _optimiserMode=mode;
+  const btnSplit=document.getElementById('opt-btn-split');
+  const btnSpread=document.getElementById('opt-btn-spread');
+  if(btnSplit) btnSplit.className=mode==='split'
+    ?'text-xs font-bold px-3 py-1 rounded-lg bg-amber-600 text-white'
+    :'text-xs font-bold px-3 py-1 rounded-lg bg-white border border-amber-200 text-amber-700 hover:bg-amber-50';
+  if(btnSpread) btnSpread.className=mode==='spread'
+    ?'text-xs font-bold px-3 py-1 rounded-lg bg-amber-600 text-white'
+    :'text-xs font-bold px-3 py-1 rounded-lg bg-white border border-amber-200 text-amber-700 hover:bg-amber-50';
+  // re-render with current NR
+  const comp=document.getElementById('comp-nr');
+  if(comp){
+    const nr=parseFloat(comp.textContent.replace(/[^0-9.\-]/g,'').replace(',',''));
+    if(!isNaN(nr)) renderOptimiserPanel(nr);
+  }
+  // safer: just call updateOutputs
+  updateOutputs();
 }
 
 function applyOptimisedRates(){
