@@ -9,7 +9,7 @@
 <!-- build: 20260805-v117 -->
 <script>
 (function(){
-  const BUILD='v123';
+  const BUILD='v124';
   const u=new URL(location.href);
   if(u.searchParams.get('b')!==BUILD){u.searchParams.set('b',BUILD);location.replace(u.toString());}
 })();
@@ -6362,18 +6362,19 @@ function computeNRFromSnapshot(snap){
 function computeAvgBpsFromSnapshot(snap){
   if(!snap) return null;
   const sc=snap.activeTab||'competition';
-  let weightedBps=0,totalSplit=0;
+  const withSplit=[],allMethods=[];
   METHODS.forEach((m,i)=>{
     if(m.codOnly) return;
-    const spl=parseFloat((snap.splits?.[sc]||{})[i])||0;
-    if(!spl) return;
     if(snap.flatModes?.[sc]?.[i]) return;
     const mdr=parseFloat((snap.rates?.[sc]||{})[i])||0;
-    weightedBps+=mdr*100*spl;
-    totalSplit+=spl;
+    if(!mdr) return;
+    const spl=parseFloat((snap.splits?.[sc]||{})[i])||0;
+    if(spl>0) withSplit.push(mdr*100);
+    allMethods.push(mdr*100);
   });
-  if(!totalSplit) return null;
-  return weightedBps/totalSplit;
+  const arr=withSplit.length?withSplit:allMethods;
+  if(!arr.length) return null;
+  return arr.reduce((s,v)=>s+v,0)/arr.length;
 }
 // ─────────────────────────────────────────────────────────────────────────────
 let statsAllRows=[];
