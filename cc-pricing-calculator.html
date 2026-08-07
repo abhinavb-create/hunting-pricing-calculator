@@ -9,7 +9,7 @@
 <!-- build: 20260805-v117 -->
 <script>
 (function(){
-  const BUILD='v128';
+  const BUILD='v129';
   const u=new URL(location.href);
   if(u.searchParams.get('b')!==BUILD){u.searchParams.set('b',BUILD);location.replace(u.toString());}
 })();
@@ -942,7 +942,14 @@
             <tr class="text-gray-400 uppercase tracking-wider border-b-2 border-gray-100 font-bold">
               <th class="text-left py-2.5 pr-2 w-40">Method</th>
               <th class="text-center py-2.5 px-2 rp-col rounded-t-lg">RP Pricing</th>
-              <th class="text-center py-2.5 px-2 comp-col rounded-t-lg">Comp MDR %</th>
+              <th class="text-center py-2.5 px-2 comp-col rounded-t-lg">
+                <div class="flex items-center justify-center gap-1.5">Comp MDR %
+                  <label title="Upload competitor pricing screenshot — AI will parse and fill" class="cursor-pointer text-purple-400 hover:text-purple-600 transition-colors">
+                    <svg class="w-3.5 h-3.5 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
+                    <input type="file" accept="image/*" class="hidden" onchange="parseCompPricingImage(this)">
+                  </label>
+                </div>
+              </th>
               <th class="text-center py-2.5 px-2">GMV Split %</th>
               <th class="text-right py-2.5 px-2">Method GMV</th>
               <th class="text-right py-2.5 px-2">Merch Pays (RP)</th>
@@ -1486,6 +1493,16 @@
   <div id="settings-admin-section" class="hidden bg-white rounded-2xl border border-red-100 shadow-sm mb-4 overflow-hidden">
     <div class="px-5 py-3 border-b border-red-100 bg-red-50">
       <p class="text-xs font-bold text-red-400 uppercase tracking-wider">🔐 Admin Controls</p>
+    </div>
+    <div class="px-5 py-4 flex items-center justify-between border-b border-gray-100">
+      <div class="flex-1 mr-4">
+        <p class="text-sm font-semibold text-gray-700">Anthropic API Key</p>
+        <p class="text-xs text-gray-400 mt-0.5">Used for AI image parsing of competitor pricing screenshots</p>
+        <div class="flex gap-2 mt-2">
+          <input id="settings-anthropic-key" type="password" placeholder="sk-ant-..." class="flex-1 text-xs border border-gray-200 rounded-lg px-3 py-2 font-mono focus:outline-none focus:border-indigo-400">
+          <button onclick="saveAnthropicKey()" class="text-xs bg-indigo-600 text-white font-bold px-3 py-2 rounded-xl hover:bg-indigo-700">Save</button>
+        </div>
+      </div>
     </div>
     <div class="px-5 py-4 flex items-center justify-between border-b border-gray-100">
       <div>
@@ -6402,12 +6419,93 @@ function closeStats(){
   document.getElementById('main-wrap')?.classList.remove('hidden');
 }
 
+function saveAnthropicKey(){
+  const val=(document.getElementById('settings-anthropic-key')?.value||'').trim();
+  if(val) localStorage.setItem('rzp_anthropic_key',val);
+  else localStorage.removeItem('rzp_anthropic_key');
+  const btn=document.querySelector('[onclick="saveAnthropicKey()"]');
+  if(btn){btn.textContent='✓ Saved';setTimeout(()=>btn.textContent='Save',1500);}
+}
+
+async function parseCompPricingImage(input){
+  const file=input.files?.[0];
+  if(!file) return;
+  input.value='';
+  const key=localStorage.getItem('rzp_anthropic_key');
+  if(!key){alert('Add your Anthropic API key in Settings first.');return;}
+
+  // Show loading state on the upload icon
+  const label=input.closest('label');
+  const origHTML=label?.innerHTML||'';
+  if(label) label.innerHTML='<span class="text-purple-500 text-xs animate-pulse">Parsing…</span>';
+
+  try{
+    const b64=await new Promise((res,rej)=>{
+      const reader=new FileReader();
+      reader.onload=e=>res(e.target.result.split(',')[1]);
+      reader.onerror=rej;
+      reader.readAsDataURL(file);
+    });
+    const mime=file.type||'image/png';
+
+    const methodList=METHODS.filter(m=>!m.codOnly&&!m.locked).map((m,i)=>`${i}: ${m.label} (id: ${m.id})`).join('\n');
+
+    const resp=await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST',
+      headers:{'x-api-key':key,'anthropic-version':'2023-06-01','content-type':'application/json','anthropic-dangerous-direct-browser-calls':'true'},
+      body:JSON.stringify({
+        model:'claude-haiku-4-5-20251001',
+        max_tokens:1024,
+        messages:[{role:'user',content:[
+          {type:'image',source:{type:'base64',media_type:mime,data:b64}},
+          {type:'text',text:`This is a competitor payment gateway pricing screenshot. Extract the MDR % for each payment method and return ONLY a JSON object mapping method index to rate (as a number).
+
+Payment method indices:
+${methodList}
+
+Rules:
+- Match each rate to the closest method by name
+- Return % as a decimal number (e.g. 1.99 not "1.99%")
+- Skip methods you cannot find in the image
+- Return ONLY valid JSON like: {"0":1.95,"3":0.40,"13":0.25}
+- No explanation, no markdown, just the JSON object`}
+        ]}]
+      })
+    });
+    if(!resp.ok){const e=await resp.json();throw new Error(e.error?.message||resp.statusText);}
+    const data=await resp.json();
+    const raw=data.content?.[0]?.text||'{}';
+    const parsed=JSON.parse(raw.match(/\{[\s\S]*\}/)?.[0]||'{}');
+
+    let filled=0;
+    Object.entries(parsed).forEach(([idx,rate])=>{
+      const el=document.getElementById(`c-comp-${idx}`);
+      if(el&&typeof rate==='number'&&rate>=0&&rate<=15){
+        el.value=rate.toFixed(2);
+        el.classList.add('ring-2','ring-purple-400');
+        setTimeout(()=>el.classList.remove('ring-2','ring-purple-400'),3000);
+        filled++;
+      }
+    });
+    updateOutputs();
+    if(label) label.innerHTML=`<span class="text-green-600 text-xs font-bold">✓ ${filled} filled</span>`;
+    setTimeout(()=>{if(label) label.innerHTML=origHTML;},3000);
+  }catch(e){
+    console.error('[CompParser]',e);
+    if(label) label.innerHTML=origHTML;
+    alert('Could not parse image: '+e.message);
+  }
+}
+
 function showSettings(){
   document.getElementById('main-wrap')?.classList.add('hidden');
   document.getElementById('stats-page')?.classList.add('hidden');
   const pg=document.getElementById('settings-page');
   if(!pg) return;
   pg.classList.remove('hidden');
+  // Pre-fill API key if saved
+  const keyEl=document.getElementById('settings-anthropic-key');
+  if(keyEl&&localStorage.getItem('rzp_anthropic_key')) keyEl.value=localStorage.getItem('rzp_anthropic_key');
   // Populate profile
   if(currentUser){
     const pic=document.getElementById('settings-pic');
