@@ -9,7 +9,7 @@
 <!-- build: 20260805-v117 -->
 <script>
 (function(){
-  const BUILD='v121';
+  const BUILD='v122';
   const u=new URL(location.href);
   if(u.searchParams.get('b')!==BUILD){u.searchParams.set('b',BUILD);location.replace(u.toString());}
 })();
@@ -3195,6 +3195,17 @@ function renderOptimiserPanel(totalNR){
   if(primary.reached){
     _optimisedRates=primary.rates;
     _renderRows(rowsEl,primary.suggs);
+    // Show locked methods as rebuttal — methods the POC cannot sacrifice
+    const rebuttals=locked.filter(l=>l.spl>0);
+    if(rebuttals.length){
+      rowsEl.insertAdjacentHTML('beforeend',`<div class="mt-2 pt-2 border-t border-amber-200">
+        <p class="text-xs font-bold text-amber-800 mb-1.5">Methods you cannot sacrifice — already at competitor ceiling:</p>
+        ${rebuttals.map(r=>`<div class="flex items-center justify-between text-xs py-1">
+          <span class="font-semibold text-gray-700">${r.label} <span class="text-gray-400">(${r.spl.toFixed(0)}% split)</span></span>
+          <span class="text-red-500 text-right">${r.reason}</span>
+        </div>`).join('')}
+      </div>`);
+    }
     projEl.innerHTML=`✓ Projected NR: <strong>${fmtINR2(primary.projectedNR)}/month</strong> — reaches ₹1,000 target`;
     const hdr=document.getElementById('opt-hdr-title');
     const sub=document.getElementById('opt-hdr-sub');
