@@ -9,7 +9,7 @@
 <!-- build: 20260805-v117 -->
 <script>
 (function(){
-  const BUILD='v122';
+  const BUILD='v123';
   const u=new URL(location.href);
   if(u.searchParams.get('b')!==BUILD){u.searchParams.set('b',BUILD);location.replace(u.toString());}
 })();
@@ -1359,6 +1359,7 @@
             <th class="text-left px-5 py-3.5 text-xs font-bold text-gray-400 uppercase tracking-wider whitespace-nowrap">Pricing Version</th>
             <th class="text-left px-5 py-3.5 text-xs font-bold text-gray-400 uppercase tracking-wider whitespace-nowrap">GMV Slab</th>
             <th class="text-left px-5 py-3.5 text-xs font-bold text-blue-500 uppercase tracking-wider whitespace-nowrap">NR / Month</th>
+            <th class="text-left px-5 py-3.5 text-xs font-bold text-purple-500 uppercase tracking-wider whitespace-nowrap">Avg Blended Rate</th>
             <th class="text-left px-5 py-3.5 text-xs font-bold text-gray-400 uppercase tracking-wider whitespace-nowrap">Team</th>
             <th class="text-left px-5 py-3.5 text-xs font-bold text-gray-400 uppercase tracking-wider whitespace-nowrap">Shared By</th>
           </tr>
@@ -6358,6 +6359,22 @@ function computeNRFromSnapshot(snap){
 
   return pgNR+mcNR+sNR;
 }
+function computeAvgBpsFromSnapshot(snap){
+  if(!snap) return null;
+  const sc=snap.activeTab||'competition';
+  let weightedBps=0,totalSplit=0;
+  METHODS.forEach((m,i)=>{
+    if(m.codOnly) return;
+    const spl=parseFloat((snap.splits?.[sc]||{})[i])||0;
+    if(!spl) return;
+    if(snap.flatModes?.[sc]?.[i]) return;
+    const mdr=parseFloat((snap.rates?.[sc]||{})[i])||0;
+    weightedBps+=mdr*100*spl;
+    totalSplit+=spl;
+  });
+  if(!totalSplit) return null;
+  return weightedBps/totalSplit;
+}
 // ─────────────────────────────────────────────────────────────────────────────
 let statsAllRows=[];
 let statsMidMap=JSON.parse(localStorage.getItem('rzp_mid_map')||'{}'); // {merchantKey: mid}
@@ -6786,6 +6803,12 @@ function renderStatsTable(rows){
         const sub=snap?.activeTab==='magic-checkout'?'PG+MC':'PG';
         return `<p class="text-sm ${cls}">${nr>=0?'+':''}${fmtINR2(nr)}</p><p class="text-xs text-gray-400">${sub}</p>`;
       })()}</td>
+      <td class="px-5 py-3.5 whitespace-nowrap">${(()=>{
+        const snap=latest.snapshot||window._snapCache?.[latest.rowId];
+        const bps=computeAvgBpsFromSnapshot(snap);
+        if(bps===null) return '<span class="text-xs text-gray-300">—</span>';
+        return `<p class="text-sm font-black text-purple-700">${bps.toFixed(1)} bps</p><p class="text-xs text-gray-400">blended avg</p>`;
+      })()}</td>
       <td class="px-5 py-3.5 whitespace-nowrap">${teamR.teamGroup?`<span class="text-xs font-bold px-2 py-1 rounded-full bg-blue-50 text-blue-700">${teamR.teamGroup}</span>`:'<span class="text-xs text-gray-300">—</span>'}</td>
       <td class="px-5 py-3.5 whitespace-nowrap">${ownerDisplay(ownerR)}</td>
     </tr>`;
@@ -6853,17 +6876,65 @@ function saveGroup(){
 
 // _ensureUsersSheet removed — Users data now in data/users.json on GitHub
 
+async function _loadRevampStatuses(){
+  try{
+    const tok=await _getGToken();
+    if(!tok?.token) return {};
+    const H={Authorization:'Bearer '+tok.token};
+    const statuses={};
+    // Find all "[Final Pricing Approved]" threads sent to dsstartup-ops
+    const q=encodeURIComponent('subject:"Final Pricing Approved" to:dsstartup-ops@razorpay.com');
+    const r1=await fetch(`https://gmail.googleapis.com/gmail/v1/users/me/messages?q=${q}&maxResults=100`,{headers:H});
+    const d1=await r1.json();
+    const msgs=d1.messages||[];
+    if(!msgs.length) return statuses;
+    // Find threads where DSS ops has replied
+    const qDss=encodeURIComponent('from:dsstartup-ops@razorpay.com');
+    const r2=await fetch(`https://gmail.googleapis.com/gmail/v1/users/me/messages?q=${qDss}&maxResults=200`,{headers:H});
+    const d2=await r2.json();
+    const dssThreads=new Map();// threadId -> snippet
+    (d2.messages||[]).forEach(m=>{ if(!dssThreads.has(m.threadId)) dssThreads.set(m.threadId,m.snippet||''); });
+    // For each unique thread, get CC to find requester
+    const seenThreads=new Set();
+    for(const m of msgs){
+      if(seenThreads.has(m.threadId)) continue;
+      seenThreads.add(m.threadId);
+      const tr=await fetch(`https://gmail.googleapis.com/gmail/v1/users/me/messages/${m.id}?format=metadata&metadataHeaders=Cc`,{headers:H});
+      const td=await tr.json();
+      const cc=td.payload?.headers?.find(h=>h.name==='Cc')?.value||'';
+      const ccEmails=cc.split(',').map(e=>e.trim().replace(/.*<(.+?)>.*/,'$1').trim())
+        .filter(e=>e.includes('@')&&!e.includes('dsstartup-ops')&&e.toLowerCase()!==ADMIN_EMAIL.toLowerCase()&&e.toLowerCase()!==CO_ADMIN_EMAIL.toLowerCase());
+      if(!ccEmails.length) continue;
+      const requester=ccEmails[0].toLowerCase();
+      if(dssThreads.has(m.threadId)){
+        const snippet=(dssThreads.get(m.threadId)||'').toLowerCase();
+        statuses[requester]=(snippet.includes('invalid')||snippet.includes('reject')||snippet.includes('incorrect'))?'invalid':'done';
+      } else {
+        if(!statuses[requester]) statuses[requester]='pending';
+      }
+    }
+    return statuses;
+  }catch(e){ console.warn('[RevampStatus]',e); return {}; }
+}
+
 async function loadUsersPanel(){
   const body=document.getElementById('stats-users-body');
   const countEl=document.getElementById('stats-users-count');
   if(body) body.innerHTML='<p class="text-sm text-gray-400 text-center py-6">Loading…</p>';
   try{
-    const{data}=await _ghRead('data/users.json');
+    const[{data}, revampStatuses]=await Promise.all([_ghRead('data/users.json'), _loadRevampStatuses()]);
     const allUsers=(data||[]).filter(u=>u.email&&u.email.toLowerCase()!==ADMIN_EMAIL.toLowerCase()&&u.email.toLowerCase()!==CO_ADMIN_EMAIL.toLowerCase()&&u.email.toLowerCase()!==OPS_EMAIL.toLowerCase());
     const pending=allUsers.filter(u=>(u.status||'pending')==='pending');
     const active=allUsers.filter(u=>u.status==='active');
     if(countEl) countEl.textContent=active.length+(pending.length?` (+${pending.length} pending)`:'');
     const fmtDt=s=>{if(!s)return'—';try{const d=new Date(s);return d.toLocaleDateString('en-IN',{day:'2-digit',month:'short'})+' '+d.toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'});}catch{return s;}};
+    const revampDot=(email)=>{
+      const s=revampStatuses[email.toLowerCase()];
+      if(!s) return '<span class="text-gray-200">—</span>';
+      if(s==='done') return '<span title="DSS ops reverted: Revamp done" class="text-base">✅</span>';
+      if(s==='invalid') return '<span title="Marked invalid by DSS ops" class="inline-block w-2.5 h-2.5 rounded-full bg-red-500 align-middle"></span>';
+      return '<span title="Revamp request raised — awaiting DSS ops" class="inline-block w-2.5 h-2.5 rounded-full bg-amber-400 align-middle"></span>';
+    };
     let html='';
     if(pending.length){
       html+=`<div class="px-4 pt-3 pb-1 text-xs font-bold text-amber-600 uppercase tracking-wide bg-amber-50 border-b border-amber-100">⏳ Pending Approval (${pending.length})</div>`;
@@ -6878,11 +6949,12 @@ async function loadUsersPanel(){
     }
     if(active.length){
       html+=`<div class="px-4 pt-3 pb-1 text-xs font-bold text-green-700 uppercase tracking-wide bg-green-50 border-b border-green-100">✅ Active Users (${active.length})</div>`;
-      html+=`<table class="w-full"><thead><tr class="text-left"><th class="px-4 py-2 text-xs font-bold text-gray-400 uppercase tracking-wide">User</th><th class="px-4 py-2 text-xs font-bold text-gray-400 uppercase tracking-wide">Team</th><th class="px-4 py-2 text-xs font-bold text-gray-400 uppercase tracking-wide">Joined</th></tr></thead><tbody>`;
+      html+=`<table class="w-full"><thead><tr class="text-left"><th class="px-4 py-2 text-xs font-bold text-gray-400 uppercase tracking-wide">User</th><th class="px-4 py-2 text-xs font-bold text-gray-400 uppercase tracking-wide">Team</th><th class="px-4 py-2 text-xs font-bold text-gray-400 uppercase tracking-wide">Joined</th><th class="px-4 py-2 text-xs font-bold text-gray-400 uppercase tracking-wide">Pricing Revamp</th></tr></thead><tbody>`;
       html+=active.map(u=>`<tr class="border-b border-gray-50 hover:bg-gray-50">
         <td class="px-4 py-2.5"><div class="font-semibold text-gray-800 text-sm">${u.name||'—'}</div><div class="text-xs text-gray-400">${u.email}</div></td>
         <td class="px-4 py-2.5 text-xs text-gray-500">${u.teamGroup||'—'}</td>
         <td class="px-4 py-2.5 text-xs text-gray-500">${fmtDt(u.registeredAt)}</td>
+        <td class="px-4 py-2.5 text-center">${revampDot(u.email)}</td>
       </tr>`).join('');
       html+=`</tbody></table>`;
     }
