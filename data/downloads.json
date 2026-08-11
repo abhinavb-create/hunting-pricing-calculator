@@ -1,27 +1,27 @@
 [
   {
-    "rowId": "dl_1786450224789",
-    "fileName": "LIFEYOGA PRIVATE LIMITED-QfSDOJlsYU5E7a-Razorpay-Proposal.pdf",
-    "merchantName": "LIFEYOGA PRIVATE LIMITED",
+    "rowId": "ap_msom6wy50kdznu",
+    "fileName": "Sashafe-J0Ky25oAFJfi9c-Razorpay-Proposal.pdf",
+    "merchantName": "Sashafe",
     "userEmail": "arpit.shukla@razorpay.com",
     "userName": "Arpit Shukla",
     "teamGroup": "Competition Hunting",
-    "driveLink": "https://drive.google.com/file/d/1-C4qwVfYj7QINEtCOrJmbI32nDW4DPaM/view",
-    "fileId": "",
+    "driveLink": "https://drive.google.com/file/d/1Zaq24fRPF53hTXyzRFgAXr5ccz_k1c7G/view",
+    "fileId": "1Zaq24fRPF53hTXyzRFgAXr5ccz_k1c7G",
     "versionGroup": null,
     "snapshot": {
-      "merchantName": "LIFEYOGA PRIVATE LIMITED",
+      "merchantName": "Sashafe",
       "customerName": "",
-      "mid": "QfSDOJlsYU5E7a",
-      "mcc": "7298",
-      "gmv": "5000000",
+      "mid": "J0Ky25oAFJfi9c",
+      "mcc": "5651",
+      "gmv": "500000",
       "settlementType": "T2",
       "t1Rate": "0",
       "t0Rate": "0.05",
       "odsRate": "0.10",
       "gmvCredit": "0",
       "gmvCreditCustom": "",
-      "setupCost": "0",
+      "setupCost": "5000",
       "setupCostWaived": false,
       "activeTab": "competition",
       "mcRate": "0.05",
@@ -29,7 +29,7 @@
       "mcPostRate": "0.05",
       "rates": {
         "competition": {
-          "0": "1.95",
+          "0": "1.9",
           "1": "2.00",
           "2": "2.00",
           "3": "2.00",
@@ -37,7 +37,7 @@
           "5": "3.00",
           "6": "3.00",
           "7": "3.00",
-          "8": "1",
+          "8": "0.8",
           "9": "2.15",
           "10": "2.00",
           "11": "2.00",
@@ -229,7 +229,7 @@
       },
       "splits": {
         "competition": {
-          "0": "40",
+          "0": "60",
           "1": "0",
           "2": "0",
           "3": "0",
@@ -237,7 +237,7 @@
           "5": "0",
           "6": "0",
           "7": "0",
-          "8": "60",
+          "8": "40",
           "9": "0",
           "10": "0",
           "11": "0",
@@ -308,7 +308,7 @@
         }
       }
     },
-    "timestamp": 1786450224789
+    "timestamp": 1786450261023
   },
   {
     "rowId": "dl_1786449985306",
