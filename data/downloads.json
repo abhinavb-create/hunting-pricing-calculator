@@ -1,13 +1,13 @@
 [
   {
-    "rowId": "dl_1786689095561",
+    "rowId": "dl_1786689122807",
     "fileName": "Walkaroo-Razorpay-Proposal.pdf",
     "merchantName": "Walkaroo",
     "userEmail": "anam.imteyaz@razorpay.com",
     "userName": "Anam Imteyaz",
     "teamGroup": "Shopify Hunting",
-    "driveLink": "https://drive.google.com/file/d/18lsmw7D0N09HC5Gb8yZh3ZgpzF6uNJ7H/view",
-    "fileId": "",
+    "driveLink": "https://drive.google.com/file/d/1JEGLvBYy9Y2sarye1Hv5IrkklorGtoth/view",
+    "fileId": "1JEGLvBYy9Y2sarye1Hv5IrkklorGtoth",
     "versionGroup": null,
     "snapshot": {
       "merchantName": "Walkaroo",
@@ -25,7 +25,7 @@
       "setupCostWaived": false,
       "activeTab": "magic-checkout",
       "mcRate": "0",
-      "mcCompRate": "0.10",
+      "mcCompRate": "0.00",
       "mcPostRate": "0.3",
       "rates": {
         "competition": {
@@ -308,7 +308,7 @@
         }
       }
     },
-    "timestamp": 1786689095561
+    "timestamp": 1786689125969
   },
   {
     "rowId": "dl_1786688197453",
