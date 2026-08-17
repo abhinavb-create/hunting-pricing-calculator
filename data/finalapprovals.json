@@ -636,5 +636,16 @@
     "resolvedAt": "",
     "teamGroup": "Competition Hunting",
     "timestamp": "2026-08-17T09:10:47.225Z"
+  },
+  {
+    "requestId": "fa_msx0yqhzz5dy8x",
+    "merchantName": "Live Fiesta",
+    "requesterEmail": "kirubhavani.b@razorpay.com",
+    "versionIds": "dl_1786949181386",
+    "notes": "we have given cc for 1.75% with hdfc terminal",
+    "status": "pending",
+    "resolvedAt": "",
+    "teamGroup": "Competition Hunting",
+    "timestamp": "2026-08-17T09:21:59.976Z"
   }
 ]
