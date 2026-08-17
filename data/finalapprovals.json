@@ -614,5 +614,16 @@
     "resolvedAt": "",
     "teamGroup": "Competition Hunting",
     "timestamp": "2026-08-14T06:17:33.796Z"
+  },
+  {
+    "requestId": "fa_mswzmw4s727b20",
+    "merchantName": "Nester Store",
+    "requesterEmail": "anam.imteyaz@razorpay.com",
+    "versionIds": "dl_1786351155278",
+    "notes": "MID - TPDAXh9lzlOFPO",
+    "status": "pending",
+    "resolvedAt": "",
+    "teamGroup": "Shopify Hunting",
+    "timestamp": "2026-08-17T08:44:47.789Z"
   }
 ]
