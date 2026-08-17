@@ -647,5 +647,16 @@
     "resolvedAt": "",
     "teamGroup": "Competition Hunting",
     "timestamp": "2026-08-17T09:21:59.976Z"
+  },
+  {
+    "requestId": "fa_msx47qocsg854l",
+    "merchantName": "Own Knitted Blank Wears",
+    "requesterEmail": "kirubhavani.b@razorpay.com",
+    "versionIds": "dl_1786963766861",
+    "notes": "UPI fixed plan: INR 30,000 for 6 months",
+    "status": "pending",
+    "resolvedAt": "",
+    "teamGroup": "Competition Hunting",
+    "timestamp": "2026-08-17T10:52:58.957Z"
   }
 ]
