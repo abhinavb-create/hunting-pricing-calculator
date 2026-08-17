@@ -625,5 +625,16 @@
     "resolvedAt": "",
     "teamGroup": "Shopify Hunting",
     "timestamp": "2026-08-17T08:44:47.789Z"
+  },
+  {
+    "requestId": "fa_msx0kbegqblxgz",
+    "merchantName": "Agents Nexus",
+    "requesterEmail": "chandel.yajat@razorpay.com",
+    "versionIds": "dl_1786442942431",
+    "notes": "",
+    "status": "pending",
+    "resolvedAt": "",
+    "teamGroup": "Competition Hunting",
+    "timestamp": "2026-08-17T09:10:47.225Z"
   }
 ]
