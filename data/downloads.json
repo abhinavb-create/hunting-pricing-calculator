@@ -1,13 +1,13 @@
 [
   {
-    "rowId": "ap_msx1t2nb0tor8t",
+    "rowId": "dl_1786960553143",
     "fileName": "Reise Moto-Razorpay-Proposal.pdf",
     "merchantName": "Reise Moto",
     "userEmail": "anam.imteyaz@razorpay.com",
     "userName": "Anam Imteyaz",
     "teamGroup": "Shopify Hunting",
-    "driveLink": "https://drive.google.com/file/d/1Qo8xqTIu0Am0cQBGm3XEGmFyspYAP3wl/view",
-    "fileId": "1Qo8xqTIu0Am0cQBGm3XEGmFyspYAP3wl",
+    "driveLink": "https://drive.google.com/file/d/1OGVAdQfzF19wJrcgrkKkyrwVCdKt03Pc/view",
+    "fileId": "1OGVAdQfzF19wJrcgrkKkyrwVCdKt03Pc",
     "versionGroup": null,
     "snapshot": {
       "merchantName": "Reise Moto",
@@ -21,7 +21,7 @@
       "odsRate": "0.10",
       "gmvCredit": "0",
       "gmvCreditCustom": "",
-      "setupCost": "5000",
+      "setupCost": "0",
       "setupCostWaived": false,
       "activeTab": "competition",
       "mcRate": "0.05",
@@ -452,7 +452,7 @@
         }
       }
     },
-    "timestamp": 1786960485820
+    "timestamp": 1786960556349
   },
   {
     "rowId": "dl_1786960323972",
