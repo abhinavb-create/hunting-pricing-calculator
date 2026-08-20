@@ -16738,8 +16738,8 @@
     "fileName": "tyfgujhklm;,-Razorpay-Proposal.pdf",
     "requesterEmail": "anam.imteyaz@razorpay.com",
     "merchantName": "tyfgujhklm;,",
-    "status": "pending",
-    "resolvedAt": "",
+    "status": "rejected",
+    "resolvedAt": "2026-08-20T10:58:09.507Z",
     "gmv": 5600000,
     "slabLabel": "25L - 75L",
     "driveLink": "https://drive.google.com/file/d/1f9luFSDCdItPdYqWdmZGWHnFvpldlyIz/view",
@@ -17189,7 +17189,8 @@
         }
       }
     },
-    "timestamp": 1787223208329
+    "timestamp": 1787223208329,
+    "leaderNote": ""
   },
   {
     "requestId": "mt1epgpp0kekng",
