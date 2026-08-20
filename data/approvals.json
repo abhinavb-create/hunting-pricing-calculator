@@ -17197,8 +17197,8 @@
     "fileName": "kurtiwork-NVDIVNsB8pR1uu-Razorpay-Proposal.pdf",
     "requesterEmail": "anam.imteyaz@razorpay.com",
     "merchantName": "kurtiwork",
-    "status": "pending",
-    "resolvedAt": "",
+    "status": "approved",
+    "resolvedAt": "2026-08-20T11:08:43.640Z",
     "gmv": 20000000,
     "slabLabel": "75L - 5Cr",
     "driveLink": "https://drive.google.com/file/d/1rFWTiLwmnqEzMNyYiaEIZjAVZophy9cf/view",
@@ -17648,6 +17648,7 @@
         }
       }
     },
-    "timestamp": 1787223481003
+    "timestamp": 1787223481003,
+    "leaderNote": ""
   }
 ]
