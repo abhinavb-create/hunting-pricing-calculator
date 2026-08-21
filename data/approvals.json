@@ -17656,8 +17656,8 @@
     "fileName": "WHITESLIPS GLOBAL SERVICES PRIVATE LIMITED-TEAnEJYxFVTX2M-Razorpay-Proposal.pdf",
     "requesterEmail": "prerna.kumari@razorpay.com",
     "merchantName": "WHITESLIPS GLOBAL SERVICES PRIVATE LIMITED",
-    "status": "pending",
-    "resolvedAt": "",
+    "status": "approved",
+    "resolvedAt": "2026-08-21T08:31:51.388Z",
     "gmv": 2500000,
     "slabLabel": "Upto 25 Lakhs",
     "driveLink": "https://drive.google.com/file/d/1nfjxyoE_nG7TlISA4GMBNB6nto8r1co9/view",
@@ -18107,6 +18107,7 @@
         }
       }
     },
-    "timestamp": 1787301015735
+    "timestamp": 1787301015735,
+    "leaderNote": ""
   }
 ]
