@@ -713,5 +713,16 @@
     "resolvedAt": "",
     "teamGroup": "Competition Hunting",
     "timestamp": "2026-08-24T07:28:52.975Z"
+  },
+  {
+    "requestId": "fa_mt727e9aaai21z",
+    "merchantName": "Naseem Perfumes",
+    "requesterEmail": "anam.imteyaz@razorpay.com",
+    "versionIds": "dl_1785495233636",
+    "notes": "",
+    "status": "pending",
+    "resolvedAt": "",
+    "teamGroup": "Shopify Hunting",
+    "timestamp": "2026-08-24T09:54:25.391Z"
   }
 ]
