@@ -18574,8 +18574,8 @@
     "fileName": "Kamfool-TOMuyqUmHpUz3h-Razorpay-Proposal.pdf",
     "requesterEmail": "chandel.yajat@razorpay.com",
     "merchantName": "Kamfool",
-    "status": "pending",
-    "resolvedAt": "",
+    "status": "approved",
+    "resolvedAt": "2026-08-24T06:30:46.157Z",
     "gmv": 1000000,
     "slabLabel": "Upto 25 Lakhs",
     "driveLink": "https://drive.google.com/file/d/17BVgWkMphhavcpxe636Zo9q1gWCxaYYq/view",
@@ -19025,6 +19025,7 @@
         }
       }
     },
-    "timestamp": 1787551627206
+    "timestamp": 1787551627206,
+    "leaderNote": ""
   }
 ]
