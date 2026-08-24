@@ -18115,8 +18115,8 @@
     "fileName": "DAREISS-Razorpay-Proposal.pdf",
     "requesterEmail": "anam.imteyaz@razorpay.com",
     "merchantName": "DAREISS",
-    "status": "pending",
-    "resolvedAt": "",
+    "status": "approved",
+    "resolvedAt": "2026-08-24T06:01:00.689Z",
     "gmv": 500000,
     "slabLabel": "Upto 25 Lakhs",
     "driveLink": "https://drive.google.com/file/d/1gOC1QTk-Ors4gF9aeO3B1nixyuyWwY6s/view",
@@ -18566,6 +18566,7 @@
         }
       }
     },
-    "timestamp": 1787550732505
+    "timestamp": 1787550732505,
+    "leaderNote": ""
   }
 ]
