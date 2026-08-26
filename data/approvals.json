@@ -19033,8 +19033,8 @@
     "fileName": "LUSH-Razorpay-Proposal.pdf",
     "requesterEmail": "anam.imteyaz@razorpay.com",
     "merchantName": "LUSH",
-    "status": "pending",
-    "resolvedAt": "",
+    "status": "approved",
+    "resolvedAt": "2026-08-26T09:27:23.813Z",
     "gmv": 2000000,
     "slabLabel": "Upto 25 Lakhs",
     "driveLink": "https://drive.google.com/file/d/1Mqbvyxgxb89NqLdoeifD7XOnmWC0kRf3/view",
@@ -19484,6 +19484,7 @@
         }
       }
     },
-    "timestamp": 1787736386863
+    "timestamp": 1787736386863,
+    "leaderNote": ""
   }
 ]
