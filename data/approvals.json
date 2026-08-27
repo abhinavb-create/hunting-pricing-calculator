@@ -19492,8 +19492,8 @@
     "fileName": "TRADETRUST TECHNOLOGIES PRIVATE LIMITED-Razorpay-Proposal.pdf",
     "requesterEmail": "suman.dash@razorpay.com",
     "merchantName": "TRADETRUST TECHNOLOGIES PRIVATE LIMITED",
-    "status": "pending",
-    "resolvedAt": "",
+    "status": "approved",
+    "resolvedAt": "2026-08-27T05:02:30.362Z",
     "gmv": 4000000,
     "slabLabel": "25L - 75L",
     "driveLink": "https://drive.google.com/file/d/15VMKNXj9SlgZXBLf24ZUK1MjYbqfV7mi/view",
@@ -19943,6 +19943,7 @@
         }
       }
     },
-    "timestamp": 1787806051762
+    "timestamp": 1787806051762,
+    "leaderNote": ""
   }
 ]
