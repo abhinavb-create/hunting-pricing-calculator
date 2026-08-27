@@ -20869,8 +20869,8 @@
     "fileName": "Tragram Holidays-I1d1zAiKrmeC7C-Razorpay-Proposal.pdf",
     "requesterEmail": "arpit.shukla@razorpay.com",
     "merchantName": "Tragram Holidays",
-    "status": "pending",
-    "resolvedAt": "",
+    "status": "approved",
+    "resolvedAt": "2026-08-27T07:23:28.704Z",
     "gmv": 5500000,
     "slabLabel": "25L - 75L",
     "driveLink": "https://drive.google.com/file/d/19R09MdYxaiioFVBMJgv5Fjp6rdS-qM96/view",
@@ -21320,6 +21320,7 @@
         }
       }
     },
-    "timestamp": 1787815048118
+    "timestamp": 1787815048118,
+    "leaderNote": ""
   }
 ]
