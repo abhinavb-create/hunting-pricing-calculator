@@ -19951,8 +19951,8 @@
     "fileName": "Bare Necessities-Razorpay-Proposal.pdf",
     "requesterEmail": "anam.imteyaz@razorpay.com",
     "merchantName": "Bare Necessities",
-    "status": "pending",
-    "resolvedAt": "",
+    "status": "approved",
+    "resolvedAt": "2026-08-27T05:28:07.636Z",
     "gmv": 2000000,
     "slabLabel": "Upto 25 Lakhs",
     "driveLink": "https://drive.google.com/file/d/1toN_D09QaqnbQWIX9lhCVAfHWlqChJUP/view",
@@ -20402,6 +20402,7 @@
         }
       }
     },
-    "timestamp": 1787808338546
+    "timestamp": 1787808338546,
+    "leaderNote": ""
   }
 ]
