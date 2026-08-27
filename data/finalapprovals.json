@@ -724,5 +724,16 @@
     "resolvedAt": "",
     "teamGroup": "Shopify Hunting",
     "timestamp": "2026-08-24T09:54:25.391Z"
+  },
+  {
+    "requestId": "fa_mtb3j4wkq9l4v8",
+    "merchantName": "Prime Score",
+    "requesterEmail": "chandel.yajat@razorpay.com",
+    "versionIds": "dl_1786965297247",
+    "notes": "",
+    "status": "pending",
+    "resolvedAt": "",
+    "teamGroup": "Competition Hunting",
+    "timestamp": "2026-08-27T05:42:37.460Z"
   }
 ]
