@@ -21328,8 +21328,8 @@
     "fileName": "Micro Degree-FH58w4TtMcv2sl-Razorpay-Proposal.pdf",
     "requesterEmail": "sainath.vishnugauri@razorpay.com",
     "merchantName": "Micro Degree",
-    "status": "pending",
-    "resolvedAt": "",
+    "status": "approved",
+    "resolvedAt": "2026-08-28T09:10:23.889Z",
     "gmv": 5600000,
     "slabLabel": "25L - 75L",
     "driveLink": "https://drive.google.com/file/d/1dfGDQC1J0eRbMsAglnI81lWiZHS3PSmm/view",
@@ -21779,6 +21779,7 @@
         }
       }
     },
-    "timestamp": 1787908112371
+    "timestamp": 1787908112371,
+    "leaderNote": ""
   }
 ]
