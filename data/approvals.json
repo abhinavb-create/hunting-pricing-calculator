@@ -23163,8 +23163,8 @@
     "fileName": "A.K.ENTERPRISES-QGXjfAwHFtOWzQ-Razorpay-Proposal.pdf",
     "requesterEmail": "milind.singhbora@razorpay.com",
     "merchantName": "A.K.ENTERPRISES",
-    "status": "pending",
-    "resolvedAt": "",
+    "status": "approved",
+    "resolvedAt": "2026-09-01T09:16:43.303Z",
     "gmv": 2500000,
     "slabLabel": "Upto 25 Lakhs",
     "driveLink": "https://drive.google.com/file/d/1UNn9O1188MSOUNc0wdhm3UYnf2Ivfijv/view",
@@ -23614,6 +23614,7 @@
         }
       }
     },
-    "timestamp": 1788253701557
+    "timestamp": 1788253701557,
+    "leaderNote": ""
   }
 ]
