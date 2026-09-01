@@ -22246,8 +22246,8 @@
     "fileName": "Superhero Toy Store-Razorpay-Proposal.pdf",
     "requesterEmail": "anam.imteyaz@razorpay.com",
     "merchantName": "Superhero Toy Store",
-    "status": "pending",
-    "resolvedAt": "",
+    "status": "approved",
+    "resolvedAt": "2026-09-01T05:01:12.553Z",
     "gmv": 4000000,
     "slabLabel": "25L - 75L",
     "driveLink": "https://drive.google.com/file/d/1sKpnCZSYQbaDaET6Ha6LCGO6q_cybSxA/view",
@@ -22697,6 +22697,7 @@
         }
       }
     },
-    "timestamp": 1788238755958
+    "timestamp": 1788238755958,
+    "leaderNote": ""
   }
 ]
