@@ -22705,8 +22705,8 @@
     "fileName": "ORIZIN TECHNOLOGIES PRIVATE LIMITED-IUbV5FlpPF4Z6D-Razorpay-Proposal.pdf",
     "requesterEmail": "arpit.shukla@razorpay.com",
     "merchantName": "ORIZIN TECHNOLOGIES PRIVATE LIMITED",
-    "status": "pending",
-    "resolvedAt": "",
+    "status": "approved",
+    "resolvedAt": "2026-09-01T09:17:12.075Z",
     "gmv": 2000000,
     "slabLabel": "Upto 25 Lakhs",
     "driveLink": "https://drive.google.com/file/d/1-wzK_qscsI9gqEQOdYOaN1meK6Nk9li-/view",
@@ -23156,7 +23156,8 @@
         }
       }
     },
-    "timestamp": 1788249956072
+    "timestamp": 1788249956072,
+    "leaderNote": ""
   },
   {
     "requestId": "mtig2kk6n8xtyj",
