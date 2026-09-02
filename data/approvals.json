@@ -23623,8 +23623,8 @@
     "fileName": "CARZEX-MLGVZkysy2yS39-Razorpay-Proposal.pdf",
     "requesterEmail": "prerna.kumari@razorpay.com",
     "merchantName": "CARZEX",
-    "status": "pending",
-    "resolvedAt": "",
+    "status": "approved",
+    "resolvedAt": "2026-09-02T07:56:11.908Z",
     "gmv": 1000000,
     "slabLabel": "Upto 25 Lakhs",
     "driveLink": "https://drive.google.com/file/d/1tnRM24eACuSF6Nq835AzrzIB0E4rExNZ/view",
@@ -24074,6 +24074,7 @@
         }
       }
     },
-    "timestamp": 1788333664171
+    "timestamp": 1788333664171,
+    "leaderNote": ""
   }
 ]
