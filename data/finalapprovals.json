@@ -757,5 +757,16 @@
     "resolvedAt": "",
     "teamGroup": "Competition Hunting",
     "timestamp": "2026-08-31T05:02:09.113Z"
+  },
+  {
+    "requestId": "fa_mtjr53prsm8pvl",
+    "merchantName": "color capital",
+    "requesterEmail": "kirubhavani.b@razorpay.com",
+    "versionIds": "dl_1787814954354",
+    "notes": "",
+    "status": "pending",
+    "resolvedAt": "",
+    "teamGroup": "Competition Hunting",
+    "timestamp": "2026-09-02T07:05:42.928Z"
   }
 ]
