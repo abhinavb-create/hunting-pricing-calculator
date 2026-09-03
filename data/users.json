@@ -142,5 +142,13 @@
     "registeredAt": "2026-07-28T11:12:16.894Z",
     "lastSeen": "2026-09-03T07:02:07.623Z",
     "status": "active"
+  },
+  {
+    "email": "shreya.chandra@razorpay.com",
+    "name": "Shreya Chandra",
+    "teamGroup": "Shopify Hunting",
+    "registeredAt": "2026-09-03T09:12:01.400Z",
+    "lastSeen": "2026-09-03T09:12:01.400Z",
+    "status": "pending"
   }
 ]
