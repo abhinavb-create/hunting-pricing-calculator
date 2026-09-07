@@ -25459,8 +25459,8 @@
     "fileName": "SYNERGY HOTELS & INFRA PRIVATE LIMITED-TX7Eqy1ljIKyw8-Razorpay-Proposal.pdf",
     "requesterEmail": "nishi.agarwal@razorpay.com",
     "merchantName": "SYNERGY HOTELS & INFRA PRIVATE LIMITED",
-    "status": "pending",
-    "resolvedAt": "",
+    "status": "approved",
+    "resolvedAt": "2026-09-07T07:02:29.379Z",
     "gmv": 6000000,
     "slabLabel": "25L - 75L",
     "driveLink": "https://drive.google.com/file/d/1peXwVMlfM71GHaxaQtQ5o-1bl-EygHni/view",
@@ -25910,6 +25910,7 @@
         }
       }
     },
-    "timestamp": 1788763887327
+    "timestamp": 1788763887327,
+    "leaderNote": ""
   }
 ]
