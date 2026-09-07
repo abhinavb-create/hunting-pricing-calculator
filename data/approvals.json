@@ -25918,8 +25918,8 @@
     "fileName": "KNS FOOD MANUFACTURERS-QHLdSSOksaWKvO-Razorpay-Proposal.pdf",
     "requesterEmail": "milind.singhbora@razorpay.com",
     "merchantName": "KNS FOOD MANUFACTURERS",
-    "status": "pending",
-    "resolvedAt": "",
+    "status": "rejected",
+    "resolvedAt": "2026-09-07T10:23:55.982Z",
     "gmv": 3000000,
     "slabLabel": "25L - 75L",
     "driveLink": "https://drive.google.com/file/d/1y90ism6KoIPQ3IziQ-F15xfWt_Iqpwke/view",
@@ -26369,7 +26369,8 @@
         }
       }
     },
-    "timestamp": 1788774483114
+    "timestamp": 1788774483114,
+    "leaderNote": "Cannot approve NB- Major"
   },
   {
     "requestId": "mtr3dsvqnfq9f6",
