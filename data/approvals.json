@@ -24541,8 +24541,8 @@
     "fileName": "NATUREFULL RESORTS-TWGo1ZppqEAQ3B-Razorpay-Proposal.pdf",
     "requesterEmail": "prerna.kumari@razorpay.com",
     "merchantName": "NATUREFULL RESORTS",
-    "status": "pending",
-    "resolvedAt": "",
+    "status": "approved",
+    "resolvedAt": "2026-09-07T06:42:41.106Z",
     "gmv": 1500000,
     "slabLabel": "Upto 25 Lakhs",
     "driveLink": "https://drive.google.com/file/d/1Y8cdY5ploS7xCyJkPoOpfLLHyU897Hn2/view",
@@ -24992,7 +24992,8 @@
         }
       }
     },
-    "timestamp": 1788763184961
+    "timestamp": 1788763184961,
+    "leaderNote": ""
   },
   {
     "requestId": "mtqvhyrrf6zgqv",
