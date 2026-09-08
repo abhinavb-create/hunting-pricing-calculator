@@ -834,5 +834,16 @@
     "resolvedAt": "",
     "teamGroup": "Shopify Hunting",
     "timestamp": "2026-09-08T06:11:54.434Z"
+  },
+  {
+    "requestId": "fa_mtsbf8mahth0e9",
+    "merchantName": "NATUREFULL RESORTS",
+    "requesterEmail": "prerna.kumari@razorpay.com",
+    "versionIds": "ap_mts7ygx4z2gv9a",
+    "notes": "",
+    "status": "pending",
+    "resolvedAt": "",
+    "teamGroup": "Competition Hunting",
+    "timestamp": "2026-09-08T06:55:37.571Z"
   }
 ]
