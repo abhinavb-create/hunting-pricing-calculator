@@ -1,20 +1,20 @@
 [
   {
-    "rowId": "ap_mtr4a6adqncj8b",
-    "fileName": "DESH BUSINESS VENTURES PRIVATE LIMITED-PgTyexpnkxqC15-Razorpay-Proposal.pdf",
-    "merchantName": "DESH BUSINESS VENTURES PRIVATE LIMITED",
+    "rowId": "ap_mtr4byvxam4odm",
+    "fileName": "MSV Hotels Pvt Ltd-DArfrh22xiXAud-Razorpay-Proposal.pdf",
+    "merchantName": "MSV Hotels Pvt Ltd",
     "userEmail": "prerna.kumari@razorpay.com",
     "userName": "Prerna Kumari",
     "teamGroup": "Competition Hunting",
-    "driveLink": "https://drive.google.com/file/d/1LAbHPLUPQUEj_FTJc9ltmaK5BEpb5Wxw/view",
-    "fileId": "1LAbHPLUPQUEj_FTJc9ltmaK5BEpb5Wxw",
+    "driveLink": "https://drive.google.com/file/d/1eIxi4vMLitVnvl9A-KI0V1CraGfTWHYn/view",
+    "fileId": "1eIxi4vMLitVnvl9A-KI0V1CraGfTWHYn",
     "versionGroup": null,
     "snapshot": {
-      "merchantName": "DESH BUSINESS VENTURES PRIVATE LIMITED",
-      "customerName": "Pallavraj",
-      "mid": "PgTyexpnkxqC15",
+      "merchantName": "MSV Hotels Pvt Ltd",
+      "customerName": "Pallav Raj",
+      "mid": "DArfrh22xiXAud",
       "mcc": "7011",
-      "gmv": "1500000",
+      "gmv": "5000000",
       "settlementType": "T1",
       "t1Rate": "0",
       "t0Rate": "0.05",
@@ -29,7 +29,7 @@
       "mcPostRate": "0.05",
       "rates": {
         "competition": {
-          "0": "1.91",
+          "0": "1.9",
           "1": "0.55",
           "2": "0.85",
           "3": "0.40",
@@ -37,14 +37,14 @@
           "5": "2.85",
           "6": "2.85",
           "7": "2.85",
-          "8": "0.30",
+          "8": "0.20",
           "9": "2.15",
           "10": "2.00",
           "11": "2.00",
           "12": "1.65",
-          "13": "1.6",
+          "13": "1.50",
           "14": "1.80",
-          "15": "0.20",
+          "15": "0.10",
           "16": ""
         },
         "no-competition": {
@@ -325,14 +325,14 @@
       "splits": {
         "competition": {
           "0": "20",
-          "1": "0",
-          "2": "0",
+          "1": "7",
+          "2": "8",
           "3": "0",
           "4": "0",
           "5": "0",
           "6": "0",
           "7": "0",
-          "8": "80",
+          "8": "65",
           "9": "0",
           "10": "0",
           "11": "0",
@@ -452,7 +452,7 @@
         }
       }
     },
-    "timestamp": 1788844524176
+    "timestamp": 1788844528187
   },
   {
     "rowId": "dl_1788782733014",
