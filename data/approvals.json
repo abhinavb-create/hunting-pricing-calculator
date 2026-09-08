@@ -27752,8 +27752,8 @@
     "fileName": "THE TOLLYGUNGE CLUB LIMITED-RIBy4RumV3L3eJ-Razorpay-Proposal.pdf",
     "requesterEmail": "sainath.vishnugauri@razorpay.com",
     "merchantName": "THE TOLLYGUNGE CLUB LIMITED",
-    "status": "pending",
-    "resolvedAt": "",
+    "status": "rejected",
+    "resolvedAt": "2026-09-08T04:46:48.895Z",
     "gmv": 10000000,
     "slabLabel": "75L - 5Cr",
     "driveLink": "https://drive.google.com/file/d/1fYRb3j0rINdQelVq7Yo6RLxo8110a8Bi/view",
@@ -28203,6 +28203,7 @@
         }
       }
     },
-    "timestamp": 1788782736251
+    "timestamp": 1788782736251,
+    "leaderNote": "1.85% is the lowest we can go, 1.80% we cannot go."
   }
 ]
