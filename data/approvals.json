@@ -27294,8 +27294,8 @@
     "fileName": "MSV Hotels Pvt Ltd-DArfrh22xiXAud-Razorpay-Proposal.pdf",
     "requesterEmail": "prerna.kumari@razorpay.com",
     "merchantName": "MSV Hotels Pvt Ltd",
-    "status": "pending",
-    "resolvedAt": "",
+    "status": "approved",
+    "resolvedAt": "2026-09-08T04:47:35.849Z",
     "gmv": 5000000,
     "slabLabel": "25L - 75L",
     "driveLink": "https://drive.google.com/file/d/1H4urpeaI10XxPqf2kuYBpt7S25V5kFFE/view",
@@ -27745,7 +27745,8 @@
         }
       }
     },
-    "timestamp": 1788778170133
+    "timestamp": 1788778170133,
+    "leaderNote": ""
   },
   {
     "requestId": "mtr71hknkfesqc",
