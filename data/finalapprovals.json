@@ -823,5 +823,16 @@
     "resolvedAt": "",
     "teamGroup": "Competition Hunting",
     "timestamp": "2026-09-07T07:09:44.154Z"
+  },
+  {
+    "requestId": "fa_mts9v0lcq0wtfa",
+    "merchantName": "My Nori",
+    "requesterEmail": "anam.imteyaz@razorpay.com",
+    "versionIds": "dl_1787052899410",
+    "notes": "",
+    "status": "pending",
+    "resolvedAt": "",
+    "teamGroup": "Shopify Hunting",
+    "timestamp": "2026-09-08T06:11:54.434Z"
   }
 ]
