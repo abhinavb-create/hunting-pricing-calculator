@@ -26836,8 +26836,8 @@
     "fileName": "DESH BUSINESS VENTURES PRIVATE LIMITED-PgTyexpnkxqC15-Razorpay-Proposal.pdf",
     "requesterEmail": "prerna.kumari@razorpay.com",
     "merchantName": "DESH BUSINESS VENTURES PRIVATE LIMITED",
-    "status": "pending",
-    "resolvedAt": "",
+    "status": "approved",
+    "resolvedAt": "2026-09-08T04:47:47.568Z",
     "gmv": 1500000,
     "slabLabel": "Upto 25 Lakhs",
     "driveLink": "https://drive.google.com/file/d/15ZRM82V3HWPxqwlqkgIHYpzkI4lp9Ee0/view",
@@ -27287,7 +27287,8 @@
         }
       }
     },
-    "timestamp": 1788778085776
+    "timestamp": 1788778085776,
+    "leaderNote": ""
   },
   {
     "requestId": "mtr4byvxam4odm",
