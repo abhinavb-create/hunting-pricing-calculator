@@ -28672,8 +28672,8 @@
     "fileName": "THE TOLLYGUNGE CLUB LIMITED-RIBy4RumV3L3eJ-Razorpay-Proposal.pdf",
     "requesterEmail": "sainath.vishnugauri@razorpay.com",
     "merchantName": "THE TOLLYGUNGE CLUB LIMITED",
-    "status": "pending",
-    "resolvedAt": "",
+    "status": "approved",
+    "resolvedAt": "2026-09-08T05:40:24.285Z",
     "gmv": 10000000,
     "slabLabel": "75L - 5Cr",
     "driveLink": "https://drive.google.com/file/d/15PsOUST124Dz6n6udlRkSrjtHg7omA2-/view",
@@ -29123,6 +29123,7 @@
         }
       }
     },
-    "timestamp": 1788845991200
+    "timestamp": 1788845991200,
+    "leaderNote": ""
   }
 ]
