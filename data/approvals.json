@@ -29131,8 +29131,8 @@
     "fileName": "EOX ELECTRIC-PA7JAF6tmr2zzz-Razorpay-Proposal.pdf",
     "requesterEmail": "arpit.shukla@razorpay.com",
     "merchantName": "EOX ELECTRIC",
-    "status": "pending",
-    "resolvedAt": "",
+    "status": "approved",
+    "resolvedAt": "2026-09-08T09:11:44.228Z",
     "gmv": 1500000,
     "slabLabel": "Upto 25 Lakhs",
     "driveLink": "https://drive.google.com/file/d/13gp-etY-1blLy7dxo8924VR4JU851he9/view",
@@ -29582,6 +29582,7 @@
         }
       }
     },
-    "timestamp": 1788858226182
+    "timestamp": 1788858226182,
+    "leaderNote": ""
   }
 ]
