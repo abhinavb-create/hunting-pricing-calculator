@@ -30049,8 +30049,8 @@
     "fileName": "Jewel Carpet-Razorpay-Proposal.pdf",
     "requesterEmail": "anam.imteyaz@razorpay.com",
     "merchantName": "Jewel Carpet",
-    "status": "pending",
-    "resolvedAt": "",
+    "status": "approved",
+    "resolvedAt": "2026-09-09T06:04:31.360Z",
     "gmv": 4000000,
     "slabLabel": "25L - 75L",
     "driveLink": "https://drive.google.com/file/d/1y-oS46ZD3UD7T89PfNBO8o09Gs7YOacA/view",
@@ -30500,6 +30500,7 @@
         }
       }
     },
-    "timestamp": 1788933663974
+    "timestamp": 1788933663974,
+    "leaderNote": ""
   }
 ]
