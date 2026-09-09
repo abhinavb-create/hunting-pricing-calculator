@@ -30508,8 +30508,8 @@
     "fileName": "GARG TRADERS-Nxhy5e0DiRYelL-Razorpay-Proposal.pdf",
     "requesterEmail": "milind.singhbora@razorpay.com",
     "merchantName": "GARG TRADERS",
-    "status": "pending",
-    "resolvedAt": "",
+    "status": "rejected",
+    "resolvedAt": "2026-09-09T06:47:25.447Z",
     "gmv": 10000000,
     "slabLabel": "75L - 5Cr",
     "driveLink": "https://drive.google.com/file/d/13dQTtlf9AvsbcI2e_35AtNNDOb2OFqIe/view",
@@ -30959,6 +30959,7 @@
         }
       }
     },
-    "timestamp": 1788936391345
+    "timestamp": 1788936391345,
+    "leaderNote": ""
   }
 ]
