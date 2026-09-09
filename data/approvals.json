@@ -32344,8 +32344,8 @@
     "fileName": "Techflow Services-Pzv9qX1Jo28Urh-Razorpay-Proposal.pdf",
     "requesterEmail": "nishi.agarwal@razorpay.com",
     "merchantName": "Techflow Services",
-    "status": "pending",
-    "resolvedAt": "",
+    "status": "approved",
+    "resolvedAt": "2026-09-09T12:26:33.552Z",
     "gmv": 10000000,
     "slabLabel": "75L - 5Cr",
     "driveLink": "https://drive.google.com/file/d/1GdFEPEkc1G_8MExyn2IVXeVMPC7JsojY/view",
@@ -32795,6 +32795,7 @@
         }
       }
     },
-    "timestamp": 1788954558011
+    "timestamp": 1788954558011,
+    "leaderNote": ""
   }
 ]
