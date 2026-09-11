@@ -150,5 +150,13 @@
     "registeredAt": "2026-09-03T09:12:01.400Z",
     "lastSeen": "2026-09-09T12:31:34.995Z",
     "status": "active"
+  },
+  {
+    "email": "js.vamseetharan@razorpay.com",
+    "name": "J S Vamseetharan",
+    "teamGroup": "MM Hunting",
+    "registeredAt": "2026-09-11T10:04:43.942Z",
+    "lastSeen": "2026-09-11T10:04:43.942Z",
+    "status": "pending"
   }
 ]
