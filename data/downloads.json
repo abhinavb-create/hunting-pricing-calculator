@@ -1,18 +1,18 @@
 [
   {
-    "rowId": "ap_mu2hs1embsbsy8",
-    "fileName": "DESH BUSINESS VENTURES PRIVATE LIMITED-PgTyexpnkxqC15-Razorpay-Proposal.pdf",
-    "merchantName": "DESH BUSINESS VENTURES PRIVATE LIMITED",
+    "rowId": "ap_mu2hqcry13xqyx",
+    "fileName": "NATUREFULL RESORTS-TWGo1ZppqEAQ3B-Razorpay-Proposal.pdf",
+    "merchantName": "NATUREFULL RESORTS",
     "userEmail": "prerna.kumari@razorpay.com",
     "userName": "Prerna Kumari",
     "teamGroup": "Competition Hunting",
-    "driveLink": "https://drive.google.com/file/d/1mEl78KepFGTplvddvBv6Ht_wzrKDoS1K/view",
-    "fileId": "1mEl78KepFGTplvddvBv6Ht_wzrKDoS1K",
+    "driveLink": "https://drive.google.com/file/d/10tWQFrrp7SRq-kv75MJkH7GwpTP0R2XJ/view",
+    "fileId": "10tWQFrrp7SRq-kv75MJkH7GwpTP0R2XJ",
     "versionGroup": null,
     "snapshot": {
-      "merchantName": "DESH BUSINESS VENTURES PRIVATE LIMITED",
+      "merchantName": "NATUREFULL RESORTS",
       "customerName": "Pallavraj",
-      "mid": "PgTyexpnkxqC15",
+      "mid": "TWGo1ZppqEAQ3B",
       "mcc": "7011",
       "gmv": "1500000",
       "settlementType": "T1",
@@ -75,7 +75,7 @@
           "5": "2.85",
           "6": "2.85",
           "7": "2.85",
-          "8": "0.40",
+          "8": "0.25",
           "9": "2.15",
           "10": "2.00",
           "11": "2.00",
@@ -325,14 +325,14 @@
       "splits": {
         "competition": {
           "0": "20",
-          "1": "0",
-          "2": "0",
+          "1": "7",
+          "2": "8",
           "3": "0",
           "4": "0",
           "5": "0",
           "6": "0",
           "7": "0",
-          "8": "80",
+          "8": "65",
           "9": "0",
           "10": "0",
           "11": "0",
@@ -452,7 +452,7 @@
         }
       }
     },
-    "timestamp": 1789638569885
+    "timestamp": 1789638578717
   },
   {
     "rowId": "dl_1789635392949",
