@@ -988,5 +988,16 @@
     "resolvedAt": "",
     "teamGroup": "Shopify Hunting",
     "timestamp": "2026-09-18T07:16:33.970Z"
+  },
+  {
+    "requestId": "fa_mu6whf9fkvbzlu",
+    "merchantName": "SPARECEL PRIVATE LIMITED",
+    "requesterEmail": "chandel.yajat@razorpay.com",
+    "versionIds": "ap_mu6s1qrelxusoc",
+    "notes": "",
+    "status": "pending",
+    "resolvedAt": "",
+    "teamGroup": "Competition Hunting",
+    "timestamp": "2026-09-18T11:53:57.892Z"
   }
 ]
