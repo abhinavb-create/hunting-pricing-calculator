@@ -1,13 +1,13 @@
 [
   {
-    "rowId": "dl_1789733689416",
+    "rowId": "dl_1789733801046",
     "fileName": "Krystal Bath India-Razorpay-Proposal.pdf",
     "merchantName": "Krystal Bath India",
     "userEmail": "anam.imteyaz@razorpay.com",
     "userName": "Anam Imteyaz",
     "teamGroup": "Shopify Hunting",
-    "driveLink": "https://drive.google.com/file/d/1vkMMlfw0FueNSu3S9HvnqVRdMudGzA9v/view",
-    "fileId": "",
+    "driveLink": "https://drive.google.com/file/d/1KzCwz44wDaurdKkoZrYRly2DctrPAkKQ/view",
+    "fileId": "1KzCwz44wDaurdKkoZrYRly2DctrPAkKQ",
     "versionGroup": null,
     "snapshot": {
       "merchantName": "Krystal Bath India",
@@ -24,7 +24,7 @@
       "setupCost": "0",
       "setupCostWaived": false,
       "activeTab": "magic-checkout",
-      "mcRate": "0.3",
+      "mcRate": "0.2",
       "mcCompRate": "0",
       "mcPostRate": "0.05",
       "rates": {
@@ -79,9 +79,9 @@
           "9": "2.15",
           "10": "2.00",
           "11": "2.00",
-          "12": "1.75",
-          "13": "1.65",
-          "14": "1.80",
+          "12": "1.65",
+          "13": "1.5",
+          "14": "1.7",
           "15": "0.5",
           "16": ""
         }
@@ -452,7 +452,7 @@
         }
       }
     },
-    "timestamp": 1789733689416
+    "timestamp": 1789733803968
   },
   {
     "rowId": "dl_1789733313854",
