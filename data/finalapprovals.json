@@ -955,5 +955,16 @@
     "resolvedAt": "",
     "teamGroup": "Competition Hunting",
     "timestamp": "2026-09-17T09:19:16.493Z"
+  },
+  {
+    "requestId": "fa_mu6iu6pmcfld8u",
+    "merchantName": "DAREISS",
+    "requesterEmail": "anam.imteyaz@razorpay.com",
+    "versionIds": "ap_mt6tjpmpnyasps",
+    "notes": "",
+    "status": "pending",
+    "resolvedAt": "",
+    "teamGroup": "Shopify Hunting",
+    "timestamp": "2026-09-18T05:31:58.716Z"
   }
 ]
