@@ -1,16 +1,16 @@
 [
   {
-    "rowId": "dl_1789978279578",
+    "rowId": "dl_1789978318090",
     "fileName": "Kovon Global Private Limited-Razorpay-Proposal.pdf",
     "merchantName": "Kovon Global Private Limited",
     "userEmail": "suman.dash@razorpay.com",
     "userName": "Suman Soumya Dash",
     "teamGroup": "Startup Hunting",
-    "driveLink": "https://drive.google.com/file/d/1ktpn-2P4qvZYKhzlx7yBe0vG4mp1eq4a/view",
-    "fileId": "1ktpn-2P4qvZYKhzlx7yBe0vG4mp1eq4a",
+    "driveLink": "https://drive.google.com/file/d/1v3HcyFcdFXSw9sfrLPOduiYdiu9l14pC/view",
+    "fileId": "1v3HcyFcdFXSw9sfrLPOduiYdiu9l14pC",
     "versionGroup": null,
     "snapshot": {
-      "merchantName": " Kovon Global Private Limited ",
+      "merchantName": "Kovon Global Private Limited ",
       "customerName": "",
       "mid": "",
       "mcc": "",
@@ -19,7 +19,7 @@
       "t1Rate": "0",
       "t0Rate": "0.05",
       "odsRate": "0.10",
-      "gmvCredit": "700000",
+      "gmvCredit": "500000",
       "gmvCreditCustom": "",
       "setupCost": "0",
       "setupCostWaived": false,
@@ -452,7 +452,7 @@
         }
       }
     },
-    "timestamp": 1789978282934
+    "timestamp": 1789978321202
   },
   {
     "rowId": "dl_1789733689416",
