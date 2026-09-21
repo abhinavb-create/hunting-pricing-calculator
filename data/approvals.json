@@ -39215,8 +39215,8 @@
     "fileName": "Aham Fabric and Garments Pvt Ltd-IDSYFA1z4Dfx71-Razorpay-Proposal.pdf",
     "requesterEmail": "arpit.shukla@razorpay.com",
     "merchantName": "Aham Fabric and Garments Pvt Ltd",
-    "status": "pending",
-    "resolvedAt": "",
+    "status": "rejected",
+    "resolvedAt": "2026-09-21T12:19:00.297Z",
     "gmv": 10000000,
     "slabLabel": "75L - 5Cr",
     "driveLink": "https://drive.google.com/file/d/1kH38xrRzHTZ8gP-GUy_G4fvDjHSrziNY/view",
@@ -39666,6 +39666,7 @@
         }
       }
     },
-    "timestamp": 1789993091192
+    "timestamp": 1789993091192,
+    "leaderNote": "1.80% with HDFC, normal cards stay at 1.90%"
   }
 ]
