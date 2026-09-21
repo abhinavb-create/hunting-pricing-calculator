@@ -9,7 +9,7 @@
 <!-- build: 20260820-v167 -->
 <script>
 (function(){
-  const BUILD='v168';
+  const BUILD='v169';
   const u=new URL(location.href);
   if(u.searchParams.get('b')!==BUILD){u.searchParams.set('b',BUILD);location.replace(u.toString());}
 })();
@@ -8944,7 +8944,7 @@ async function saveNRRecurring(){
     if(!merged[mid]) merged[mid]={};
     // carry forward existing name
     if(_nrRecurring[mid]?.name) merged[mid].name=_nrRecurring[mid].name;
-    if(!isNaN(v)&&v>0) merged[mid][month]=v;
+    if(!isNaN(v)) merged[mid][month]=v;
   });
   try{
     await _ghUpdate('data/nr-recurring.json',existing=>{
