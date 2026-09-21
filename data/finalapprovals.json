@@ -1010,5 +1010,16 @@
     "resolvedAt": "",
     "teamGroup": "Competition Hunting",
     "timestamp": "2026-09-21T07:01:11.787Z"
+  },
+  {
+    "requestId": "fa_muawsoakpscdy6",
+    "merchantName": "Jewel Carpet",
+    "requesterEmail": "anam.imteyaz@razorpay.com",
+    "versionIds": "dl_1789557156562",
+    "notes": "",
+    "status": "pending",
+    "resolvedAt": "",
+    "teamGroup": "Shopify Hunting",
+    "timestamp": "2026-09-21T07:13:47.517Z"
   }
 ]
