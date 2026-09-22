@@ -1021,5 +1021,16 @@
     "resolvedAt": "",
     "teamGroup": "Shopify Hunting",
     "timestamp": "2026-09-21T07:13:47.517Z"
+  },
+  {
+    "requestId": "fa_mucdsxdbpnkg9d",
+    "merchantName": "SYNERGY HOTELS & INFRA PRIVATE LIMITED",
+    "requesterEmail": "nishi.agarwal@razorpay.com",
+    "versionIds": "ap_mucaqhlgy3gzi9, ap_mucamwg6af9jkf",
+    "notes": "",
+    "status": "pending",
+    "resolvedAt": "",
+    "teamGroup": "Competition Hunting",
+    "timestamp": "2026-09-22T07:57:38.928Z"
   }
 ]
