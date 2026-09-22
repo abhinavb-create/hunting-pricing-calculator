@@ -1032,5 +1032,16 @@
     "resolvedAt": "",
     "teamGroup": "Competition Hunting",
     "timestamp": "2026-09-22T07:57:38.928Z"
+  },
+  {
+    "requestId": "fa_mucfc7w00k3x9b",
+    "merchantName": "SOKKA TABLEWARE",
+    "requesterEmail": "arpit.shukla@razorpay.com",
+    "versionIds": "dl_1789994474877",
+    "notes": "",
+    "status": "pending",
+    "resolvedAt": "",
+    "teamGroup": "Competition Hunting",
+    "timestamp": "2026-09-22T08:40:38.641Z"
   }
 ]
