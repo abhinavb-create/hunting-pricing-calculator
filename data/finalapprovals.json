@@ -1131,5 +1131,16 @@
     "resolvedAt": "",
     "teamGroup": "Competition Hunting",
     "timestamp": "2026-09-23T05:53:38.481Z"
+  },
+  {
+    "requestId": "fa_mudp4h0odctyn7",
+    "merchantName": "The Bar Collective",
+    "requesterEmail": "anam.imteyaz@razorpay.com",
+    "versionIds": "ap_mu6jh2hlem5zdk",
+    "notes": "",
+    "status": "pending",
+    "resolvedAt": "",
+    "teamGroup": "Shopify Hunting",
+    "timestamp": "2026-09-23T06:02:19.562Z"
   }
 ]
