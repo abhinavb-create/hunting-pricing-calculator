@@ -1087,5 +1087,16 @@
     "resolvedAt": "",
     "teamGroup": "Competition Hunting",
     "timestamp": "2026-09-22T11:35:31.786Z"
+  },
+  {
+    "requestId": "fa_mudnckbjyvl95w",
+    "merchantName": "ORIONZ INDUSTRIES PRIVATE LIMITED",
+    "requesterEmail": "kirubhavani.b@razorpay.com",
+    "versionIds": "ap_muc8itz53qwlr5",
+    "notes": "HDFC terminal 1.80%",
+    "status": "pending",
+    "resolvedAt": "",
+    "teamGroup": "Competition Hunting",
+    "timestamp": "2026-09-23T05:12:37.856Z"
   }
 ]
