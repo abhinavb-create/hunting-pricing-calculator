@@ -1142,5 +1142,16 @@
     "resolvedAt": "",
     "teamGroup": "Shopify Hunting",
     "timestamp": "2026-09-23T06:02:19.562Z"
+  },
+  {
+    "requestId": "fa_mudu6jtnugd8qe",
+    "merchantName": "ORIONZ INDUSTRIES PRIVATE LIMITED",
+    "requesterEmail": "kirubhavani.b@razorpay.com",
+    "versionIds": "dl_1790151802460",
+    "notes": "MID: JCVn6fK9TJplRS",
+    "status": "pending",
+    "resolvedAt": "",
+    "teamGroup": "Competition Hunting",
+    "timestamp": "2026-09-23T08:23:54.588Z"
   }
 ]
