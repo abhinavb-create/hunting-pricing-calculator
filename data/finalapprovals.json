@@ -1175,5 +1175,16 @@
     "resolvedAt": "",
     "teamGroup": "Competition Hunting",
     "timestamp": "2026-09-23T09:53:06.051Z"
+  },
+  {
+    "requestId": "fa_mufa1eydj2cwl5",
+    "merchantName": "Loops by LJ",
+    "requesterEmail": "shreya.chandra@razorpay.com",
+    "versionIds": "dl_1790238727714",
+    "notes": "",
+    "status": "pending",
+    "resolvedAt": "",
+    "teamGroup": "Shopify Hunting",
+    "timestamp": "2026-09-24T08:35:35.030Z"
   }
 ]
