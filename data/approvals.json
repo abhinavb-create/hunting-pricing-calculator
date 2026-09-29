@@ -42903,8 +42903,8 @@
     "fileName": "KOCAL TECHNOLOGIES PRIVATE LIMITED-TSpbC9ecYj0Slq-Razorpay-Proposal.pdf",
     "requesterEmail": "harsha.john@razorpay.com",
     "merchantName": "KOCAL TECHNOLOGIES PRIVATE LIMITED",
-    "status": "pending",
-    "resolvedAt": "",
+    "status": "approved",
+    "resolvedAt": "2026-09-29T11:45:35.893Z",
     "gmv": 6000000,
     "slabLabel": "25L - 75L",
     "driveLink": "https://drive.google.com/file/d/1QV_MLsXjBVZppZ9vUzRGEejh3aLMCp7D/view",
@@ -43376,6 +43376,7 @@
       },
       "ver": 2
     },
-    "timestamp": 1790682209138
+    "timestamp": 1790682209138,
+    "leaderNote": ""
   }
 ]
