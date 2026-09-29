@@ -42422,8 +42422,8 @@
     "fileName": "Menworks-Lc4lsQOwjfcb8F-Razorpay-Proposal.pdf",
     "requesterEmail": "harsha.john@razorpay.com",
     "merchantName": "Menworks",
-    "status": "pending",
-    "resolvedAt": "",
+    "status": "approved",
+    "resolvedAt": "2026-09-29T09:38:25.154Z",
     "gmv": 6000000,
     "slabLabel": "25L - 75L",
     "driveLink": "https://drive.google.com/file/d/16ooQpMGzXW32EdmLZsob40zCgdgRo-8M/view",
@@ -42895,6 +42895,7 @@
       },
       "ver": 2
     },
-    "timestamp": 1790674661771
+    "timestamp": 1790674661771,
+    "leaderNote": ""
   }
 ]
