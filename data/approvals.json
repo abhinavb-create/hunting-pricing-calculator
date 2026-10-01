@@ -43384,8 +43384,8 @@
     "fileName": "Witzyy Woo-TiCYycCXF97ggF-Razorpay-Proposal.pdf",
     "requesterEmail": "chandel.yajat@razorpay.com",
     "merchantName": "Witzyy Woo",
-    "status": "pending",
-    "resolvedAt": "",
+    "status": "approved",
+    "resolvedAt": "2026-10-01T06:28:36.004Z",
     "gmv": 1000000,
     "slabLabel": "Upto 25 Lakhs",
     "driveLink": "https://drive.google.com/file/d/1bLki14PE6eJNS8QrB849JFeTYsWLfSet/view",
@@ -43857,6 +43857,7 @@
       },
       "ver": 2
     },
-    "timestamp": 1790835799186
+    "timestamp": 1790835799186,
+    "leaderNote": ""
   }
 ]
