@@ -1,13 +1,13 @@
 [
   {
-    "rowId": "dl_1791181146643",
+    "rowId": "dl_1791181399909",
     "fileName": "VANIUM VETO-Razorpay-Proposal.pdf",
     "merchantName": "VANIUM VETO",
     "userEmail": "shreya.chandra@razorpay.com",
     "userName": "Shreya Chandra",
     "teamGroup": "Shopify Hunting",
-    "driveLink": "",
-    "fileId": "",
+    "driveLink": "https://drive.google.com/file/d/130uyUOQFBjYgqcMF0-0x2W5u2uRm9ucN/view",
+    "fileId": "130uyUOQFBjYgqcMF0-0x2W5u2uRm9ucN",
     "versionGroup": null,
     "snapshot": {
       "merchantName": "VANIUM VETO",
@@ -24,9 +24,9 @@
       "setupCost": "0",
       "setupCostWaived": false,
       "activeTab": "magic-checkout",
-      "mcRate": "0.30",
+      "mcRate": "0",
       "mcCompRate": "0",
-      "mcPostRate": "0.05",
+      "mcPostRate": "0.30",
       "rates": {
         "competition": {
           "0": "2.95",
@@ -474,7 +474,7 @@
       },
       "ver": 2
     },
-    "timestamp": 1791181146643
+    "timestamp": 1791181403048
   },
   {
     "rowId": "dl_1791179009181",
