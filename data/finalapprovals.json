@@ -1274,5 +1274,16 @@
     "resolvedAt": "",
     "teamGroup": "Competition Hunting",
     "timestamp": "2026-10-05T08:01:38.745Z"
+  },
+  {
+    "requestId": "fa_muuyur2kt238oi",
+    "merchantName": "VANIUM VETO",
+    "requesterEmail": "shreya.chandra@razorpay.com",
+    "versionIds": "dl_1791181399909",
+    "notes": "",
+    "status": "pending",
+    "resolvedAt": "",
+    "teamGroup": "Shopify Hunting",
+    "timestamp": "2026-10-05T08:06:47.181Z"
   }
 ]
