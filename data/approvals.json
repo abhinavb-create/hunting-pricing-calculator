@@ -43865,8 +43865,8 @@
     "fileName": "Masterclean-Razorpay-Proposal.pdf",
     "requesterEmail": "prerna.kumari@razorpay.com",
     "merchantName": "Masterclean",
-    "status": "pending",
-    "resolvedAt": "",
+    "status": "approved",
+    "resolvedAt": "2026-10-05T07:13:46.019Z",
     "gmv": 1500000,
     "slabLabel": "Upto 25 Lakhs",
     "driveLink": "https://drive.google.com/file/d/1y5eud4cppX_kMBxDkLfkaaqi32VwWzio/view",
@@ -44338,6 +44338,7 @@
       },
       "ver": 2
     },
-    "timestamp": 1791184398347
+    "timestamp": 1791184398347,
+    "leaderNote": ""
   }
 ]
