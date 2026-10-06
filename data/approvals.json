@@ -46269,8 +46269,8 @@
     "fileName": "Off Duty India-Razorpay-Proposal.pdf",
     "requesterEmail": "anam.imteyaz@razorpay.com",
     "merchantName": "Off Duty India",
-    "status": "pending",
-    "resolvedAt": "",
+    "status": "approved",
+    "resolvedAt": "2026-10-06T06:40:34.194Z",
     "gmv": 30000000,
     "slabLabel": "75L - 5Cr",
     "driveLink": "https://drive.google.com/file/d/1gvgm0D7aTYWlT4PZi7Q5_d7z60XSrRm9/view",
@@ -46742,6 +46742,7 @@
       },
       "ver": 2
     },
-    "timestamp": 1791268795052
+    "timestamp": 1791268795052,
+    "leaderNote": ""
   }
 ]
