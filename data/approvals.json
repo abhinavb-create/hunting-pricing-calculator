@@ -47759,8 +47759,8 @@
     "fileName": "SSHH PROPERTIES LLP-SZKMJT4z2xIp6H-Razorpay-Proposal.pdf",
     "requesterEmail": "chandel.yajat@razorpay.com",
     "merchantName": "SSHH PROPERTIES LLP",
-    "status": "pending",
-    "resolvedAt": "",
+    "status": "rejected",
+    "resolvedAt": "2026-10-08T09:14:27.857Z",
     "gmv": 4000000,
     "slabLabel": "25L - 75L",
     "driveLink": "https://drive.google.com/file/d/1YXIyr1HVnQO_Xelb5ZujUrm6lBNHid6w/view",
@@ -48232,18 +48232,7 @@
       },
       "ver": 2
     },
-    "timestamp": 1791447295159
-  },
-  {
-    "requestId": "muzbjhl2oa4rrn",
-    "merchantName": "KARZ AND DOLLS",
-    "requesterEmail": "",
-    "status": "approved",
-    "resolvedAt": "2026-10-08T09:13:44.496Z",
-    "teamGroup": "",
-    "gmv": 0,
-    "slabLabel": "",
-    "timestamp": 1791450824496,
+    "timestamp": 1791447295159,
     "leaderNote": ""
   }
 ]
