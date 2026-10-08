@@ -1285,5 +1285,16 @@
     "resolvedAt": "",
     "teamGroup": "Shopify Hunting",
     "timestamp": "2026-10-05T08:06:47.181Z"
+  },
+  {
+    "requestId": "fa_muz4x998yh4ye0",
+    "merchantName": "FINREADS MEDIALABS PRIVATE LIMITED",
+    "requesterEmail": "prerna.kumari@razorpay.com",
+    "versionIds": "dl_1791284582080",
+    "notes": "",
+    "status": "pending",
+    "resolvedAt": "",
+    "teamGroup": "Competition Hunting",
+    "timestamp": "2026-10-08T06:07:46.461Z"
   }
 ]
