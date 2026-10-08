@@ -1296,5 +1296,16 @@
     "resolvedAt": "",
     "teamGroup": "Competition Hunting",
     "timestamp": "2026-10-08T06:07:46.461Z"
+  },
+  {
+    "requestId": "fa_muzlep10bx28tv",
+    "merchantName": "Zavya India",
+    "requesterEmail": "anam.imteyaz@razorpay.com",
+    "versionIds": "dl_1791464751802",
+    "notes": "",
+    "status": "pending",
+    "resolvedAt": "",
+    "teamGroup": "Shopify Hunting",
+    "timestamp": "2026-10-08T13:49:13.908Z"
   }
 ]
