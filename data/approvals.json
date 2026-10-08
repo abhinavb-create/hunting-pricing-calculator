@@ -48240,8 +48240,8 @@
     "fileName": "Skyra Tours-Razorpay-Proposal.pdf",
     "requesterEmail": "milind.singhbora@razorpay.com",
     "merchantName": "Skyra Tours",
-    "status": "pending",
-    "resolvedAt": "",
+    "status": "approved",
+    "resolvedAt": "2026-10-08T10:23:02.744Z",
     "gmv": 1000000,
     "slabLabel": "Upto 25 Lakhs",
     "driveLink": "https://drive.google.com/file/d/1QNalK-l4MP-6zjCmA5UCIQC-RtOSeQxQ/view",
@@ -48713,6 +48713,7 @@
       },
       "ver": 2
     },
-    "timestamp": 1791454741332
+    "timestamp": 1791454741332,
+    "leaderNote": ""
   }
 ]
