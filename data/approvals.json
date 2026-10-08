@@ -48236,7 +48236,7 @@
     "leaderNote": ""
   },
   {
-    "requestId": "muzdvg4br63uci",
+    "requestId": "muzdw6chwqmkn3",
     "fileName": "Skyra Tours-Razorpay-Proposal.pdf",
     "requesterEmail": "milind.singhbora@razorpay.com",
     "merchantName": "Skyra Tours",
@@ -48244,7 +48244,7 @@
     "resolvedAt": "",
     "gmv": 1000000,
     "slabLabel": "Upto 25 Lakhs",
-    "driveLink": "https://drive.google.com/file/d/1CVvS15qMtl_K-heZEfPFtIoFuyXgNuCK/view",
+    "driveLink": "https://drive.google.com/file/d/1QNalK-l4MP-6zjCmA5UCIQC-RtOSeQxQ/view",
     "violations": "Credit Cards (Visa / MC / RuPay): 1.90%",
     "teamGroup": "Competition Hunting",
     "versionGroup": null,
@@ -48284,7 +48284,7 @@
           "13": "1.65",
           "14": "1.6",
           "15": "2.00",
-          "16": "0.20",
+          "16": "0.02",
           "17": ""
         },
         "no-competition": {
@@ -48713,6 +48713,6 @@
       },
       "ver": 2
     },
-    "timestamp": 1791454712611
+    "timestamp": 1791454741332
   }
 ]
