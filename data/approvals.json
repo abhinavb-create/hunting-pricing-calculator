@@ -49207,5 +49207,17 @@
     },
     "timestamp": 1791526765218,
     "leaderNote": ""
+  },
+  {
+    "requestId": "mv0kwnqa6en4no",
+    "merchantName": "Biglil People",
+    "requesterEmail": "",
+    "status": "rejected",
+    "resolvedAt": "2026-10-09T06:29:14.257Z",
+    "teamGroup": "",
+    "gmv": 0,
+    "slabLabel": "",
+    "timestamp": 1791527354257,
+    "leaderNote": ""
   }
 ]
