@@ -49225,8 +49225,8 @@
     "fileName": "COUNTRY CHICKEN PRIVATE LIMITED-Razorpay-Proposal.pdf",
     "requesterEmail": "prerna.kumari@razorpay.com",
     "merchantName": "COUNTRY CHICKEN PRIVATE LIMITED",
-    "status": "pending",
-    "resolvedAt": "",
+    "status": "approved",
+    "resolvedAt": "2026-10-09T07:35:49.482Z",
     "gmv": 6000000,
     "slabLabel": "25L - 75L",
     "driveLink": "https://drive.google.com/file/d/129lR-NQgvV9hWnZErx00ipImLloxqIkM/view",
@@ -49698,6 +49698,7 @@
       },
       "ver": 2
     },
-    "timestamp": 1791529637702
+    "timestamp": 1791529637702,
+    "leaderNote": ""
   }
 ]
