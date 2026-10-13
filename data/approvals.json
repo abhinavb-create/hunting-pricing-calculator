@@ -50198,8 +50198,8 @@
     "fileName": "GoGoX-Razorpay-Proposal.pdf",
     "requesterEmail": "milind.singhbora@razorpay.com",
     "merchantName": "GoGoX",
-    "status": "pending",
-    "resolvedAt": "",
+    "status": "rejected",
+    "resolvedAt": "2026-10-13T08:40:06.251Z",
     "gmv": 50000000,
     "slabLabel": "75L - 5Cr",
     "driveLink": "https://drive.google.com/file/d/1mbRD7sCPGtxtNI3wEgRK6pAzrnxNX4N8/view",
@@ -50671,6 +50671,7 @@
       },
       "ver": 2
     },
-    "timestamp": 1791805715688
+    "timestamp": 1791805715688,
+    "leaderNote": ""
   }
 ]
