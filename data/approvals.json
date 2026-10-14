@@ -53081,8 +53081,8 @@
     "fileName": "SR Store-Razorpay-Proposal.pdf",
     "requesterEmail": "anam.imteyaz@razorpay.com",
     "merchantName": "SR Store",
-    "status": "pending",
-    "resolvedAt": "",
+    "status": "approved",
+    "resolvedAt": "2026-10-14T10:57:12.706Z",
     "gmv": 6000000,
     "slabLabel": "25L - 75L",
     "driveLink": "https://drive.google.com/file/d/1Bpywg0l5lB1r6NlSMZO4Y6QZLh-wvoKA/view",
@@ -53556,6 +53556,7 @@
       },
       "ver": 2
     },
-    "timestamp": 1791972798320
+    "timestamp": 1791972798320,
+    "leaderNote": ""
   }
 ]
