@@ -52600,8 +52600,8 @@
     "fileName": "Athflex Private Limited-DjMNOSfs9kadJG-Razorpay-Proposal.pdf",
     "requesterEmail": "arpit.shukla@razorpay.com",
     "merchantName": "Athflex Private Limited",
-    "status": "pending",
-    "resolvedAt": "",
+    "status": "approved",
+    "resolvedAt": "2026-10-14T07:30:14.587Z",
     "gmv": 10000000,
     "slabLabel": "75L - 5Cr",
     "driveLink": "https://drive.google.com/file/d/15tPNXVMhdURFUlJMtA3uL_VjwuMMttrp/view",
@@ -53073,6 +53073,7 @@
       },
       "ver": 2
     },
-    "timestamp": 1791961649570
+    "timestamp": 1791961649570,
+    "leaderNote": ""
   }
 ]
