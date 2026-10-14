@@ -51639,8 +51639,8 @@
     "fileName": "RPL Events-ThpzTw2fDaZrmE-Razorpay-Proposal.pdf",
     "requesterEmail": "prerna.kumari@razorpay.com",
     "merchantName": "RPL Events",
-    "status": "pending",
-    "resolvedAt": "",
+    "status": "approved",
+    "resolvedAt": "2026-10-14T07:29:43.033Z",
     "gmv": 1500000,
     "slabLabel": "Upto 25 Lakhs",
     "driveLink": "https://drive.google.com/file/d/1ptQXV0TzhqZ6S2udRpa62uRjPZ2u40aV/view",
@@ -52112,7 +52112,8 @@
       },
       "ver": 2
     },
-    "timestamp": 1791960632553
+    "timestamp": 1791960632553,
+    "leaderNote": ""
   },
   {
     "requestId": "mv7r66jqfih2sc",
