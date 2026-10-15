@@ -53564,8 +53564,8 @@
     "fileName": "LoanTap-ONm1ozLEwqguWc-Razorpay-Proposal.pdf",
     "requesterEmail": "suman.dash@razorpay.com",
     "merchantName": "LoanTap",
-    "status": "pending",
-    "resolvedAt": "",
+    "status": "approved",
+    "resolvedAt": "2026-10-15T05:55:29.825Z",
     "gmv": 50000000,
     "slabLabel": "75L - 5Cr",
     "driveLink": "https://drive.google.com/file/d/1psFdNkRKEES617pRqyuXLSSg2deHw5CH/view",
@@ -54039,6 +54039,7 @@
       },
       "ver": 2
     },
-    "timestamp": 1792042973625
+    "timestamp": 1792042973625,
+    "leaderNote": ""
   }
 ]
