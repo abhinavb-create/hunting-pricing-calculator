@@ -55011,8 +55011,8 @@
     "fileName": "Atlas Tours and Travels Private Limited-E4ls2FG3gl9KVC-Razorpay-Proposal.pdf",
     "requesterEmail": "arpit.shukla@razorpay.com",
     "merchantName": "Atlas Tours and Travels Private Limited",
-    "status": "pending",
-    "resolvedAt": "",
+    "status": "approved",
+    "resolvedAt": "2026-10-15T10:34:31.754Z",
     "gmv": 10000000,
     "slabLabel": "75L - 5Cr",
     "driveLink": "https://drive.google.com/file/d/1M7y6_peGnjfVgZbL_Aybp59fOJn3hcla/view",
@@ -55486,6 +55486,7 @@
       },
       "ver": 2
     },
-    "timestamp": 1792056151798
+    "timestamp": 1792056151798,
+    "leaderNote": ""
   }
 ]
