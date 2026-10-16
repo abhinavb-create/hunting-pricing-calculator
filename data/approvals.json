@@ -55978,8 +55978,8 @@
     "fileName": "Just Wow Factory-Razorpay-Proposal.pdf",
     "requesterEmail": "anam.imteyaz@razorpay.com",
     "merchantName": "Just Wow Factory",
-    "status": "pending",
-    "resolvedAt": "",
+    "status": "approved",
+    "resolvedAt": "2026-10-16T16:58:52.353Z",
     "gmv": 4500000,
     "slabLabel": "25L - 75L",
     "driveLink": "https://drive.google.com/file/d/1dfzW1p-Dc99NXw0wxukWlThAW2DNGmCN/view",
@@ -56453,6 +56453,7 @@
       },
       "ver": 2
     },
-    "timestamp": 1792153861629
+    "timestamp": 1792153861629,
+    "leaderNote": ""
   }
 ]
