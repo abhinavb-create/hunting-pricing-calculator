@@ -55495,8 +55495,8 @@
     "fileName": "Playotel Private Limited-Razorpay-Proposal.pdf",
     "requesterEmail": "prerna.kumari@razorpay.com",
     "merchantName": "Playotel Private Limited",
-    "status": "pending",
-    "resolvedAt": "",
+    "status": "approved",
+    "resolvedAt": "2026-10-16T06:17:16.597Z",
     "gmv": 13000000,
     "slabLabel": "75L - 5Cr",
     "driveLink": "https://drive.google.com/file/d/1aJObScOEtS-8ks8Y9J8mp-8Oj4YSKk3H/view",
@@ -55970,6 +55970,7 @@
       },
       "ver": 2
     },
-    "timestamp": 1792131243866
+    "timestamp": 1792131243866,
+    "leaderNote": ""
   }
 ]
