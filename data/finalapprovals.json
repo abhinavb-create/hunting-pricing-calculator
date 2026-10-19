@@ -1384,5 +1384,16 @@
     "resolvedAt": "",
     "teamGroup": "Competition Hunting",
     "timestamp": "2026-10-16T09:15:40.445Z"
+  },
+  {
+    "requestId": "fa_mvevf2smqts47n",
+    "merchantName": "Lining Studio",
+    "requesterEmail": "anam.imteyaz@razorpay.com",
+    "versionIds": "dl_1791189019352",
+    "notes": "",
+    "status": "pending",
+    "resolvedAt": "",
+    "teamGroup": "Shopify Hunting",
+    "timestamp": "2026-10-19T06:26:00.551Z"
   }
 ]
