@@ -56461,8 +56461,8 @@
     "fileName": "S Mobile Devices Pvt Ltd-Razorpay-Proposal.pdf",
     "requesterEmail": "anam.imteyaz@razorpay.com",
     "merchantName": "S Mobile Devices Pvt Ltd",
-    "status": "pending",
-    "resolvedAt": "",
+    "status": "approved",
+    "resolvedAt": "2026-10-19T05:39:30.877Z",
     "gmv": 10000000,
     "slabLabel": "75L - 5Cr",
     "driveLink": "https://drive.google.com/file/d/16udwCCZ16kgAqmgjPEqnD4fLyCKyzKfG/view",
@@ -56936,7 +56936,8 @@
       },
       "ver": 2
     },
-    "timestamp": 1792387813236
+    "timestamp": 1792387813236,
+    "leaderNote": ""
   },
   {
     "requestId": "mvetou5vfn6lz7",
