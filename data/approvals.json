@@ -60323,8 +60323,8 @@
     "fileName": "HelloPM LLP-HRizAfl0Mk42XD-Razorpay-Proposal.pdf",
     "requesterEmail": "kirubhavani.b@razorpay.com",
     "merchantName": "HelloPM LLP",
-    "status": "pending",
-    "resolvedAt": "",
+    "status": "approved",
+    "resolvedAt": "2026-10-19T10:28:31.648Z",
     "gmv": 10000000,
     "slabLabel": "75L - 5Cr",
     "driveLink": "https://drive.google.com/file/d/1_y8M_vuW1V41KrQBHuNueg9CeIpQpeqT/view",
@@ -60798,6 +60798,7 @@
       },
       "ver": 2
     },
-    "timestamp": 1792405674840
+    "timestamp": 1792405674840,
+    "leaderNote": ""
   }
 ]
