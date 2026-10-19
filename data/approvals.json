@@ -60807,8 +60807,8 @@
     "fileName": "Lord Shani Dev-O61BWXhaCJlTYo-Razorpay-Proposal.pdf",
     "requesterEmail": "arpit.shukla@razorpay.com",
     "merchantName": "Lord Shani Dev",
-    "status": "pending",
-    "resolvedAt": "",
+    "status": "approved",
+    "resolvedAt": "2026-10-19T12:01:04.388Z",
     "gmv": 1500000,
     "slabLabel": "Upto 25 Lakhs",
     "driveLink": "https://drive.google.com/file/d/168sak7dT64nNhY08XqRTZy3UdTXVQL1l/view",
@@ -61282,6 +61282,7 @@
       },
       "ver": 2
     },
-    "timestamp": 1792410995193
+    "timestamp": 1792410995193,
+    "leaderNote": ""
   }
 ]
