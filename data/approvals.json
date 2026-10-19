@@ -58392,8 +58392,8 @@
     "fileName": "TMTL-Razorpay-Proposal.pdf",
     "requesterEmail": "kirubhavani.b@razorpay.com",
     "merchantName": "TMTL",
-    "status": "pending",
-    "resolvedAt": "",
+    "status": "approved",
+    "resolvedAt": "2026-10-19T07:10:20.254Z",
     "gmv": 1000000,
     "slabLabel": "Upto 25 Lakhs",
     "driveLink": "https://drive.google.com/file/d/14qb1oNiMNQ9uBXa5N2-XddYMoNmOPOJq/view",
@@ -58867,6 +58867,7 @@
       },
       "ver": 2
     },
-    "timestamp": 1792392834129
+    "timestamp": 1792392834129,
+    "leaderNote": ""
   }
 ]
