@@ -1417,5 +1417,16 @@
     "resolvedAt": "",
     "teamGroup": "Competition Hunting",
     "timestamp": "2026-10-19T12:05:11.582Z"
+  },
+  {
+    "requestId": "fa_mvjbgfsmf6kxyh",
+    "merchantName": "Just Wow Factory",
+    "requesterEmail": "anam.imteyaz@razorpay.com",
+    "versionIds": "ap_mvetr6h7xos4nh",
+    "notes": "",
+    "status": "pending",
+    "resolvedAt": "",
+    "teamGroup": "Shopify Hunting",
+    "timestamp": "2026-10-22T09:06:02.614Z"
   }
 ]
