@@ -62739,8 +62739,8 @@
     "fileName": "Hibiscus monkey-EFliIo7sAJwffs-Razorpay-Proposal.pdf",
     "requesterEmail": "kirubhavani.b@razorpay.com",
     "merchantName": "Hibiscus monkey",
-    "status": "pending",
-    "resolvedAt": "",
+    "status": "approved",
+    "resolvedAt": "2026-10-22T10:52:42.194Z",
     "gmv": 9500000,
     "slabLabel": "75L - 5Cr",
     "driveLink": "https://drive.google.com/file/d/16qsdWXHJIaEdZtltZVJZaOaMM2FilDp7/view",
@@ -63214,6 +63214,7 @@
       },
       "ver": 2
     },
-    "timestamp": 1792666263877
+    "timestamp": 1792666263877,
+    "leaderNote": ""
   }
 ]
