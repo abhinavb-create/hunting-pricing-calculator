@@ -61290,8 +61290,8 @@
     "fileName": "VANN VENTURES-PHyKV2eCSaTJIK-Razorpay-Proposal.pdf",
     "requesterEmail": "kirubhavani.b@razorpay.com",
     "merchantName": "VANN VENTURES",
-    "status": "pending",
-    "resolvedAt": "",
+    "status": "approved",
+    "resolvedAt": "2026-10-22T06:27:15.705Z",
     "gmv": 10000000,
     "slabLabel": "75L - 5Cr",
     "driveLink": "https://drive.google.com/file/d/1aGqTZBxBsAtUn_DQNd0czF2QqzZQJig2/view",
@@ -61765,6 +61765,7 @@
       },
       "ver": 2
     },
-    "timestamp": 1792650272683
+    "timestamp": 1792650272683,
+    "leaderNote": ""
   }
 ]
