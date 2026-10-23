@@ -63705,8 +63705,8 @@
     "fileName": "Rachana Ranade and Associates-HTeWT2YKND7fSf-Razorpay-Proposal.pdf",
     "requesterEmail": "arpit.shukla@razorpay.com",
     "merchantName": "Rachana Ranade and Associates",
-    "status": "pending",
-    "resolvedAt": "",
+    "status": "approved",
+    "resolvedAt": "2026-10-23T06:01:11.022Z",
     "gmv": 2500000,
     "slabLabel": "Upto 25 Lakhs",
     "driveLink": "https://drive.google.com/file/d/1rzh5HHYy5n4Z4ZzrEj5OeEjSDwJJWBHY/view",
@@ -64180,6 +64180,7 @@
       },
       "ver": 2
     },
-    "timestamp": 1792734883057
+    "timestamp": 1792734883057,
+    "leaderNote": ""
   }
 ]
