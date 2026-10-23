@@ -63222,8 +63222,8 @@
     "fileName": "Revx Hospitality-Razorpay-Proposal.pdf",
     "requesterEmail": "kirubhavani.b@razorpay.com",
     "merchantName": "Revx Hospitality",
-    "status": "pending",
-    "resolvedAt": "",
+    "status": "approved",
+    "resolvedAt": "2026-10-23T05:31:47.399Z",
     "gmv": 3500000,
     "slabLabel": "25L - 75L",
     "driveLink": "https://drive.google.com/file/d/1AHDvmcZCmG2fmmn5wnsyQau2qRq10Oys/view",
@@ -63697,6 +63697,7 @@
       },
       "ver": 2
     },
-    "timestamp": 1792732816111
+    "timestamp": 1792732816111,
+    "leaderNote": ""
   }
 ]
