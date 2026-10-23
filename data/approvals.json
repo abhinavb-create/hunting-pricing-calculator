@@ -64671,8 +64671,8 @@
     "fileName": "Colors of Earth-OsbGfFxiuo6KOH-Razorpay-Proposal.pdf",
     "requesterEmail": "anam.imteyaz@razorpay.com",
     "merchantName": "Colors of Earth",
-    "status": "pending",
-    "resolvedAt": "",
+    "status": "approved",
+    "resolvedAt": "2026-10-23T10:07:54.773Z",
     "gmv": 12000000,
     "slabLabel": "75L - 5Cr",
     "driveLink": "https://drive.google.com/file/d/1SEXfMnGKyCEhaNoy6i2zxHM95fya0O7Y/view",
@@ -65146,6 +65146,7 @@
       },
       "ver": 2
     },
-    "timestamp": 1792750013188
+    "timestamp": 1792750013188,
+    "leaderNote": ""
   }
 ]
