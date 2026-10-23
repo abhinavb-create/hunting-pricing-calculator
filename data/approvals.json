@@ -64188,8 +64188,8 @@
     "fileName": "VIKAS EDUTECH-Razorpay-Proposal.pdf",
     "requesterEmail": "kirubhavani.b@razorpay.com",
     "merchantName": "VIKAS EDUTECH",
-    "status": "pending",
-    "resolvedAt": "",
+    "status": "approved",
+    "resolvedAt": "2026-10-23T06:35:51.351Z",
     "gmv": 7000000,
     "slabLabel": "25L - 75L",
     "driveLink": "https://drive.google.com/file/d/1MLtpIsexVvuPCCTAK8ImMtu8dp5dpALB/view",
@@ -64663,6 +64663,7 @@
       },
       "ver": 2
     },
-    "timestamp": 1792737216470
+    "timestamp": 1792737216470,
+    "leaderNote": ""
   }
 ]
