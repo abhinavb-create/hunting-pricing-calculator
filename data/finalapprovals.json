@@ -1428,5 +1428,16 @@
     "resolvedAt": "",
     "teamGroup": "Shopify Hunting",
     "timestamp": "2026-10-22T09:06:02.614Z"
+  },
+  {
+    "requestId": "fa_mvkl4mwhn3sbqb",
+    "merchantName": "K&I WEALTH ADVISORS LLP",
+    "requesterEmail": "prerna.kumari@razorpay.com",
+    "versionIds": "dl_1792046952879",
+    "notes": "",
+    "status": "pending",
+    "resolvedAt": "",
+    "teamGroup": "Competition Hunting",
+    "timestamp": "2026-10-23T06:24:34.290Z"
   }
 ]
