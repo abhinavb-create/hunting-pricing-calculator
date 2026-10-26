@@ -65154,8 +65154,8 @@
     "fileName": "Urban Needs India-JV2wvqGh0VlPGE-Razorpay-Proposal.pdf",
     "requesterEmail": "shreya.chandra@razorpay.com",
     "merchantName": "Urban Needs India",
-    "status": "pending",
-    "resolvedAt": "",
+    "status": "approved",
+    "resolvedAt": "2026-10-26T10:50:11.206Z",
     "gmv": 3000000,
     "slabLabel": "25L - 75L",
     "driveLink": "https://drive.google.com/file/d/1ofg6sudQyVKUPClRYbBbJj7CGgBBc8pJ/view",
@@ -65629,6 +65629,7 @@
       },
       "ver": 2
     },
-    "timestamp": 1793011232389
+    "timestamp": 1793011232389,
+    "leaderNote": ""
   }
 ]
