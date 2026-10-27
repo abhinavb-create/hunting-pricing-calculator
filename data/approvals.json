@@ -66120,8 +66120,8 @@
     "fileName": "La Minimale-Razorpay-Proposal.pdf",
     "requesterEmail": "prerna.kumari@razorpay.com",
     "merchantName": "La Minimale",
-    "status": "pending",
-    "resolvedAt": "",
+    "status": "approved",
+    "resolvedAt": "2026-10-27T07:36:34.460Z",
     "gmv": 500000,
     "slabLabel": "Upto 25 Lakhs",
     "driveLink": "https://drive.google.com/file/d/12DvQQePiI74cdoUw8Y1AQmwncLQTHcCp/view",
@@ -66595,6 +66595,7 @@
       },
       "ver": 2
     },
-    "timestamp": 1793086495606
+    "timestamp": 1793086495606,
+    "leaderNote": ""
   }
 ]
