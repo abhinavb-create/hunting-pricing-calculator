@@ -66603,8 +66603,8 @@
     "fileName": "Mansa Jewellery-Razorpay-Proposal.pdf",
     "requesterEmail": "milind.singhbora@razorpay.com",
     "merchantName": "Mansa Jewellery",
-    "status": "pending",
-    "resolvedAt": "",
+    "status": "approved",
+    "resolvedAt": "2026-10-27T10:10:10.289Z",
     "gmv": 2000000,
     "slabLabel": "Upto 25 Lakhs",
     "driveLink": "https://drive.google.com/file/d/1M5aKIVKan-ygASrnBz75r_EtCNxXXHaR/view",
@@ -67078,6 +67078,7 @@
       },
       "ver": 2
     },
-    "timestamp": 1793095754571
+    "timestamp": 1793095754571,
+    "leaderNote": ""
   }
 ]
