@@ -1527,5 +1527,16 @@
     "resolvedAt": "",
     "teamGroup": "Shopify Hunting",
     "timestamp": "2026-10-28T08:33:24.361Z"
+  },
+  {
+    "requestId": "fa_mvrxhsg1x3x7kt",
+    "merchantName": "VANN VENTURES",
+    "requesterEmail": "kirubhavani.b@razorpay.com",
+    "versionIds": "dl_1793179561296",
+    "notes": "",
+    "status": "pending",
+    "resolvedAt": "",
+    "teamGroup": "Competition Hunting",
+    "timestamp": "2026-10-28T09:45:06.626Z"
   }
 ]
