@@ -69018,8 +69018,8 @@
     "fileName": "AMLIKI WELLNESS INDIA PRIVATE LIMITED-QXwXwXQFVJOn5T-Razorpay-Proposal.pdf",
     "requesterEmail": "arpit.shukla@razorpay.com",
     "merchantName": "AMLIKI WELLNESS INDIA PRIVATE LIMITED",
-    "status": "pending",
-    "resolvedAt": "",
+    "status": "approved",
+    "resolvedAt": "2026-10-28T09:28:28.559Z",
     "gmv": 1000000,
     "slabLabel": "Upto 25 Lakhs",
     "driveLink": "https://drive.google.com/file/d/1B-G-6nATpMAelZwK5sxmzUZyvD74nWUW/view",
@@ -69493,6 +69493,7 @@
       },
       "ver": 2
     },
-    "timestamp": 1793179645335
+    "timestamp": 1793179645335,
+    "leaderNote": ""
   }
 ]
