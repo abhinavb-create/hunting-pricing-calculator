@@ -67568,8 +67568,8 @@
     "fileName": "Veda Mandir-Razorpay-Proposal.pdf",
     "requesterEmail": "kirubhavani.b@razorpay.com",
     "merchantName": "Veda Mandir",
-    "status": "pending",
-    "resolvedAt": "",
+    "status": "approved",
+    "resolvedAt": "2026-10-28T04:26:12.558Z",
     "gmv": 28000000,
     "slabLabel": "75L - 5Cr",
     "driveLink": "https://drive.google.com/file/d/1cDLNo3M06KHPWMe0KPEe2kOKSonYw6ur/view",
@@ -68043,6 +68043,7 @@
       },
       "ver": 2
     },
-    "timestamp": 1793102026266
+    "timestamp": 1793102026266,
+    "leaderNote": ""
   }
 ]
