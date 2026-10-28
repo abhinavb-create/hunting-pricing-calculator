@@ -68535,8 +68535,8 @@
     "fileName": "Nupa technologies Pvt ltd-F8xUEJkEjCcHlp-Razorpay-Proposal.pdf",
     "requesterEmail": "nishi.agarwal@razorpay.com",
     "merchantName": "Nupa technologies Pvt ltd",
-    "status": "pending",
-    "resolvedAt": "",
+    "status": "approved",
+    "resolvedAt": "2026-10-28T08:59:30.394Z",
     "gmv": 1500000,
     "slabLabel": "Upto 25 Lakhs",
     "driveLink": "https://drive.google.com/file/d/19qdtqFTjt_c4zr6wjULYCkL5sgCVfoIw/view",
@@ -69010,6 +69010,7 @@
       },
       "ver": 2
     },
-    "timestamp": 1793177924652
+    "timestamp": 1793177924652,
+    "leaderNote": ""
   }
 ]
