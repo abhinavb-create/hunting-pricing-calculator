@@ -72399,8 +72399,8 @@
     "fileName": "Sof Sleep-P0SzI4H1X3Od7Q-Razorpay-Proposal.pdf",
     "requesterEmail": "kirubhavani.b@razorpay.com",
     "merchantName": "Sof Sleep",
-    "status": "pending",
-    "resolvedAt": "",
+    "status": "approved",
+    "resolvedAt": "2026-10-29T09:46:39.755Z",
     "gmv": 5000000,
     "slabLabel": "25L - 75L",
     "driveLink": "https://drive.google.com/file/d/1ndfFdQMP2oGzQ0Pndz_vNPUdWJH7axRc/view",
@@ -72874,6 +72874,7 @@
       },
       "ver": 2
     },
-    "timestamp": 1793266755816
+    "timestamp": 1793266755816,
+    "leaderNote": ""
   }
 ]
