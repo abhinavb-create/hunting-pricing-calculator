@@ -70950,8 +70950,8 @@
     "fileName": "KLICKROCKET LABS PRIVATE LIMITED-Sv9HIwpEfSUBD3-Razorpay-Proposal.pdf",
     "requesterEmail": "chandel.yajat@razorpay.com",
     "merchantName": "KLICKROCKET LABS PRIVATE LIMITED",
-    "status": "pending",
-    "resolvedAt": "",
+    "status": "rejected",
+    "resolvedAt": "2026-10-29T08:36:54.318Z",
     "gmv": 3000000,
     "slabLabel": "25L - 75L",
     "driveLink": "https://drive.google.com/file/d/1G5qQkkex0_RjAqg4P8XM2AbWAfIz4Qe_/view",
@@ -71425,6 +71425,7 @@
       },
       "ver": 2
     },
-    "timestamp": 1793261585340
+    "timestamp": 1793261585340,
+    "leaderNote": "We should not offer less than 2.45%"
   }
 ]
