@@ -69983,8 +69983,8 @@
     "fileName": "KARZ AND DOLLS-PYfGCIuq2hKjpk-Razorpay-Proposal.pdf",
     "requesterEmail": "arpit.shukla@razorpay.com",
     "merchantName": "KARZ AND DOLLS",
-    "status": "pending",
-    "resolvedAt": "",
+    "status": "approved",
+    "resolvedAt": "2026-10-29T06:32:31.928Z",
     "gmv": 10000000,
     "slabLabel": "75L - 5Cr",
     "driveLink": "https://drive.google.com/file/d/1OsDVfjHnApMPQ2vHv2JrFw4upzhD5ZRK/view",
@@ -70458,7 +70458,8 @@
       },
       "ver": 2
     },
-    "timestamp": 1793255391213
+    "timestamp": 1793255391213,
+    "leaderNote": ""
   },
   {
     "requestId": "mvt5zd7o3g9e83",
