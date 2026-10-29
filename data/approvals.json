@@ -69501,8 +69501,8 @@
     "fileName": "SHAH VIRCHAND GOVANJI JEWELLERS PRIVATE LIMITED-KI9tA5q2TZBJWg-Razorpay-Proposal.pdf",
     "requesterEmail": "kirubhavani.b@razorpay.com",
     "merchantName": "SHAH VIRCHAND GOVANJI JEWELLERS PRIVATE LIMITED",
-    "status": "pending",
-    "resolvedAt": "",
+    "status": "approved",
+    "resolvedAt": "2026-10-29T06:32:53.120Z",
     "gmv": 50000000,
     "slabLabel": "75L - 5Cr",
     "driveLink": "https://drive.google.com/file/d/1vASbzY2BWLmGLRZZisyhmqQ2AvSdRJ6Z/view",
@@ -69976,7 +69976,8 @@
       },
       "ver": 2
     },
-    "timestamp": 1793255249048
+    "timestamp": 1793255249048,
+    "leaderNote": ""
   },
   {
     "requestId": "mvt5y9hnh1205v",
