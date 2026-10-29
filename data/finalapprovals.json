@@ -1571,5 +1571,16 @@
     "resolvedAt": "",
     "teamGroup": "Competition Hunting",
     "timestamp": "2026-10-29T09:19:18.829Z"
+  },
+  {
+    "requestId": "fa_mvte2vwyfgk850",
+    "merchantName": "Colors of Earth",
+    "requesterEmail": "anam.imteyaz@razorpay.com",
+    "versionIds": "ap_mvkt2bl6lrr1ww",
+    "notes": "",
+    "status": "pending",
+    "resolvedAt": "",
+    "teamGroup": "Shopify Hunting",
+    "timestamp": "2026-10-29T10:17:10.931Z"
   }
 ]
