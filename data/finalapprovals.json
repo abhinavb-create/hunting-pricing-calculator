@@ -1560,5 +1560,16 @@
     "resolvedAt": "",
     "teamGroup": "Competition Hunting",
     "timestamp": "2026-10-29T06:35:21.098Z"
+  },
+  {
+    "requestId": "fa_mvtc0gtolyqwg5",
+    "merchantName": "SPRUCE",
+    "requesterEmail": "arpit.shukla@razorpay.com",
+    "versionIds": "dl_1791787697120",
+    "notes": "",
+    "status": "pending",
+    "resolvedAt": "",
+    "teamGroup": "Competition Hunting",
+    "timestamp": "2026-10-29T09:19:18.829Z"
   }
 ]
