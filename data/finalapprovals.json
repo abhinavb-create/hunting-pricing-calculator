@@ -1582,5 +1582,16 @@
     "resolvedAt": "",
     "teamGroup": "Shopify Hunting",
     "timestamp": "2026-10-29T10:17:10.931Z"
+  },
+  {
+    "requestId": "fa_mvte3yq6k2h3co",
+    "merchantName": "KLICKROCKET LABS PRIVATE LIMITED",
+    "requesterEmail": "chandel.yajat@razorpay.com",
+    "versionIds": "ap_mvtdzdrikvn0af",
+    "notes": "",
+    "status": "pending",
+    "resolvedAt": "",
+    "teamGroup": "Competition Hunting",
+    "timestamp": "2026-10-29T10:18:01.231Z"
   }
 ]
