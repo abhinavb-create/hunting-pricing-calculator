@@ -73848,8 +73848,8 @@
     "fileName": "Soft Sleep-P0SzI4H1X3Od7Q-Razorpay-Proposal.pdf",
     "requesterEmail": "kirubhavani.b@razorpay.com",
     "merchantName": "Soft Sleep",
-    "status": "pending",
-    "resolvedAt": "",
+    "status": "approved",
+    "resolvedAt": "2026-10-30T05:35:44.647Z",
     "gmv": 5000000,
     "slabLabel": "25L - 75L",
     "driveLink": "https://drive.google.com/file/d/1retEfKFrVYZTNN8HHDKmOPwi8YaAfN4p/view",
@@ -74323,6 +74323,7 @@
       },
       "ver": 2
     },
-    "timestamp": 1793338515605
+    "timestamp": 1793338515605,
+    "leaderNote": ""
   }
 ]
