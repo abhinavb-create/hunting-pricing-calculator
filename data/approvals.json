@@ -74331,8 +74331,8 @@
     "fileName": "FRAGDICTION-Jsrt3sCoPnrEoR-Razorpay-Proposal.pdf",
     "requesterEmail": "kirubhavani.b@razorpay.com",
     "merchantName": "FRAGDICTION",
-    "status": "pending",
-    "resolvedAt": "",
+    "status": "approved",
+    "resolvedAt": "2026-10-30T06:07:07.239Z",
     "gmv": 3500000,
     "slabLabel": "25L - 75L",
     "driveLink": "https://drive.google.com/file/d/1bX-OiWuQvtqau2IvkXK9VQ-vtg7J62AS/view",
@@ -74806,6 +74806,7 @@
       },
       "ver": 2
     },
-    "timestamp": 1793339678457
+    "timestamp": 1793339678457,
+    "leaderNote": ""
   }
 ]
