@@ -74814,8 +74814,8 @@
     "fileName": "Bizfylr-Razorpay-Proposal.pdf",
     "requesterEmail": "nishi.agarwal@razorpay.com",
     "merchantName": "Bizfylr",
-    "status": "pending",
-    "resolvedAt": "",
+    "status": "approved",
+    "resolvedAt": "2026-10-30T11:18:53.411Z",
     "gmv": 500000,
     "slabLabel": "Upto 25 Lakhs",
     "driveLink": "https://drive.google.com/file/d/16X0KsPAqpFqPaQI-kMK0cIFkS8oJz6Q9/view",
@@ -75311,6 +75311,7 @@
       },
       "ver": 3
     },
-    "timestamp": 1793359094192
+    "timestamp": 1793359094192,
+    "leaderNote": ""
   }
 ]
