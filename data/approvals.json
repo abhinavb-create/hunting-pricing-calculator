@@ -76307,8 +76307,8 @@
     "fileName": "MBOOK TECHNOLOGY PRIVATE LIMITED-QcIEkJWnYNUnEz-Razorpay-Proposal.pdf",
     "requesterEmail": "chandel.yajat@razorpay.com",
     "merchantName": "MBOOK TECHNOLOGY PRIVATE LIMITED",
-    "status": "pending",
-    "resolvedAt": "",
+    "status": "approved",
+    "resolvedAt": "2026-11-02T12:20:01.668Z",
     "gmv": 5600000,
     "slabLabel": "25L - 75L",
     "driveLink": "https://drive.google.com/file/d/1t2hASdreDjweMERhVNFX8p4o5JFaEDWM/view",
@@ -76804,6 +76804,7 @@
       },
       "ver": 3
     },
-    "timestamp": 1793621958042
+    "timestamp": 1793621958042,
+    "leaderNote": ""
   }
 ]
