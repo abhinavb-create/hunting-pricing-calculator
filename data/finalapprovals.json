@@ -1659,5 +1659,16 @@
     "resolvedAt": "",
     "teamGroup": "",
     "timestamp": "2026-10-30T09:10:56.545Z"
+  },
+  {
+    "requestId": "fa_mvyv95hv0qk2g6",
+    "merchantName": "MANZEAL INTERNET PRIVATE LIMITED",
+    "requesterEmail": "shreya.chandra@razorpay.com",
+    "versionIds": "dl_1793599115522",
+    "notes": "",
+    "status": "pending",
+    "resolvedAt": "",
+    "teamGroup": "Shopify Hunting",
+    "timestamp": "2026-11-02T06:16:47.638Z"
   }
 ]
