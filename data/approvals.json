@@ -75319,8 +75319,8 @@
     "fileName": "MANZEAL INTERNET PRIVATE LIMITED-M5l70xauA0KjVB-Razorpay-Proposal.pdf",
     "requesterEmail": "shreya.chandra@razorpay.com",
     "merchantName": "MANZEAL INTERNET PRIVATE LIMITED",
-    "status": "pending",
-    "resolvedAt": "",
+    "status": "approved",
+    "resolvedAt": "2026-11-02T05:49:12.408Z",
     "gmv": 9000000,
     "slabLabel": "75L - 5Cr",
     "driveLink": "https://drive.google.com/file/d/1Xs2m7-d1IUUasdfAtDP7Jc9cFJiV9WMG/view",
@@ -75794,6 +75794,7 @@
       },
       "ver": 2
     },
-    "timestamp": 1793598519358
+    "timestamp": 1793598519358,
+    "leaderNote": ""
   }
 ]
