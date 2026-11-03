@@ -1692,5 +1692,16 @@
     "resolvedAt": "",
     "teamGroup": "Competition Hunting",
     "timestamp": "2026-11-03T07:01:06.181Z"
+  },
+  {
+    "requestId": "fa_mw0hs3wx29jmg4",
+    "merchantName": "December Technologies Private Limited",
+    "requesterEmail": "sainath.vishnugauri@razorpay.com",
+    "versionIds": "dl_1792151387657",
+    "notes": "",
+    "status": "pending",
+    "resolvedAt": "",
+    "teamGroup": "Competition Hunting",
+    "timestamp": "2026-11-03T09:35:09.779Z"
   }
 ]
