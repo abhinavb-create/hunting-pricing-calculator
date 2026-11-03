@@ -1710,10 +1710,12 @@
     "requesterEmail": "abhinav.b@razorpay.com",
     "versionIds": "dl_1793707921855",
     "notes": "",
-    "status": "pending",
-    "resolvedAt": "",
+    "status": "approved",
+    "resolvedAt": "2026-11-03T12:13:02.269Z",
     "teamGroup": "",
     "isSettlementRevamp": true,
-    "timestamp": "2026-11-03T12:12:15.786Z"
+    "timestamp": "2026-11-03T12:12:15.786Z",
+    "leaderNote": "",
+    "resolvedBy": "abhinav.b@razorpay.com"
   }
 ]
