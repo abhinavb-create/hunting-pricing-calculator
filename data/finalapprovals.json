@@ -1717,5 +1717,17 @@
     "timestamp": "2026-11-03T12:12:15.786Z",
     "leaderNote": "",
     "resolvedBy": "abhinav.b@razorpay.com"
+  },
+  {
+    "requestId": "fa_mw0t22rdgg5asa",
+    "merchantName": "INISH SERVICES",
+    "requesterEmail": "prerna.kumari@razorpay.com",
+    "versionIds": "ap_mvyuyf4jn8uyi1",
+    "notes": "",
+    "status": "pending",
+    "resolvedAt": "",
+    "teamGroup": "Competition Hunting",
+    "isSettlementRevamp": true,
+    "timestamp": "2026-11-03T14:50:50.618Z"
   }
 ]
