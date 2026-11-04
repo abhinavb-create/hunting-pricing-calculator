@@ -77316,8 +77316,8 @@
     "fileName": "Doc next services-Razorpay-Proposal.pdf",
     "requesterEmail": "nishi.agarwal@razorpay.com",
     "merchantName": "Doc next services",
-    "status": "pending",
-    "resolvedAt": "",
+    "status": "approved",
+    "resolvedAt": "2026-11-04T05:56:11.278Z",
     "gmv": 2000000,
     "slabLabel": "Upto 25 Lakhs",
     "driveLink": "https://drive.google.com/file/d/1Pyf3Bo_FH-WjdqAoTwekqSrskKb6iHgB/view",
@@ -77813,7 +77813,9 @@
       },
       "ver": 3
     },
-    "timestamp": 1793736759645
+    "timestamp": 1793736759645,
+    "leaderNote": "",
+    "resolvedBy": "suman.dash@razorpay.com"
   },
   {
     "requestId": "mw1p3qeolmss7x",
