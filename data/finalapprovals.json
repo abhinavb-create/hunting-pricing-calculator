@@ -1753,5 +1753,17 @@
     "teamGroup": "Competition Hunting",
     "isSettlementRevamp": false,
     "timestamp": "2026-11-05T09:13:37.800Z"
+  },
+  {
+    "requestId": "fa_mw3cch5ohifuly",
+    "merchantName": "K&I WEALTH TECH PRIVATE LIMITED",
+    "requesterEmail": "prerna.kumari@razorpay.com",
+    "versionIds": "dl_1793864489321",
+    "notes": "",
+    "status": "pending",
+    "resolvedAt": "",
+    "teamGroup": "Competition Hunting",
+    "isSettlementRevamp": true,
+    "timestamp": "2026-11-05T09:26:20.893Z"
   }
 ]
