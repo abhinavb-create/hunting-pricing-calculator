@@ -1729,5 +1729,17 @@
     "teamGroup": "Competition Hunting",
     "isSettlementRevamp": true,
     "timestamp": "2026-11-03T14:50:50.618Z"
+  },
+  {
+    "requestId": "fa_mw3bvo9khp4du8",
+    "merchantName": "SHIPMAXX RETAIL PRIVATE LIMITED",
+    "requesterEmail": "prerna.kumari@razorpay.com",
+    "versionIds": "dl_1793859650974",
+    "notes": "",
+    "status": "pending",
+    "resolvedAt": "",
+    "teamGroup": "Competition Hunting",
+    "isSettlementRevamp": false,
+    "timestamp": "2026-11-05T09:13:16.953Z"
   }
 ]
