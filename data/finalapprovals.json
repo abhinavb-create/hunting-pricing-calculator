@@ -1789,5 +1789,17 @@
     "teamGroup": "Shopify Hunting",
     "isSettlementRevamp": false,
     "timestamp": "2026-11-05T12:09:54.843Z"
+  },
+  {
+    "requestId": "fa_mw3n4swmvpxvw1",
+    "merchantName": "INISH SERVICES",
+    "requesterEmail": "prerna.kumari@razorpay.com",
+    "versionIds": "dl_1793774515458",
+    "notes": "",
+    "status": "pending",
+    "resolvedAt": "",
+    "teamGroup": "Competition Hunting",
+    "isSettlementRevamp": true,
+    "timestamp": "2026-11-05T14:28:18.647Z"
   }
 ]
