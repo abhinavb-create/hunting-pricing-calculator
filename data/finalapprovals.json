@@ -1777,5 +1777,17 @@
     "teamGroup": "Competition Hunting",
     "isSettlementRevamp": false,
     "timestamp": "2026-11-05T09:27:22.609Z"
+  },
+  {
+    "requestId": "fa_mw3i6tnewxrkhc",
+    "merchantName": "Advent Outdoor Products LLP",
+    "requesterEmail": "shreya.chandra@razorpay.com",
+    "versionIds": "dl_1793616492967",
+    "notes": "",
+    "status": "pending",
+    "resolvedAt": "",
+    "teamGroup": "Shopify Hunting",
+    "isSettlementRevamp": false,
+    "timestamp": "2026-11-05T12:09:54.843Z"
   }
 ]
