@@ -79338,8 +79338,8 @@
     "fileName": "Carave paris-Razorpay-Proposal.pdf",
     "requesterEmail": "prerna.kumari@razorpay.com",
     "merchantName": "Carave paris",
-    "status": "pending",
-    "resolvedAt": "",
+    "status": "approved",
+    "resolvedAt": "2026-11-05T06:44:48.432Z",
     "gmv": 20000000,
     "slabLabel": "75L - 5Cr",
     "driveLink": "https://drive.google.com/file/d/1_t_L1QRXiR57XK8DwgJ2lxg29uH1v3gh/view",
@@ -79835,6 +79835,8 @@
       },
       "ver": 3
     },
-    "timestamp": 1793860002165
+    "timestamp": 1793860002165,
+    "leaderNote": "",
+    "resolvedBy": "abhinav.b@razorpay.com"
   }
 ]
