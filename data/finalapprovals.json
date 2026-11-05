@@ -1741,5 +1741,17 @@
     "teamGroup": "Competition Hunting",
     "isSettlementRevamp": false,
     "timestamp": "2026-11-05T09:13:16.953Z"
+  },
+  {
+    "requestId": "fa_mw3bw4covm9i6d",
+    "merchantName": "LOSUNG 360 PRIVATE LIMITED",
+    "requesterEmail": "prerna.kumari@razorpay.com",
+    "versionIds": "dl_1793860396832",
+    "notes": "",
+    "status": "pending",
+    "resolvedAt": "",
+    "teamGroup": "Competition Hunting",
+    "isSettlementRevamp": false,
+    "timestamp": "2026-11-05T09:13:37.800Z"
   }
 ]
