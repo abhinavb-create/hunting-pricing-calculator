@@ -81360,8 +81360,8 @@
     "fileName": "INISH SERVICES-TAZm67OOUNCwAv-Razorpay-Proposal.pdf",
     "requesterEmail": "prerna.kumari@razorpay.com",
     "merchantName": "INISH SERVICES",
-    "status": "pending",
-    "resolvedAt": "",
+    "status": "approved",
+    "resolvedAt": "2026-11-06T07:20:40.343Z",
     "gmv": 3000000,
     "slabLabel": "25L - 75L",
     "driveLink": "https://drive.google.com/file/d/1CplJPEPueRoxMm4h0li6JFQ4W9BNz_x8/view",
@@ -81857,6 +81857,8 @@
       },
       "ver": 3
     },
-    "timestamp": 1793949542607
+    "timestamp": 1793949542607,
+    "leaderNote": "",
+    "resolvedBy": "suman.dash@razorpay.com"
   }
 ]
