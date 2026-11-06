@@ -1825,5 +1825,17 @@
     "teamGroup": "Competition Hunting",
     "isSettlementRevamp": true,
     "timestamp": "2026-11-06T07:36:17.135Z"
+  },
+  {
+    "requestId": "fa_mw4sz95ssxswux",
+    "merchantName": "LAHAR",
+    "requesterEmail": "arpit.shukla@razorpay.com",
+    "versionIds": "dl_1792066286702",
+    "notes": "",
+    "status": "pending",
+    "resolvedAt": "",
+    "teamGroup": "Competition Hunting",
+    "isSettlementRevamp": false,
+    "timestamp": "2026-11-06T09:59:43.649Z"
   }
 ]
