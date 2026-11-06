@@ -80854,8 +80854,8 @@
     "fileName": "Dawbu.com-TtK7pk8KxGN9nL-Razorpay-Proposal.pdf",
     "requesterEmail": "shreya.chandra@razorpay.com",
     "merchantName": "Dawbu.com",
-    "status": "pending",
-    "resolvedAt": "",
+    "status": "approved",
+    "resolvedAt": "2026-11-06T06:01:32.419Z",
     "gmv": 6000000,
     "slabLabel": "25L - 75L",
     "driveLink": "https://drive.google.com/file/d/1InYCqsSCPkpkq5z4f8YyGwx_2M378Xch/view",
@@ -81351,6 +81351,8 @@
       },
       "ver": 3
     },
-    "timestamp": 1793878755052
+    "timestamp": 1793878755052,
+    "leaderNote": "",
+    "resolvedBy": "suman.dash@razorpay.com"
   }
 ]
