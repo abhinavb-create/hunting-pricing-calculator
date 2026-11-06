@@ -81866,8 +81866,8 @@
     "fileName": "RIYAASAT LIFESTYLE LIMITED-KNbzx7QYql7Pxy-Razorpay-Proposal.pdf",
     "requesterEmail": "anam.imteyaz@razorpay.com",
     "merchantName": "RIYAASAT LIFESTYLE LIMITED",
-    "status": "pending",
-    "resolvedAt": "",
+    "status": "approved",
+    "resolvedAt": "2026-11-06T08:14:33.229Z",
     "gmv": 7000000,
     "slabLabel": "25L - 75L",
     "driveLink": "https://drive.google.com/file/d/14k15ex5cVwgZj5nxbDVVgXEkQf2xuq8B/view",
@@ -82363,6 +82363,8 @@
       },
       "ver": 3
     },
-    "timestamp": 1793952725998
+    "timestamp": 1793952725998,
+    "leaderNote": "",
+    "resolvedBy": "suman.dash@razorpay.com"
   }
 ]
