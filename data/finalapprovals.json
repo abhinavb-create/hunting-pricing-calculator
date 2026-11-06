@@ -1837,5 +1837,17 @@
     "teamGroup": "Competition Hunting",
     "isSettlementRevamp": false,
     "timestamp": "2026-11-06T09:59:43.649Z"
+  },
+  {
+    "requestId": "fa_mw4zh73q18g0vg",
+    "merchantName": "Dawbu.com",
+    "requesterEmail": "shreya.chandra@razorpay.com",
+    "versionIds": "ap_mw3h36bybnkpcb",
+    "notes": "",
+    "status": "pending",
+    "resolvedAt": "",
+    "teamGroup": "Shopify Hunting",
+    "isSettlementRevamp": false,
+    "timestamp": "2026-11-06T13:01:38.488Z"
   }
 ]
