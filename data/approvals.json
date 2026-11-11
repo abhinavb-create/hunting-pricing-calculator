@@ -82372,8 +82372,8 @@
     "fileName": "INFINITY COLLECTION PVT LTD-Razorpay-Proposal.pdf",
     "requesterEmail": "suman.dash@razorpay.com",
     "merchantName": "INFINITY COLLECTION PVT LTD",
-    "status": "pending",
-    "resolvedAt": "",
+    "status": "approved",
+    "resolvedAt": "2026-11-11T11:01:00.392Z",
     "gmv": 6000000,
     "slabLabel": "25L - 75L",
     "driveLink": "https://drive.google.com/file/d/1gAvjXg0Jce8Xbwj9Q2wTwu_9YndQE-si/view",
@@ -82869,6 +82869,8 @@
       },
       "ver": 3
     },
-    "timestamp": 1794394641533
+    "timestamp": 1794394641533,
+    "leaderNote": "",
+    "resolvedBy": "suman.dash@razorpay.com"
   }
 ]
