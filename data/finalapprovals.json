@@ -1849,5 +1849,17 @@
     "teamGroup": "Shopify Hunting",
     "isSettlementRevamp": false,
     "timestamp": "2026-11-06T13:01:38.488Z"
+  },
+  {
+    "requestId": "fa_mwbv16kwllai25",
+    "merchantName": "LAHAR",
+    "requesterEmail": "arpit.shukla@razorpay.com",
+    "versionIds": "dl_1794385874675",
+    "notes": "",
+    "status": "pending",
+    "resolvedAt": "",
+    "teamGroup": "Competition Hunting",
+    "isSettlementRevamp": false,
+    "timestamp": "2026-11-11T08:31:36.081Z"
   }
 ]
