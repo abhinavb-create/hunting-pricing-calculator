@@ -83384,8 +83384,8 @@
     "fileName": "Pai Vaibhav-TsRYy0wP1zcGWh-Razorpay-Proposal.pdf",
     "requesterEmail": "kirubhavani.b@razorpay.com",
     "merchantName": "Pai Vaibhav",
-    "status": "pending",
-    "resolvedAt": "",
+    "status": "approved",
+    "resolvedAt": "2026-11-12T10:05:47.748Z",
     "gmv": 12000000,
     "slabLabel": "75L - 5Cr",
     "driveLink": "https://drive.google.com/file/d/1_Ebq-dUvdmGOW7qS2ig2zct5VYparWra/view",
@@ -83881,6 +83881,8 @@
       },
       "ver": 3
     },
-    "timestamp": 1794477660522
+    "timestamp": 1794477660522,
+    "leaderNote": "",
+    "resolvedBy": "suman.dash@razorpay.com"
   }
 ]
