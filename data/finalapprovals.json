@@ -1861,5 +1861,17 @@
     "teamGroup": "Competition Hunting",
     "isSettlementRevamp": false,
     "timestamp": "2026-11-11T08:31:36.081Z"
+  },
+  {
+    "requestId": "fa_mwdcccps8zeaj4",
+    "merchantName": "Noctix",
+    "requesterEmail": "anam.imteyaz@razorpay.com",
+    "versionIds": "ap_mwd4omne472sq2",
+    "notes": "",
+    "status": "pending",
+    "resolvedAt": "",
+    "teamGroup": "Shopify Hunting",
+    "isSettlementRevamp": false,
+    "timestamp": "2026-11-12T09:23:56.897Z"
   }
 ]
