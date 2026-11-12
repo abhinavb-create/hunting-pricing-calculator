@@ -83890,8 +83890,8 @@
     "fileName": "Ramsons Perfumes Pvt. Ltd.-Qp6vMzqSXoOiua-Razorpay-Proposal.pdf",
     "requesterEmail": "shreya.chandra@razorpay.com",
     "merchantName": "Ramsons Perfumes Pvt. Ltd.",
-    "status": "pending",
-    "resolvedAt": "",
+    "status": "approved",
+    "resolvedAt": "2026-11-12T11:00:11.166Z",
     "gmv": 800000,
     "slabLabel": "Upto 25 Lakhs",
     "driveLink": "https://drive.google.com/file/d/1dV8SxmCQG3PDNmb0Q1QK-_iGtwCqGpBH/view",
@@ -84387,6 +84387,8 @@
       },
       "ver": 3
     },
-    "timestamp": 1794480160822
+    "timestamp": 1794480160822,
+    "leaderNote": "",
+    "resolvedBy": "suman.dash@razorpay.com"
   }
 ]
