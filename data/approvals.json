@@ -82878,8 +82878,8 @@
     "fileName": "Noctix-RgLaEH4MNS106j-Razorpay-Proposal.pdf",
     "requesterEmail": "anam.imteyaz@razorpay.com",
     "merchantName": "Noctix",
-    "status": "pending",
-    "resolvedAt": "",
+    "status": "approved",
+    "resolvedAt": "2026-11-12T05:54:06.330Z",
     "gmv": 30000000,
     "slabLabel": "75L - 5Cr",
     "driveLink": "https://drive.google.com/file/d/1T8zkNu8rjBV-T17BPhrr52JTG7khnWvG/view",
@@ -83375,6 +83375,8 @@
       },
       "ver": 3
     },
-    "timestamp": 1794462582054
+    "timestamp": 1794462582054,
+    "leaderNote": "",
+    "resolvedBy": "suman.dash@razorpay.com"
   }
 ]
