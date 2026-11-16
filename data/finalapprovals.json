@@ -1873,5 +1873,17 @@
     "teamGroup": "Shopify Hunting",
     "isSettlementRevamp": false,
     "timestamp": "2026-11-12T09:23:56.897Z"
+  },
+  {
+    "requestId": "fa_mwj55vw8mt6ad3",
+    "merchantName": "RIYAASAT LIFESTYLE LIMITED",
+    "requesterEmail": "anam.imteyaz@razorpay.com",
+    "versionIds": "ap_mw4p4mw1v4cc7l",
+    "notes": "",
+    "status": "pending",
+    "resolvedAt": "",
+    "teamGroup": "Shopify Hunting",
+    "isSettlementRevamp": false,
+    "timestamp": "2026-11-16T10:49:34.905Z"
   }
 ]
