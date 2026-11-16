@@ -1885,5 +1885,17 @@
     "teamGroup": "Shopify Hunting",
     "isSettlementRevamp": false,
     "timestamp": "2026-11-16T10:49:34.905Z"
+  },
+  {
+    "requestId": "fa_mwjarbk4xseazc",
+    "merchantName": "JPRPARK INFRA LLP",
+    "requesterEmail": "prerna.kumari@razorpay.com",
+    "versionIds": "dl_1794809484642",
+    "notes": "",
+    "status": "pending",
+    "resolvedAt": "",
+    "teamGroup": "Competition Hunting",
+    "isSettlementRevamp": true,
+    "timestamp": "2026-11-16T13:26:13.061Z"
   }
 ]
