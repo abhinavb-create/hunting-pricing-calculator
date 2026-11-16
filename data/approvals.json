@@ -84396,8 +84396,8 @@
     "fileName": "Ekatraa-SRwJDENU0yE1vx-Razorpay-Proposal.pdf",
     "requesterEmail": "nishi.agarwal@razorpay.com",
     "merchantName": "Ekatraa",
-    "status": "pending",
-    "resolvedAt": "",
+    "status": "approved",
+    "resolvedAt": "2026-11-16T06:21:42.308Z",
     "gmv": 5000000,
     "slabLabel": "25L - 75L",
     "driveLink": "https://drive.google.com/file/d/1jVIOFq_uuWlWsii5tqUkv_JV6ikkwN3R/view",
@@ -84893,6 +84893,8 @@
       },
       "ver": 3
     },
-    "timestamp": 1794491212196
+    "timestamp": 1794491212196,
+    "leaderNote": "",
+    "resolvedBy": "abhinav.b@razorpay.com"
   }
 ]
