@@ -1897,5 +1897,17 @@
     "teamGroup": "Competition Hunting",
     "isSettlementRevamp": true,
     "timestamp": "2026-11-16T13:26:13.061Z"
+  },
+  {
+    "requestId": "fa_mwkn3g712838kz",
+    "merchantName": "Pai Vaibhav",
+    "requesterEmail": "kirubhavani.b@razorpay.com",
+    "versionIds": "dl_1794913161913",
+    "notes": "",
+    "status": "pending",
+    "resolvedAt": "",
+    "teamGroup": "Competition Hunting",
+    "isSettlementRevamp": true,
+    "timestamp": "2026-11-17T11:59:20.510Z"
   }
 ]
