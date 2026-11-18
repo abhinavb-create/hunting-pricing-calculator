@@ -1981,5 +1981,17 @@
     "teamGroup": "Shopify Hunting",
     "isSettlementRevamp": false,
     "timestamp": "2026-11-18T11:22:10.878Z"
+  },
+  {
+    "requestId": "fa_mwm5ccx23gjzdw",
+    "merchantName": "TEAM AND TRADE EXPOS",
+    "requesterEmail": "arpit.shukla@razorpay.com",
+    "versionIds": "dl_1794391780002",
+    "notes": "",
+    "status": "pending",
+    "resolvedAt": "",
+    "teamGroup": "Competition Hunting",
+    "isSettlementRevamp": false,
+    "timestamp": "2026-11-18T13:17:55.431Z"
   }
 ]
