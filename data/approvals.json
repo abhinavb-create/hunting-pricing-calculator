@@ -85912,8 +85912,8 @@
     "fileName": "VICEROY HOTELS-TtHBfZy0tG5xtF-Razorpay-Proposal.pdf",
     "requesterEmail": "kirubhavani.b@razorpay.com",
     "merchantName": "VICEROY HOTELS",
-    "status": "pending",
-    "resolvedAt": "",
+    "status": "rejected",
+    "resolvedAt": "2026-11-18T06:24:55.459Z",
     "gmv": 12000000,
     "slabLabel": "75L - 5Cr",
     "driveLink": "https://drive.google.com/file/d/1SYirselh7l5fJ1Z_iRVB7XYU4BvBplgw/view",
@@ -86409,7 +86409,9 @@
       },
       "ver": 3
     },
-    "timestamp": 1794977676610
+    "timestamp": 1794977676610,
+    "leaderNote": "",
+    "resolvedBy": "abhinav.b@razorpay.com"
   },
   {
     "requestId": "mwlnf0s7twddlb",
