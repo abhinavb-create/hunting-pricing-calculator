@@ -87422,8 +87422,8 @@
     "fileName": "Flexy Pe-Razorpay-Proposal.pdf",
     "requesterEmail": "anam.imteyaz@razorpay.com",
     "merchantName": "Flexy Pe",
-    "status": "pending",
-    "resolvedAt": "",
+    "status": "approved",
+    "resolvedAt": "2026-11-18T06:19:32.647Z",
     "gmv": 10000000,
     "slabLabel": "75L - 5Cr",
     "driveLink": "https://drive.google.com/file/d/1-iB811eycIs3o4MF_AsZvq0CK5wUixBJ/view",
@@ -87919,6 +87919,8 @@
       },
       "ver": 3
     },
-    "timestamp": 1794981948846
+    "timestamp": 1794981948846,
+    "leaderNote": "",
+    "resolvedBy": "abhinav.b@razorpay.com"
   }
 ]
