@@ -1957,5 +1957,17 @@
     "teamGroup": "Competition Hunting",
     "isSettlementRevamp": false,
     "timestamp": "2026-11-18T06:07:32.673Z"
+  },
+  {
+    "requestId": "fa_mwlr1voe5mqn00",
+    "merchantName": "Unknown Merchant",
+    "requesterEmail": "abhinav.b@razorpay.com",
+    "versionIds": "dl_1794977774782",
+    "notes": "",
+    "status": "pending",
+    "resolvedAt": "",
+    "teamGroup": "",
+    "isSettlementRevamp": false,
+    "timestamp": "2026-11-18T06:37:51.903Z"
   }
 ]
