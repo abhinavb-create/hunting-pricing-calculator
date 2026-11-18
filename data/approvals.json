@@ -86418,8 +86418,8 @@
     "fileName": "PAI COMFORTS-TtFLkMXFuUP15n-Razorpay-Proposal.pdf",
     "requesterEmail": "kirubhavani.b@razorpay.com",
     "merchantName": "PAI COMFORTS",
-    "status": "pending",
-    "resolvedAt": "",
+    "status": "rejected",
+    "resolvedAt": "2026-11-18T06:39:44.985Z",
     "gmv": 12000000,
     "slabLabel": "75L - 5Cr",
     "driveLink": "https://drive.google.com/file/d/1qswc2px-_5L54WqLD-SZNU03A_aikaGB/view",
@@ -86915,7 +86915,9 @@
       },
       "ver": 3
     },
-    "timestamp": 1794977781799
+    "timestamp": 1794977781799,
+    "leaderNote": "",
+    "resolvedBy": "abhinav.b@razorpay.com"
   },
   {
     "requestId": "mwlngizik0aq73",
