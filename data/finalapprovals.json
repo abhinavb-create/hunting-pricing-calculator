@@ -1993,5 +1993,17 @@
     "teamGroup": "Competition Hunting",
     "isSettlementRevamp": false,
     "timestamp": "2026-11-18T13:17:55.431Z"
+  },
+  {
+    "requestId": "fa_mwne7adfk1d5c5",
+    "merchantName": "Ashok Jewellers",
+    "requesterEmail": "arpit.shukla@razorpay.com",
+    "versionIds": "dl_1795082452791",
+    "notes": "",
+    "status": "pending",
+    "resolvedAt": "",
+    "teamGroup": "Competition Hunting",
+    "isSettlementRevamp": false,
+    "timestamp": "2026-11-19T10:13:41.573Z"
   }
 ]
