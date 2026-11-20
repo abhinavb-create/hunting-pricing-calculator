@@ -89450,8 +89450,8 @@
     "fileName": "Royale Collections-MAp5wjlRxUMg87-Razorpay-Proposal.pdf",
     "requesterEmail": "sainath.vishnugauri@razorpay.com",
     "merchantName": "Royale Collections",
-    "status": "pending",
-    "resolvedAt": "",
+    "status": "approved",
+    "resolvedAt": "2026-11-20T07:55:18.862Z",
     "gmv": 100000000,
     "slabLabel": "5Cr & Above",
     "driveLink": "https://drive.google.com/file/d/1h3yD7ODJbMgn3Cbyk3Ghnh7KhGplLLSL/view",
@@ -89947,6 +89947,8 @@
       },
       "ver": 3
     },
-    "timestamp": 1795155679925
+    "timestamp": 1795155679925,
+    "leaderNote": "",
+    "resolvedBy": "suman.dash@razorpay.com"
   }
 ]
