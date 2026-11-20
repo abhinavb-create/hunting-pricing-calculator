@@ -88944,8 +88944,8 @@
     "fileName": "Sambandh Matrimony-SrDV11CR72fKCd-Razorpay-Proposal.pdf",
     "requesterEmail": "kirubhavani.b@razorpay.com",
     "merchantName": "Sambandh Matrimony",
-    "status": "pending",
-    "resolvedAt": "",
+    "status": "approved",
+    "resolvedAt": "2026-11-20T06:25:23.922Z",
     "gmv": 1000000,
     "slabLabel": "Upto 25 Lakhs",
     "driveLink": "https://drive.google.com/file/d/1LE-nd57BawOYupyXZxhtqEspXvOLRYb6/view",
@@ -89441,7 +89441,9 @@
       },
       "ver": 3
     },
-    "timestamp": 1795155634683
+    "timestamp": 1795155634683,
+    "leaderNote": "",
+    "resolvedBy": "suman.dash@razorpay.com"
   },
   {
     "requestId": "mwolbzk6ejrywu",
