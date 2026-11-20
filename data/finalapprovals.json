@@ -2005,5 +2005,17 @@
     "teamGroup": "Competition Hunting",
     "isSettlementRevamp": false,
     "timestamp": "2026-11-19T10:13:41.573Z"
+  },
+  {
+    "requestId": "fa_mwojwyezznzdpi",
+    "merchantName": "KARZ AND DOLLS",
+    "requesterEmail": "arpit.shukla@razorpay.com",
+    "versionIds": "ap_mvt5y9hnh1205v",
+    "notes": "",
+    "status": "pending",
+    "resolvedAt": "",
+    "teamGroup": "Competition Hunting",
+    "isSettlementRevamp": false,
+    "timestamp": "2026-11-20T05:41:23.388Z"
   }
 ]
