@@ -2029,5 +2029,17 @@
     "teamGroup": "Shopify Hunting",
     "isSettlementRevamp": false,
     "timestamp": "2026-11-23T07:16:00.022Z"
+  },
+  {
+    "requestId": "fa_mwt67sivl5z586",
+    "merchantName": "GURU ORANGES AFTERTECH PRIVATE LIMITED",
+    "requesterEmail": "arpit.shukla@razorpay.com",
+    "versionIds": "dl_1794995111485",
+    "notes": "",
+    "status": "pending",
+    "resolvedAt": "",
+    "teamGroup": "Competition Hunting",
+    "isSettlementRevamp": false,
+    "timestamp": "2026-11-23T11:16:45.224Z"
   }
 ]
