@@ -90462,8 +90462,8 @@
     "fileName": "StudioBackdrops.com-9yfbZMq4dlEJO1-Razorpay-Proposal.pdf",
     "requesterEmail": "sainath.vishnugauri@razorpay.com",
     "merchantName": "StudioBackdrops.com",
-    "status": "pending",
-    "resolvedAt": "",
+    "status": "approved",
+    "resolvedAt": "2026-11-24T11:10:40.236Z",
     "gmv": 1750000,
     "slabLabel": "Upto 25 Lakhs",
     "driveLink": "https://drive.google.com/file/d/1LmTLF8YC3j5w-Dmf_mDZSqPjWaY2duLN/view",
@@ -90959,7 +90959,9 @@
       },
       "ver": 3
     },
-    "timestamp": 1795436459958
+    "timestamp": 1795436459958,
+    "leaderNote": "",
+    "resolvedBy": "suman.dash@razorpay.com"
   },
   {
     "requestId": "mwuadm9uro1d64",
