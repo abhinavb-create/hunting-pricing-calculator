@@ -90966,8 +90966,8 @@
     "fileName": "NEXTDOOR LIVINN SPACE SOLUTIONS PRIVATE LIMITED-OnEHcaUmYPuKS5, Ri1qhSSRHuC3Dy, Ri2XgA9iZdeqPc-Razorpay-Proposal.pdf",
     "requesterEmail": "milind.singhbora@razorpay.com",
     "merchantName": "NEXTDOOR LIVINN SPACE SOLUTIONS PRIVATE LIMITED",
-    "status": "pending",
-    "resolvedAt": "",
+    "status": "approved",
+    "resolvedAt": "2026-11-24T06:02:50.804Z",
     "gmv": 4000000,
     "slabLabel": "25L - 75L",
     "driveLink": "https://drive.google.com/file/d/1AUsftCoKBO7qz6hOBl2wD_3tMuYp5xQJ/view",
@@ -91463,6 +91463,8 @@
       },
       "ver": 3
     },
-    "timestamp": 1795500095000
+    "timestamp": 1795500095000,
+    "leaderNote": "",
+    "resolvedBy": "suman.dash@razorpay.com"
   }
 ]
