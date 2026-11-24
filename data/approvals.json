@@ -91472,8 +91472,8 @@
     "fileName": "Kusumvandan-TuXIbNvKq0LzGD-Razorpay-Proposal.pdf",
     "requesterEmail": "nishi.agarwal@razorpay.com",
     "merchantName": "Kusumvandan",
-    "status": "pending",
-    "resolvedAt": "",
+    "status": "approved",
+    "resolvedAt": "2026-11-24T07:44:56.859Z",
     "gmv": 3000000,
     "slabLabel": "25L - 75L",
     "driveLink": "https://drive.google.com/file/d/1Tt_F3oVbtxO78z-YW7ZSRBRotauTVow8/view",
@@ -91969,6 +91969,8 @@
       },
       "ver": 3
     },
-    "timestamp": 1795506237382
+    "timestamp": 1795506237382,
+    "leaderNote": "",
+    "resolvedBy": "suman.dash@razorpay.com"
   }
 ]
