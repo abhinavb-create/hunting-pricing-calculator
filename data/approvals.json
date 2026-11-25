@@ -92486,8 +92486,8 @@
     "fileName": "Jaypee Food and Agro-R2zb9fIbUpjBwW-Razorpay-Proposal.pdf",
     "requesterEmail": "prerna.kumari@razorpay.com",
     "merchantName": "Jaypee Food and Agro",
-    "status": "pending",
-    "resolvedAt": "",
+    "status": "approved",
+    "resolvedAt": "2026-11-25T08:08:22.355Z",
     "gmv": 1000000,
     "slabLabel": "Upto 25 Lakhs",
     "driveLink": "https://drive.google.com/file/d/1nowE-jLa-3Tan32npaZSQMexWwRBkPwO/view",
@@ -92983,6 +92983,8 @@
       },
       "ver": 3
     },
-    "timestamp": 1795593898043
+    "timestamp": 1795593898043,
+    "leaderNote": "",
+    "resolvedBy": "suman.dash@razorpay.com"
   }
 ]
