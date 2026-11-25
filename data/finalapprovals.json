@@ -2053,5 +2053,17 @@
     "teamGroup": "Competition Hunting",
     "isSettlementRevamp": false,
     "timestamp": "2026-11-25T06:46:52.222Z"
+  },
+  {
+    "requestId": "fa_mwvxbc52bwwvxm",
+    "merchantName": "NEXTDOOR LIVINN SPACE SOLUTIONS PRIVATE LIMITED",
+    "requesterEmail": "milind.singhbora@razorpay.com",
+    "versionIds": "ap_mwuadm9uro1d64",
+    "notes": "OnEHcaUmYPuKS5, Ri1qhSSRHuC3Dy and Ri2XgA9iZdeqPc",
+    "status": "pending",
+    "resolvedAt": "",
+    "teamGroup": "Competition Hunting",
+    "isSettlementRevamp": true,
+    "timestamp": "2026-11-25T09:30:52.599Z"
   }
 ]
