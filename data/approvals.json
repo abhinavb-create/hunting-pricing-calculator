@@ -91980,8 +91980,8 @@
     "fileName": "Nuvoretail Enlytical-T3PBXdFPsmblfc-Razorpay-Proposal.pdf",
     "requesterEmail": "nishi.agarwal@razorpay.com",
     "merchantName": "Nuvoretail Enlytical",
-    "status": "pending",
-    "resolvedAt": "",
+    "status": "approved",
+    "resolvedAt": "2026-11-25T06:38:24.389Z",
     "gmv": 5000000,
     "slabLabel": "25L - 75L",
     "driveLink": "https://drive.google.com/file/d/1HgT6cLvg5DUIoOEGLvZHlFOhP75CplQB/view",
@@ -92477,6 +92477,8 @@
       },
       "ver": 3
     },
-    "timestamp": 1795588180101
+    "timestamp": 1795588180101,
+    "leaderNote": "",
+    "resolvedBy": "suman.dash@razorpay.com"
   }
 ]
