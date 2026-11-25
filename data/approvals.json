@@ -92992,8 +92992,8 @@
     "fileName": "IIT Madras-Razorpay-Proposal.pdf",
     "requesterEmail": "kirubhavani.b@razorpay.com",
     "merchantName": "IIT Madras",
-    "status": "pending",
-    "resolvedAt": "",
+    "status": "approved",
+    "resolvedAt": "2026-11-25T09:39:11.410Z",
     "gmv": 2000000,
     "slabLabel": "Upto 25 Lakhs",
     "driveLink": "https://drive.google.com/file/d/154XvS1nMVpA7gi6Cb8H1Mym9l2sbRCZP/view",
@@ -93489,6 +93489,8 @@
       },
       "ver": 3
     },
-    "timestamp": 1795599465722
+    "timestamp": 1795599465722,
+    "leaderNote": "",
+    "resolvedBy": "suman.dash@razorpay.com"
   }
 ]
