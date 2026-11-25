@@ -2041,5 +2041,17 @@
     "teamGroup": "Competition Hunting",
     "isSettlementRevamp": false,
     "timestamp": "2026-11-23T11:16:45.224Z"
+  },
+  {
+    "requestId": "fa_mwvrgf99u41v6m",
+    "merchantName": "GLOBAL VENTURES",
+    "requesterEmail": "prerna.kumari@razorpay.com",
+    "versionIds": "dl_1795505244818",
+    "notes": "",
+    "status": "pending",
+    "resolvedAt": "",
+    "teamGroup": "Competition Hunting",
+    "isSettlementRevamp": false,
+    "timestamp": "2026-11-25T06:46:52.222Z"
   }
 ]
