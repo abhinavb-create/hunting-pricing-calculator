@@ -95016,8 +95016,8 @@
     "fileName": "Sila Retail-FMaEpflAo6iFHJ-Razorpay-Proposal.pdf",
     "requesterEmail": "sainath.vishnugauri@razorpay.com",
     "merchantName": "Sila Retail",
-    "status": "pending",
-    "resolvedAt": "",
+    "status": "approved",
+    "resolvedAt": "2026-11-26T11:23:10.443Z",
     "gmv": 15000000,
     "slabLabel": "75L - 5Cr",
     "driveLink": "https://drive.google.com/file/d/1fVEMUQRpyUObfqtwiuyBfRoOuczbeMI4/view",
@@ -95513,6 +95513,8 @@
       },
       "ver": 3
     },
-    "timestamp": 1795692105957
+    "timestamp": 1795692105957,
+    "leaderNote": "",
+    "resolvedBy": "suman.dash@razorpay.com"
   }
 ]
