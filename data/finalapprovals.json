@@ -2077,5 +2077,17 @@
     "teamGroup": "Competition Hunting",
     "isSettlementRevamp": false,
     "timestamp": "2026-11-26T10:53:38.100Z"
+  },
+  {
+    "requestId": "fa_mwxfq9qfw073ct",
+    "merchantName": "4Closure",
+    "requesterEmail": "arpit.shukla@razorpay.com",
+    "versionIds": "ap_mwxamrj6c59hdl",
+    "notes": "",
+    "status": "pending",
+    "resolvedAt": "",
+    "teamGroup": "Competition Hunting",
+    "isSettlementRevamp": false,
+    "timestamp": "2026-11-26T10:54:08.583Z"
   }
 ]
