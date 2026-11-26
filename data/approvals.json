@@ -94510,8 +94510,8 @@
     "fileName": "TERRAMOUNT TOURISM WORLD PRIVATE LIMITED-Razorpay-Proposal.pdf",
     "requesterEmail": "suman.dash@razorpay.com",
     "merchantName": "TERRAMOUNT TOURISM WORLD PRIVATE LIMITED",
-    "status": "pending",
-    "resolvedAt": "",
+    "status": "approved",
+    "resolvedAt": "2026-11-26T11:08:17.835Z",
     "gmv": 10000000,
     "slabLabel": "75L - 5Cr",
     "driveLink": "https://drive.google.com/file/d/1dSQWB-Mh9UHALc_Rch9-3Te_yx0YtAc7/view",
@@ -95007,6 +95007,8 @@
       },
       "ver": 3
     },
-    "timestamp": 1795691229777
+    "timestamp": 1795691229777,
+    "leaderNote": "",
+    "resolvedBy": "suman.dash@razorpay.com"
   }
 ]
