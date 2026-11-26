@@ -93498,8 +93498,8 @@
     "fileName": "4Closure-9QGtGHmInAEm8R-Razorpay-Proposal.pdf",
     "requesterEmail": "arpit.shukla@razorpay.com",
     "merchantName": "4Closure",
-    "status": "pending",
-    "resolvedAt": "",
+    "status": "rejected",
+    "resolvedAt": "2026-11-26T09:17:47.918Z",
     "gmv": 2500000,
     "slabLabel": "Upto 25 Lakhs",
     "driveLink": "https://drive.google.com/file/d/1CVlQW2oV8w--dEW7Stu0YuRwAmcbABwN/view",
@@ -93995,7 +93995,9 @@
       },
       "ver": 3
     },
-    "timestamp": 1795678443692
+    "timestamp": 1795678443692,
+    "leaderNote": "",
+    "resolvedBy": "suman.dash@razorpay.com"
   },
   {
     "requestId": "mwxamrj6c59hdl",
